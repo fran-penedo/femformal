@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.optimize import linprog
 
 class System(object):
 
@@ -12,12 +13,12 @@ class System(object):
 
     def subsystem(self, indices):
         i = np.array(indices)
-        A = self.A[i[:, None], i]
+        A = self.A[np.ix_(i, i)]
         b = self.b[i]
 
         j = np.setdiff1d(np.nonzero(self.A[i, :])[1], i)
         j = j[(j >= 0) & (j < self.n)]
-        C = self.A[i[:,None], j]
+        C = self.A[np.ix_(i, j)]
 
         return System(A, b, C)
 
@@ -28,3 +29,17 @@ class System(object):
     @property
     def m(self):
         return self.C.shape[1]
+
+
+def is_facet_separating(self, A, b, facet, dim):
+    A_j = np.delete(A[dim], dim)
+    b = - b[dim] - A[dim, dim] * facet[dim][0]
+    R = np.delete(facet, dim, 0)
+    return rect_in_semispace(R, A_j, b)
+
+def rect_in_semispace(R, a, b):
+    if np.isclose(a, 0):
+        return b >= 0
+    else:
+        res = linprog(-a, a[None], b + 1, bounds=R)
+        return - res.fun <= b

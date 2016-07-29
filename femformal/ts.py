@@ -13,7 +13,7 @@ class TS(nx.DiGraph):
         ps = Popen(NUSMV, stdin=PIPE, stdout=PIPE)
         out = ps.communicate(self.toNUSMV())[0]
         try:
-            return parse_nusmv(out)
+            return _parse_nusmv(out)
         except:
             print self.toNUSMV()
             raise Exception()
@@ -22,10 +22,10 @@ class TS(nx.DiGraph):
         out = StringIO()
         print >>out, 'MODULE main'
         print >>out, 'VAR'
-        print >>out, 'state : {};'.format(nusmv_statelist(self.nodes()))
+        print >>out, 'state : {};'.format(_nusmv_statelist(self.nodes()))
         print >>out, 'ASSIGN'
         print >>out, 'init(state) := {};'.format(
-            nusmv_statelist([self.nodes()[i] for i in self._init]))
+            _nusmv_statelist([self.nodes()[i] for i in self._init]))
         print >>out, 'next(state) := '
         print >>out, 'case'
 
@@ -34,7 +34,7 @@ class TS(nx.DiGraph):
             if len(succ) > 0:
                 print >>out, 'state = {} : {};'.format(
                     "s" + node,
-                    nusmv_statelist(succ))
+                    _nusmv_statelist(succ))
 
         print >>out, 'TRUE : state;'
         print >>out, 'esac;'
@@ -45,10 +45,10 @@ class TS(nx.DiGraph):
         out.close()
         return s
 
-def nusmv_statelist(l):
+def _nusmv_statelist(l):
     return '\{{}\}'.format(', '.join(map(lambda x: "s" + x, l)))
 
-def parse_nusmv(out):
+def _parse_nusmv(out):
     if out.find('true') != -1:
         return True, []
     elif out.find('Parser error') != -1:
