@@ -4,6 +4,14 @@ from scipy.optimize import linprog
 class System(object):
 
     def __init__(self, A, b, C=None):
+        """
+        Creates the system $\dot{x} = A x + C w + b$
+
+        Args:
+            A: System matrix A
+            b: Affine term b
+            C: Perturbation matrix C
+        """
         self.A = np.array(A)
         self.b = np.array(b)
         if C is not None:
@@ -31,7 +39,7 @@ class System(object):
         return self.C.shape[1]
 
 
-def is_facet_separating(self, A, b, facet, dim):
+def is_facet_separating(A, b, facet, dim):
     A_j = np.delete(A[dim], dim)
     b = - b[dim] - A[dim, dim] * facet[dim][0]
     R = np.delete(facet, dim, 0)

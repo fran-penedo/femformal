@@ -23,3 +23,17 @@ def system_test():
     np.testing.assert_array_equal(Ss.C, Ci)
 
 
+def reach_test():
+    A = np.array([[-2, 1], [1, -2]])
+    b = np.zeros((2, 1))
+    R1 = np.array([[-1, 1], [-1, 1]])
+    for i in range(2):
+        facet = R1.copy()
+        facet[i, 0] = facet[i, 1]
+        assert s.is_facet_separating(A, b, facet, i)
+        facet[i, 1] = facet[i, 0]
+        assert s.is_facet_separating(A, b, facet, i)
+
+    facet = np.array([[-1, 1], [-1, -0.1]])
+    assert not s.is_facet_separating(A, b, facet, 0)
+
