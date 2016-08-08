@@ -1,6 +1,9 @@
 import numpy as np
 from scipy.optimize import linprog
 
+import logging
+logger = logging.getLogger('FEMFORMAL')
+
 class System(object):
 
     def __init__(self, A, b, C=None):
@@ -39,11 +42,15 @@ class System(object):
         return self.C.shape[1]
 
 
-def is_facet_separating(A, b, C, facet, dim, dist_bounds):
-    A_j = np.delete(A[dim], dim)
+def is_facet_separating(system, facet, normal, dim, dist_bounds):
+    return _is_facet_separating(system.A, system.b, system.C,
+                                facet, normal, dim, dist_bounds)
+
+def _is_facet_separating(A, b, C, facet, normal, dim, dist_bounds):
+    A_j = np.delete(A[dim], dim) * normal
     if len(C) > 0:
-        A_j = np.hstack([A_j, C[dim]])
-    b = - b[dim] - A[dim, dim] * facet[dim][0]
+        A_j = np.hstack([A_j, normal * C[dim]])
+    b = (- b[dim] - A[dim, dim] * facet[dim][0]) * normal
     R = np.delete(facet, dim, 0)
     if len(C) > 0:
         R = np.vstack([R, dist_bounds])

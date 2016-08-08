@@ -1,6 +1,9 @@
 import femformal.system as s
 import numpy as np
 
+import logging
+logger = logging.getLogger('FEMFORMAL')
+
 def system_test():
     A = np.eye(5,5)*4 + np.eye(5,5,k=-1)*3 + np.eye(5,5,k=1)*2
     b = np.array([1,2,3,4,5])
@@ -27,15 +30,28 @@ def reach_test():
     A = np.array([[-2, 1], [1, -2]])
     b = np.zeros((2, 1))
     C = np.empty(shape=(0,0))
+    system = s.System(A, b, C)
     dist_bounds = np.empty(shape=(0,0))
     R1 = np.array([[-1, 1], [-1, 1]])
     for i in range(2):
+        # logger.debug(i)
         facet = R1.copy()
         facet[i, 0] = facet[i, 1]
-        assert s.is_facet_separating(A, b, C, facet, i, dist_bounds)
+        assert s.is_facet_separating(system, facet, 1, i, dist_bounds)
+        facet = R1.copy()
         facet[i, 1] = facet[i, 0]
-        assert s.is_facet_separating(A, b, C, facet, i, dist_bounds)
+        # logger.debug(facet)
+        assert s.is_facet_separating(system, facet, -1, i, dist_bounds)
 
-    facet = np.array([[-1, 1], [-1, -0.1]])
-    assert not s.is_facet_separating(A, b, C, facet, 0, dist_bounds)
+    facet = np.array([[-1, 1], [-0.1, -0.1]])
+    assert not s.is_facet_separating(system, facet, 1, 0, dist_bounds)
+
+def reach_facet_test():
+    A = np.array([[-2, 1], [1, -2]])
+    b = np.zeros((2, 1))
+    C = np.empty(shape=(0,0))
+    system = s.System(A, b, C)
+    dist_bounds = np.empty(shape=(0,0))
+    R1 = np.array([[-1, -1], [-1, 1]])
+    assert s.is_facet_separating(system, R1, -1, 0, dist_bounds)
 
