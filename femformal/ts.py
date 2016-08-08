@@ -1,4 +1,11 @@
 import networkx as nx
+import numpy as np
+import itertools as it
+from util import state_label
+from femformal.system import is_facet_separating
+
+import logging
+logger = logging.getLogger('FEMFORMAL')
 
 from os import path
 
@@ -7,7 +14,7 @@ NUSMV = path.join(path.dirname(__file__), 'nusmv', 'NuSMV')
 class TS(nx.DiGraph):
 
     def __init__(self):
-        nx.Graph.__init__(self)
+        nx.DiGraph.__init__(self)
 
     def modelcheck(self):
         ps = Popen(NUSMV, stdin=PIPE, stdout=PIPE)
@@ -44,6 +51,40 @@ class TS(nx.DiGraph):
         s = out.getvalue()
         out.close()
         return s
+
+
+def abstract(system, partition, pert_bounds):
+    if len(partition) != system.m + system.n:
+        raise Exception("System dimensions do not agree with partition")
+
+    indices = [list(range(len(p) - 1)) for p in partition]
+    states = list(it.product(*indices))
+    nodes = [(state_label(s),
+              {'rect': np.array([[p[i], p[i+1]] for p, i in zip(partition, s)]),
+               'index': s})
+             for s in states]
+    ts = TS()
+    ts.add_nodes_from(nodes)
+    logger.debug(ts.nodes(data=True))
+    for s in states:
+        for i in range(system.n):
+            if s[i] > 0:
+                R = ts.node[state_label(s)]['rect'].copy()
+                R[i][1] = R[i][0]
+                if not is_facet_separating(system, R, -1, i, pert_bounds):
+                    nex = list(s)
+                    nex[i] -= 1
+                    ts.add_edge(state_label(s), state_label(nex))
+
+            if s[i] < len(partition[i]) - 1:
+                R = ts.node[state_label(s)]['rect'].copy()
+                R[i][0] = R[i][1]
+                if not is_facet_separating(system, R, 1, i, pert_bounds):
+                    nex = list(s)
+                    nex[i] += 1
+                    ts.add_edge(state_label(s), state_label(nex))
+    return ts
+
 
 def _nusmv_statelist(l):
     return '\{{}\}'.format(', '.join(map(lambda x: "s" + x, l)))
