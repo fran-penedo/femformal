@@ -55,3 +55,6 @@ def reach_facet_test():
     R1 = np.array([[-1, -1], [-1, 1]])
     assert s.is_facet_separating(system, R1, -1, 0, dist_bounds)
 
+    R2 = np.array([[-1, -1], [1, 2]])
+    assert not s.is_facet_separating(system, R2, 1, 0, dist_bounds)
+

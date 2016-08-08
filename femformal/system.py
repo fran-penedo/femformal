@@ -61,4 +61,7 @@ def rect_in_semispace(R, a, b):
         return b >= 0
     else:
         res = linprog(-a, a[None], b + 1, bounds=R)
-        return - res.fun <= b
+        if res.status == 2:
+            return False
+        else:
+            return - res.fun <= b
