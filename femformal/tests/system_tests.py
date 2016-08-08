@@ -26,14 +26,16 @@ def system_test():
 def reach_test():
     A = np.array([[-2, 1], [1, -2]])
     b = np.zeros((2, 1))
+    C = np.empty(shape=(0,0))
+    dist_bounds = np.empty(shape=(0,0))
     R1 = np.array([[-1, 1], [-1, 1]])
     for i in range(2):
         facet = R1.copy()
         facet[i, 0] = facet[i, 1]
-        assert s.is_facet_separating(A, b, facet, i)
+        assert s.is_facet_separating(A, b, C, facet, i, dist_bounds)
         facet[i, 1] = facet[i, 0]
-        assert s.is_facet_separating(A, b, facet, i)
+        assert s.is_facet_separating(A, b, C, facet, i, dist_bounds)
 
     facet = np.array([[-1, 1], [-1, -0.1]])
-    assert not s.is_facet_separating(A, b, facet, 0)
+    assert not s.is_facet_separating(A, b, C, facet, 0, dist_bounds)
 

@@ -39,10 +39,14 @@ class System(object):
         return self.C.shape[1]
 
 
-def is_facet_separating(A, b, facet, dim):
+def is_facet_separating(A, b, C, facet, dim, dist_bounds):
     A_j = np.delete(A[dim], dim)
+    if len(C) > 0:
+        A_j = np.hstack([A_j, C[dim]])
     b = - b[dim] - A[dim, dim] * facet[dim][0]
     R = np.delete(facet, dim, 0)
+    if len(C) > 0:
+        R = np.vstack([R, dist_bounds])
     return rect_in_semispace(R, A_j, b)
 
 def rect_in_semispace(R, a, b):
