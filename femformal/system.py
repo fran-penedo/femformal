@@ -27,11 +27,18 @@ class System(object):
         A = self.A[np.ix_(i, i)]
         b = self.b[i]
 
-        j = np.setdiff1d(np.nonzero(self.A[i, :])[1], i)
-        j = j[(j >= 0) & (j < self.n)]
+        j = self._pert_indices(i)
         C = self.A[np.ix_(i, j)]
 
         return System(A, b, C)
+
+    def pert_indices(self, indices):
+        return self._pert_indices(np.array(indices))
+
+    def _pert_indices(self, i):
+        j = np.setdiff1d(np.nonzero(self.A[i, :])[1], i)
+        j = j[(j >= 0) & (j < self.n)]
+        return j
 
     @property
     def n(self):

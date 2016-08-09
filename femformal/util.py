@@ -12,8 +12,10 @@ logger.propagate = False
 logger.setLevel(logging.DEBUG)
 
 def state_label(l):
-    return 's' + ''.join([str(x) for x in l])
+    return 's' + '_'.join([str(x) for x in l])
 
+def label_state(l):
+    return [int(x) for x in l[1:].split('_')]
 
 def draw_ts(ts):
     nx.draw_networkx(ts)
