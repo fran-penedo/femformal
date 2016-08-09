@@ -65,7 +65,6 @@ def abstract(system, partition, pert_bounds):
              for s in states]
     ts = TS()
     ts.add_nodes_from(nodes)
-    logger.debug(ts.nodes(data=True))
     for s in states:
         for i in range(system.n):
             if s[i] > 0:
@@ -83,6 +82,35 @@ def abstract(system, partition, pert_bounds):
                     nex = list(s)
                     nex[i] += 1
                     ts.add_edge(state_label(s), state_label(nex))
+    ws = np.array([[p[0], p[len(p) - 1]] for p in partition])
+    for i in range(system.n):
+        R = ws.copy()
+        R[i][1] = R[i][0]
+        R[i][0] = -np.infty
+        index = [0 for j in range(system.n)]
+        index[i] = -1
+        ts.add_node(state_label(index), rect=R, index=index)
+        for s in it.product(*[list(range(len(p) - 1))
+                              for p in (partition[:i] + [[0, 1]] +
+                                        partition[i+1:])]):
+            R = ts.node[state_label(s)]['rect'].copy()
+            R[i][1] = R[i][0]
+            if not is_facet_separating(system, R, -1, i, pert_bounds):
+                ts.add_edge(state_label(s), state_label(index))
+        R = ws.copy()
+        R[i][0] = R[i][1]
+        R[i][1] = np.infty
+        index = [0 for j in range(system.n)]
+        index[i] = len(partition[i]) - 1
+        ts.add_node(state_label(index), rect=R, index=index)
+        for s in it.product(*([list(range(len(p) - 1)) for p in partition[:i]] +
+                              [[index[i] - 1]] +
+                              [list(range(len(p) - 1)) for p in partition[i+1:]])):
+            R = ts.node[state_label(s)]['rect'].copy()
+            R[i][0] = R[i][1]
+            if not is_facet_separating(system, R, 1, i, pert_bounds):
+                ts.add_edge(state_label(s), state_label(index))
+
     return ts
 
 
