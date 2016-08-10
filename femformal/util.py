@@ -17,6 +17,21 @@ def state_label(l):
 def label_state(l):
     return [int(x) for x in l[1:].split('_')]
 
+def subst_spec_labels(spec, regions):
+    res = spec
+    for k, v in regions.items():
+        res = res.replace(k, state_label(v))
+    return res
+
+def project_list(l, indices):
+    return [l[i] for i in indices]
+
+def project_regions(regions, indices):
+    ret = {}
+    for key, value in regions.items():
+        ret[key] = project_list(value, indices)
+    return ret
+
 def draw_ts(ts):
     nx.draw_networkx(ts)
     plt.show()

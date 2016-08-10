@@ -1,7 +1,13 @@
 import networkx as nx
 import numpy as np
 import itertools as it
-from util import state_label
+from subprocess import Popen, PIPE
+import re
+try:
+    from cStringIO import StringIO
+except:
+    from StringIO import StringIO
+from femformal.util import state_label, subst_spec_labels
 from femformal.system import is_facet_separating
 
 import logging
@@ -16,37 +22,37 @@ class TS(nx.DiGraph):
     def __init__(self):
         nx.DiGraph.__init__(self)
 
-    def modelcheck(self):
+    def modelcheck(self, spec, regions, init):
         ps = Popen(NUSMV, stdin=PIPE, stdout=PIPE)
-        out = ps.communicate(self.toNUSMV())[0]
+        out = ps.communicate(self.toNUSMV(spec, regions, init))[0]
         try:
             return _parse_nusmv(out)
-        except:
-            print self.toNUSMV()
-            raise Exception()
+        except ParserException:
+            print self.toNUSMV(spec, regions, init)
+            raise ParserExceptionException()
 
-    def toNUSMV(self):
+    def toNUSMV(self, spec, regions, init):
         out = StringIO()
         print >>out, 'MODULE main'
         print >>out, 'VAR'
         print >>out, 'state : {};'.format(_nusmv_statelist(self.nodes()))
         print >>out, 'ASSIGN'
         print >>out, 'init(state) := {};'.format(
-            _nusmv_statelist([self.nodes()[i] for i in self._init]))
+            _nusmv_statelist([self.nodes()[i] for i in init]))
         print >>out, 'next(state) := '
         print >>out, 'case'
 
         for node in self.nodes():
-            succ = G.successors(node)
+            succ = self.successors(node)
             if len(succ) > 0:
                 print >>out, 'state = {} : {};'.format(
-                    "s" + node,
+                    node,
                     _nusmv_statelist(succ))
 
         print >>out, 'TRUE : state;'
         print >>out, 'esac;'
-        if self._ltl is not None:
-            print >>out, 'LTLSPEC {}'.format(self._ltl)
+        if spec is not None:
+            print >>out, 'LTLSPEC {}'.format(subst_spec_labels(spec, regions))
 
         s = out.getvalue()
         out.close()
@@ -115,14 +121,14 @@ def abstract(system, partition, pert_bounds):
 
 
 def _nusmv_statelist(l):
-    return '\{{}\}'.format(', '.join(map(lambda x: "s" + x, l)))
+    return '{{{}}}'.format(', '.join(l))
 
 def _parse_nusmv(out):
     if out.find('true') != -1:
         return True, []
     elif out.find('Parser error') != -1:
         print out
-        raise Exception()
+        raise ParserException()
     else:
         lines = out.splitlines()
         start = next(i for i in range(len(lines))
@@ -139,4 +145,10 @@ def _parse_nusmv(out):
         trace = [(x, y) for x, y in zip(chain, chain[1:])]
 
         return False, trace
+
+class ParserException(Exception):
+
+    def __init__(self):
+        Exception.__init__(self)
+
 

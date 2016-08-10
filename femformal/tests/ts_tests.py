@@ -32,4 +32,23 @@ def abstract2_test():
     ts = t.abstract(system, partition, dist_bounds)
     logger.debug(ts.nodes(data=True))
 
-    draw_ts(ts)
+    # draw_ts(ts)
+
+
+def modelcheck_test():
+    ts = t.TS()
+    ts.add_nodes_from(['s1_1', 's2_2', 's3_3'])
+    ts.add_edge('s1_1', 's2_2')
+    ts.add_edge('s2_2', 's3_3')
+    ts.add_edge('s3_3', 's3_3')
+    spec = 'F G state = A'
+    regions = {'A': [3, 3], 'B': [2, 2]}
+    init = [0]
+
+    sat, p = ts.modelcheck(spec, regions, init)
+    assert sat == True
+
+    spec = 'F G state = B'
+    sat, p = ts.modelcheck(spec, regions, init)
+    assert sat == False
+
