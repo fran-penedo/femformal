@@ -22,6 +22,21 @@ class TS(nx.DiGraph):
     def __init__(self):
         nx.DiGraph.__init__(self)
 
+    def add_transition(self, x, y, pert_bounds):
+        xs, ys = label_state(x), label_state(y)
+        xs, ys = long_first(xs, ys)
+        xn = self.node[xs]
+        dim, normal = first_change(xs, ys)
+
+        R = xn['rect'].copy()
+        if normal == -1:
+            R[dim][1] = R[dim][0]
+        else:
+            R[dim][0] = R[dim][1]
+        if not is_facet_separating(xn['system'], R, normal, dim, pert_bounds):
+            ts.add_edge(state_label(xs), state_label(ys))
+
+
     def modelcheck(self, spec, regions, init):
         ps = Popen(NUSMV, stdin=PIPE, stdout=PIPE)
         out = ps.communicate(self.toNUSMV(spec, regions, init))[0]
@@ -67,7 +82,8 @@ def abstract(system, partition, pert_bounds):
     states = list(it.product(*indices))
     nodes = [(state_label(s),
               {'rect': np.array([[p[i], p[i+1]] for p, i in zip(partition, s)]),
-               'index': s})
+               'state': s,
+               'system': system})
              for s in states]
     ts = TS()
     ts.add_nodes_from(nodes)
@@ -95,7 +111,7 @@ def abstract(system, partition, pert_bounds):
         R[i][0] = -np.infty
         index = [0 for j in range(system.n)]
         index[i] = -1
-        ts.add_node(state_label(index), rect=R, index=index)
+        ts.add_node(state_label(index), rect=R, state=index, system=system)
         for s in it.product(*[list(range(len(p) - 1))
                               for p in (partition[:i] + [[0, 1]] +
                                         partition[i+1:])]):
@@ -108,7 +124,7 @@ def abstract(system, partition, pert_bounds):
         R[i][1] = np.infty
         index = [0 for j in range(system.n)]
         index[i] = len(partition[i]) - 1
-        ts.add_node(state_label(index), rect=R, index=index)
+        ts.add_node(state_label(index), rect=R, state=index, system=system)
         for s in it.product(*([list(range(len(p) - 1)) for p in partition[:i]] +
                               [[index[i] - 1]] +
                               [list(range(len(p) - 1)) for p in partition[i+1:]])):
