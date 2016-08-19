@@ -1,8 +1,6 @@
 import networkx as nx
 import numpy as np
 import itertools as it
-from subprocess import Popen, PIPE
-import re
 try:
     from cStringIO import StringIO
 except:
@@ -12,10 +10,6 @@ from femformal.system import is_facet_separating
 
 import logging
 logger = logging.getLogger('FEMFORMAL')
-
-from os import path
-
-NUSMV = path.join(path.dirname(__file__), 'nusmv', 'NuSMV')
 
 class TS(nx.DiGraph):
 
@@ -35,16 +29,6 @@ class TS(nx.DiGraph):
             R[dim][0] = R[dim][1]
         if not is_facet_separating(xn['system'], R, normal, dim, pert_bounds):
             ts.add_edge(state_label(xs), state_label(ys))
-
-
-    def modelcheck(self, spec, regions, init):
-        ps = Popen(NUSMV, stdin=PIPE, stdout=PIPE)
-        out = ps.communicate(self.toNUSMV(spec, regions, init))[0]
-        try:
-            return _parse_nusmv(out)
-        except ParserException:
-            print self.toNUSMV(spec, regions, init)
-            raise ParserExceptionException()
 
     def toNUSMV(self, spec, regions, init):
         out = StringIO()
@@ -73,6 +57,9 @@ class TS(nx.DiGraph):
         out.close()
         return s
 
+
+def _nusmv_statelist(l):
+    return '{{{}}}'.format(', '.join(l))
 
 def abstract(system, partition, pert_bounds):
     if len(partition) != system.m + system.n:
@@ -134,37 +121,5 @@ def abstract(system, partition, pert_bounds):
                 ts.add_edge(state_label(s), state_label(index))
 
     return ts
-
-
-def _nusmv_statelist(l):
-    return '{{{}}}'.format(', '.join(l))
-
-def _parse_nusmv(out):
-    if out.find('true') != -1:
-        return True, []
-    elif out.find('Parser error') != -1:
-        print out
-        raise ParserException()
-    else:
-        lines = out.splitlines()
-        start = next(i for i in range(len(lines))
-                     if lines[i].startswith('Trace Type: Counterexample'))
-        loop = next(i for i in range(len(lines))
-                    if lines[i].startswith('-- Loop starts here'))
-
-        p = re.compile('state = s([0,1]+)')
-        matches = (p.search(line) for line in lines[start:])
-        chain = [m.group(1) for m in matches if m is not None]
-        if loop == len(lines) - 4:
-            chain.append(chain[-1])
-
-        trace = [(x, y) for x, y in zip(chain, chain[1:])]
-
-        return False, trace
-
-class ParserException(Exception):
-
-    def __init__(self):
-        Exception.__init__(self)
 
 
