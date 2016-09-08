@@ -58,3 +58,14 @@ def reach_facet_test():
     R2 = np.array([[-1, -1], [1, 2]])
     assert not s.is_facet_separating(system, R2, 1, 0, dist_bounds)
 
+def region_invariant_test():
+    A = np.array([[-2, 1], [1, -2]])
+    b = np.zeros((2, 1))
+    C = np.empty(shape=(0,0))
+    system = s.System(A, b, C)
+    dist_bounds = np.empty(shape=(0,0))
+    R = np.array([[-1, 1], [-1, 1]])
+    assert s.is_region_invariant(system, R, dist_bounds)
+    R = np.array([[-1, -0.2], [-1, 1]])
+    assert not s.is_region_invariant(system, R, dist_bounds)
+

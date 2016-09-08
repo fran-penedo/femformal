@@ -20,15 +20,21 @@ class TS(nx.DiGraph):
         xs, ys = label_state(x), label_state(y)
         xs, ys = long_first(xs, ys)
         xn = self.node[xs]
-        dim, normal = first_change(xs, ys)
-
         R = xn['rect'].copy()
-        if normal == -1:
-            R[dim][1] = R[dim][0]
+
+        if xs == ys:
+            if is_region_invariant(xn['system'], R, pert_bounds):
+                ts.add_edge(state_label(xs), state_label(xs))
         else:
-            R[dim][0] = R[dim][1]
-        if not is_facet_separating(xn['system'], R, normal, dim, pert_bounds):
-            ts.add_edge(state_label(xs), state_label(ys))
+            dim, normal = first_change(xs, ys)
+
+            if normal == -1:
+                R[dim][1] = R[dim][0]
+            else:
+                R[dim][0] = R[dim][1]
+            if not is_facet_separating(xn['system'], R, normal, dim, pert_bounds):
+                ts.add_edge(state_label(xs), state_label(ys))
+
 
     def toNUSMV(self, spec, regions, init):
         out = StringIO()

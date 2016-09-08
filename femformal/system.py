@@ -49,6 +49,22 @@ class System(object):
         return self.C.shape[1]
 
 
+def is_region_invariant(system, region, dist_bounds):
+    for facet, normal, dim in facets(region):
+        if not is_facet_separating(system, facet, normal, dim, dist_bounds):
+            return False
+
+    return True
+
+def facets(region):
+    for i in range(len(region)):
+        facet = region.copy()
+        facet[i][0] = facet[i][1]
+        yield facet, 1, i
+        facet = region.copy()
+        facet[i][1] = facet[i][0]
+        yield facet, -1, i
+
 def is_facet_separating(system, facet, normal, dim, dist_bounds):
     return _is_facet_separating(system.A, system.b, system.C,
                                 facet, normal, dim, dist_bounds)

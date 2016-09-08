@@ -17,6 +17,16 @@ def state_label(l):
 def label_state(l):
     return [int(x) for x in l[1:].split('_')]
 
+def long_first(a, b):
+    if len(a) > b:
+        return a, b
+    else:
+        return b, a
+
+def first_change(a, b):
+    return next(((i, x[1] - x[0]) for i, x in enumerate(zip(a, b)) if x[0] != x[1]))
+
+
 def subst_spec_labels(spec, regions):
     res = spec
     for k, v in regions.items():

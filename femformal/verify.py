@@ -1,5 +1,5 @@
 import numpy as np
-from ..util import project_list, project_regions, label_state
+from .util import project_list, project_regions, label_state
 
 import logging
 logger = logging.getLogger('FEMFORMAL')
