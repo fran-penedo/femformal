@@ -36,6 +36,9 @@ def subst_spec_labels(spec, regions):
 def project_list(l, indices):
     return [l[i] for i in indices]
 
+def list_extr_points(l):
+    return [[x[0], x[-1]] for x in l]
+
 def project_regions(regions, indices):
     ret = {}
     for key, value in regions.items():

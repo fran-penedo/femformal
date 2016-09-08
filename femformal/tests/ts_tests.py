@@ -7,6 +7,16 @@ from femformal.util import draw_ts
 import logging
 logger = logging.getLogger('FEMFORMAL')
 
+def state_n_test():
+    ts = t.TS()
+    ts.add_nodes_from(['s1_1', 's2_2', 's3_3'])
+    ts.add_edge('s1_1', 's2_2')
+    ts.add_edge('s2_2', 's3_3')
+    ts.add_edge('s3_3', 's3_3')
+
+    n = t.state_n(ts, [2, 2])
+    assert ts.nodes()[n] == 's2_2'
+
 def abstract_test():
     A = np.array([[-2.0, 1.0], [1.0, -2.0]])
     b = np.zeros((2, 1))
@@ -16,7 +26,7 @@ def abstract_test():
     dist_bounds = []
 
     ts = t.abstract(system, partition, dist_bounds)
-    logger.debug(ts.nodes(data=True))
+    # logger.debug(ts.nodes(data=True))
 
     # draw_ts(ts)
 
@@ -30,7 +40,7 @@ def abstract2_test():
     dist_bounds = []
 
     ts = t.abstract(system, partition, dist_bounds)
-    logger.debug(ts.nodes(data=True))
+    # logger.debug(ts.nodes(data=True))
 
     # draw_ts(ts)
 

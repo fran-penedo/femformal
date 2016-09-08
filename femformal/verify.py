@@ -1,32 +1,38 @@
 import numpy as np
-from .util import project_list, project_regions, label_state
+from .util import project_list, project_regions, label_state, list_extr_points
+from .ts import abstract, state_n
+from .modelcheck import check_spec
 
 import logging
 logger = logging.getLogger('FEMFORMAL')
 
 
-def verify(system, partition, regions, spec, depth, **kwargs):
+def verify(system, partition, regions, init_states, spec, depth, **kwargs):
     dims = list(range(system.n))
     while len(dims) > 0:
         d = dims.pop(0)
-        m = modelcheck(system, d, partition, regions, spec, depth)
+        m = modelcheck(system, d, partition, regions, init_states, spec, depth)
         if m.sat:
             dims = [i for i in dims if i not in m.dchecked]
         else:
             return False
+    return True
 
 
-def modelcheck(system, dim, partition, regions, spec, depth):
+def modelcheck(system, dim, partition, regions, init_states, spec, depth):
     indices = [dim]
     subs = system.subsystem(indices)
     p_partition = project_list(partition, indices)
+    p_init_states = [project_list(state, indices) for state in init_states]
     ts = abstract(subs, p_partition,
-                  project_list(partition, system.pert_indices(indices))[[0, -1]])
+                  list_extr_points(project_list(
+                      partition, system.pert_indices(indices))))
+    init = [state_n(ts, state) for state in p_init_states]
     d = 1
     while d <= depth:
-        sat, p = ts.modelcheck(project_regions(regions, indices), spec)
+        sat, p = check_spec(ts, spec, project_regions(regions, indices), init)
         if sat:
-            return ModelcheckResult(True, None)
+            return ModelcheckResult(True, [])
         else:
             # l = random.choice(p)
             # s = label_state(l)
@@ -34,12 +40,15 @@ def modelcheck(system, dim, partition, regions, spec, depth):
             # d = len(s) - 1
             indices += system.pert_indices(indices)
             subs = system.subsystem(indices)
-            p_partition = project(list)
+            p_partition = project_list(partition, indices)
+            p_init_states = [project_list(state, indices) for state in init_states]
             ts = abstract(subs, p_partition,
-                        project_list(partition, system.pert_indices(indices))[[0, -1]])
+                        list_extr_points(project_list(
+                            partition, system.pert_indices(indices))), init)
+            init = [state_n(ts, state) for state in p_init_states]
             d = len(indices)
 
-    return ModelcheckResult(False, None)
+    return ModelcheckResult(False, [])
 
 
 def split_state(ts, state, system, partition, indices, ext_indices):

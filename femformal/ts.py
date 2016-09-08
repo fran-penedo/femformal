@@ -67,8 +67,12 @@ class TS(nx.DiGraph):
 def _nusmv_statelist(l):
     return '{{{}}}'.format(', '.join(l))
 
+
+def state_n(ts, state):
+    return ts.nodes().index(state_label(state))
+
 def abstract(system, partition, pert_bounds):
-    if len(partition) != system.m + system.n:
+    if len(partition) + len(pert_bounds) != system.n + system.m:
         raise Exception("System dimensions do not agree with partition")
 
     indices = [list(range(len(p) - 1)) for p in partition]
