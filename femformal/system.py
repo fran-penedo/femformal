@@ -28,12 +28,15 @@ class System(object):
         b = self.b[i]
 
         j = self._pert_indices(i)
-        C = self.A[np.ix_(i, j)]
+        if len(j) > 0:
+            C = self.A[np.ix_(i, j)]
+        else:
+            C = np.empty(shape=(0,0))
 
         return System(A, b, C)
 
     def pert_indices(self, indices):
-        return self._pert_indices(np.array(indices))
+        return self._pert_indices(np.array(indices)).tolist()
 
     def _pert_indices(self, i):
         j = np.setdiff1d(np.nonzero(self.A[i, :])[1], i)
@@ -48,6 +51,8 @@ class System(object):
     def m(self):
         return self.C.shape[1]
 
+    def __str__(self):
+        return "A: {0}\nb: {1}\nc: {2}".format(self.A, self.b, self.C)
 
 def is_region_invariant(system, region, dist_bounds):
     for facet, normal, dim in facets(region):

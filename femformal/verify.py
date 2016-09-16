@@ -1,5 +1,6 @@
 import numpy as np
 from .util import project_list, project_regions, label_state, list_extr_points
+import util
 from .ts import abstract, state_n
 from .modelcheck import check_spec
 
@@ -27,9 +28,11 @@ def modelcheck(system, dim, partition, regions, init_states, spec, depth):
     ts = abstract(subs, p_partition,
                   list_extr_points(project_list(
                       partition, system.pert_indices(indices))))
+    logger.debug(ts.adj)
+    # util.draw_ts(ts)
     init = [state_n(ts, state) for state in p_init_states]
     d = 1
-    while d <= depth:
+    while d <= depth and d < system.n:
         sat, p = check_spec(ts, spec, project_regions(regions, indices), init)
         if sat:
             return ModelcheckResult(True, [])
@@ -39,12 +42,14 @@ def modelcheck(system, dim, partition, regions, init_states, spec, depth):
             # split_state()
             # d = len(s) - 1
             indices += system.pert_indices(indices)
+            logger.debug(indices)
             subs = system.subsystem(indices)
             p_partition = project_list(partition, indices)
             p_init_states = [project_list(state, indices) for state in init_states]
             ts = abstract(subs, p_partition,
                         list_extr_points(project_list(
-                            partition, system.pert_indices(indices))), init)
+                            partition, system.pert_indices(indices))))
+            util.draw_ts(ts)
             init = [state_n(ts, state) for state in p_init_states]
             d = len(indices)
 

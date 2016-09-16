@@ -17,8 +17,8 @@ def check_spec(ts, spec, regions, init):
     ps = Popen(process, stdout=PIPE, stderr=PIPE)
     out, err = ps.communicate()
     os.remove(f.name)
-    logger.debug(out)
-    logger.debug(err)
+    # logger.debug(out)
+    # logger.debug(err)
     try:
         return _parse_nusmv(out)
     except ParserException:
