@@ -32,7 +32,7 @@ def modelcheck(system, dim, partition, regions, init_states, spec, depth):
     # util.draw_ts(ts)
     init = [state_n(ts, state) for state in p_init_states]
     d = 1
-    while d <= depth and d < system.n:
+    while d <= depth and d <= system.n:
         sat, p = check_spec(ts, spec, project_regions(regions, indices), init)
         if sat:
             return ModelcheckResult(True, [])
