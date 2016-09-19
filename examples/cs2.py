@@ -19,9 +19,11 @@ b = np.linalg.solve(M, F)
 C = np.empty(shape=(0,0))
 system = s.System(A, b, C)
 partition = [np.arange(5, 105, 10.0).tolist() for i in range(n-1)]
-v = np.r_[np.arange(1, n-2), n-1].tolist()
-regions = {'A': v}
-spec = "F (! (state = A))"
+v = np.r_[np.arange(0, n - 1)].tolist()
+vu = np.r_[np.arange(1, n - 1), n - 1].tolist()
+vd = np.r_[0, np.arange(0, n - 2)].tolist()
+regions = {'A': v, 'B': vu, 'C': vd}
+spec = "G ((state = A) | (state = B) | (state = C))"
 init_states = [v]
 
 depth = 3

@@ -7,7 +7,11 @@ import importlib
 
 import cProfile
 
+import logging
+logger = logging.getLogger('FEMFORMAL')
+
 def run_cs_draw(m, args):
+    logger.debug(m.system)
     start = timer()
     res = verify(m.system, m.partition, m.regions, m.init_states, m.spec, m.depth,
                    plot_file_prefix=args.plot_file_prefix)
@@ -46,7 +50,7 @@ def get_argparser():
     return parser
 
 
-if __name__ == "__main__":
+def main():
     parser = get_argparser()
     args = parser.parse_args()
     module = importlib.import_module(args.module)
