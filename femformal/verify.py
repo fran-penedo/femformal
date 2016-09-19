@@ -9,7 +9,14 @@ logger = logging.getLogger('FEMFORMAL')
 
 
 def verify(system, partition, regions, init_states, spec, depth, **kwargs):
+    if len(partition) != system.n:
+        raise ValueError("System dimensions do not agree with partition")
+    for key, item in regions.items():
+        if len(item) != system.n:
+            raise ValueError(
+                "Region {0} dimensions do not agree with partition".format(key))
     dims = list(range(system.n))
+
     while len(dims) > 0:
         d = dims.pop(0)
         m = modelcheck(system, d, partition, regions, init_states, spec, depth)
@@ -22,17 +29,19 @@ def verify(system, partition, regions, init_states, spec, depth, **kwargs):
 
 def modelcheck(system, dim, partition, regions, init_states, spec, depth):
     indices = [dim]
-    subs = system.subsystem(indices)
-    p_partition = project_list(partition, indices)
-    p_init_states = [project_list(state, indices) for state in init_states]
-    ts = abstract(subs, p_partition,
-                  list_extr_points(project_list(
-                      partition, system.pert_indices(indices))))
-    logger.debug(ts.adj)
-    # util.draw_ts(ts)
-    init = [state_n(ts, state) for state in p_init_states]
     d = 1
+    logger.debug(dim)
+
     while d <= depth and d <= system.n:
+        logger.debug(indices)
+        subs = system.subsystem(indices)
+        p_partition = project_list(partition, indices)
+        p_init_states = [project_list(state, indices) for state in init_states]
+        ts = abstract(subs, p_partition,
+                    list_extr_points(project_list(
+                        partition, system.pert_indices(indices))))
+        # util.draw_ts(ts)
+        init = [state_n(ts, state) for state in p_init_states]
         sat, p = check_spec(ts, spec, project_regions(regions, indices), init)
         if sat:
             return ModelcheckResult(True, [])
@@ -42,15 +51,6 @@ def modelcheck(system, dim, partition, regions, init_states, spec, depth):
             # split_state()
             # d = len(s) - 1
             indices += system.pert_indices(indices)
-            logger.debug(indices)
-            subs = system.subsystem(indices)
-            p_partition = project_list(partition, indices)
-            p_init_states = [project_list(state, indices) for state in init_states]
-            ts = abstract(subs, p_partition,
-                        list_extr_points(project_list(
-                            partition, system.pert_indices(indices))))
-            util.draw_ts(ts)
-            init = [state_n(ts, state) for state in p_init_states]
             d = len(indices)
 
     return ModelcheckResult(False, [])

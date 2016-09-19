@@ -52,7 +52,8 @@ class System(object):
         return self.C.shape[1]
 
     def __str__(self):
-        return "A: {0}\nb: {1}\nc: {2}".format(self.A, self.b, self.C)
+        return "A:\n{0}\nb:\n{1}\nc:\n{2}".format(self.A, self.b, self.C)
+
 
 def is_region_invariant(system, region, dist_bounds):
     for facet, normal, dim in facets(region):
@@ -85,7 +86,7 @@ def _is_facet_separating(A, b, C, facet, normal, dim, dist_bounds):
     return rect_in_semispace(R, A_j, b)
 
 def rect_in_semispace(R, a, b):
-    if np.isclose(a, 0):
+    if np.all(np.isclose(a, 0)):
         return b >= 0
     else:
         res = linprog(-a, a[None], b + 1, bounds=R)

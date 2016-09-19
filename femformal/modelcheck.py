@@ -17,8 +17,8 @@ def check_spec(ts, spec, regions, init):
     ps = Popen(process, stdout=PIPE, stderr=PIPE)
     out, err = ps.communicate()
     os.remove(f.name)
-    logger.debug(out)
-    logger.debug(err)
+    # logger.debug(out)
+    # logger.debug(err)
     try:
         return _parse_nusmv(out)
     except ParserException:
@@ -40,7 +40,7 @@ def _parse_nusmv(out):
         loop = next(i for i in range(len(lines))
                     if lines[i].startswith('  -- Loop starts here'))
 
-        p = re.compile('state = s([0,1]+)')
+        p = re.compile('state = s([0-9_]+)')
         matches = (p.search(line) for line in lines[start:])
         chain = [m.group(1) for m in matches if m is not None]
         if loop == len(lines) - 4:

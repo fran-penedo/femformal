@@ -73,7 +73,7 @@ def state_n(ts, state):
 
 def abstract(system, partition, pert_bounds):
     if len(partition) + len(pert_bounds) != system.n + system.m:
-        raise Exception("System dimensions do not agree with partition")
+        raise TypeError("System dimensions do not agree with partition")
 
     indices = [list(range(len(p) - 1)) for p in partition]
     states = list(it.product(*indices))
