@@ -16,6 +16,7 @@ def run_cs_draw(m, args):
     res = verify(m.system, m.partition, m.regions, m.init_states, m.spec, m.depth,
                    plot_file_prefix=args.plot_file_prefix)
     finish = timer()
+    print 'Res: {}'.format(res)
     print 'Time {}'.format(finish - start)
 
 

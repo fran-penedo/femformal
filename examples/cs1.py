@@ -1,8 +1,9 @@
 import numpy as np
 import femformal.system as s
 
-L = 10.0
-n = 10
+N = 200
+L = N * 1.0
+n = N
 l = L / n
 
 T = [10.0, 100.0]
@@ -19,7 +20,11 @@ b = np.linalg.solve(M, F)
 C = np.empty(shape=(0,0))
 system = s.System(A, b, C)
 partition = [np.arange(5, 105, 10.0).tolist() for i in range(n-1)]
-v = np.r_[np.arange(1, n-2), n-1].tolist()
+
+diag = np.hstack([i * np.ones((n-1)/9, dtype=int) for i in range(9)])
+diag = np.hstack([diag, 8 * np.ones((n-1)%9, dtype=int)])
+v = diag + 1
+v[v == 9] = 8
 regions = {'A': v}
 spec = "F (! (state = A))"
 init_states = [v]
