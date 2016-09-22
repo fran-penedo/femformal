@@ -48,3 +48,46 @@ def project_regions(regions, indices):
 def draw_ts(ts):
     nx.draw_networkx(ts)
     plt.show()
+
+def draw_ts_2D(ts, partition):
+    if len(label_state(ts.nodes()[0])) != 2:
+        raise ValueError("Expected TS from 2D partition")
+    if len(partition) != 2:
+        raise ValueError("Expected 2D partition")
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    _draw_grid(partition, ax)
+    for e in ts.edges():
+        _draw_edge(e, partition, ax)
+
+    plt.show()
+
+
+def _draw_edge(e, partition, ax):
+    f = label_state(e[0])
+    t = label_state(e[1])
+    i, d = first_change(t, f)
+
+    fcenter, fsize = _box_dims(partition, f)
+    tcenter, tsize = _box_dims(partition, t)
+
+    if d != 0:
+        fcenter[i] += fsize[0] / 4.0
+        tcenter[i] += fsize[0] / 4.0
+        fcenter[i] += d * fsize[0] / 4.0
+
+
+
+
+def _draw_grid(partition, ax):
+    limits = [[p[0], p[-1]] for p in partition]
+    for i, p in enumerate(partition):
+        data = list(limits)
+        for x in p:
+            data[i][0] = data[i][1] = x
+            ax.plot(data[0], data[1], color='k', linestyle='- ', linewidth=2)
+
+
+
+
