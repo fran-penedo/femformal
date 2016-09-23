@@ -35,6 +35,15 @@ class TS(nx.DiGraph):
             if not is_facet_separating(xn['system'], R, normal, dim, pert_bounds):
                 ts.add_edge(state_label(xs), state_label(ys))
 
+    def reach_set(self, init):
+        op = [init]
+        reached = []
+        while len(op) > 0:
+            nex = op.pop(0)
+            reached.append(nex)
+            op.extend(x for x in self.succ[nex].keys() if x not in reached)
+        return reached
+
 
     def toNUSMV(self, spec, regions, init):
         out = StringIO()

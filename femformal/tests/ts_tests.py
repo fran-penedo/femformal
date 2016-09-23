@@ -7,6 +7,19 @@ from femformal.util import draw_ts
 import logging
 logger = logging.getLogger('FEMFORMAL')
 
+def reach_set_test():
+    ts = t.TS()
+    ts.add_edge(1,1)
+    ts.add_edge(1,2)
+    ts.add_edge(3, 2)
+    ts.add_edge(1,5)
+    ts.add_edge(5, 3)
+    ts.add_edge(6,3)
+    ts.add_edge(6,6)
+
+    np.testing.assert_array_equal(sorted(ts.reach_set(1)), [1,2,3,5])
+
+
 def state_n_test():
     ts = t.TS()
     ts.add_nodes_from(['s1_1', 's2_2', 's3_3'])

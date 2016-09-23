@@ -27,6 +27,40 @@ def verify(system, partition, regions, init_states, spec, depth, **kwargs):
     return True
 
 
+def verify_input_constrained(system, partition, regions, init_states, spec,
+                             depth, **kwargs):
+    if len(partition) != system.n:
+        raise ValueError("System dimensions do not agree with partition")
+    for key, item in regions.items():
+        if len(item) != system.n:
+            raise ValueError(
+                "Region {0} dimensions do not agree with partition".format(key))
+    dims = list(range(system.n))
+
+    d = 1
+    while d <= depth and d <= system.n:
+        groups = make_groups(range(dims), d)
+        subsl = [system.subsystem(g) for g in groups]
+        p_partition_l = [project_list(partition, g) for g in groups]
+        p_init_states_l = [[project_list(state, g) for state in init_states]
+                           for g in groups]
+        tsl = [abstract(subs, p_partition,
+                    list_extr_points(project_list(
+                        partition, system.pert_indices(indices))))
+               for subs, p_partition in zip(subsl, p_partition_l)]
+        initl = [[state_n(ts, state) for state in p_init_states]
+                 for ts, p_init_states in zip(tsl, p_init_states_l)]
+
+        constrain_inputs(tsl, initl, p_partition_l)
+        if all(check_spec(ts, spec, project_regions(regions, g), init)[0]
+               for ts, g, init in zip(tsl, groups, initl)):
+            return True
+        else:
+            d +=1
+
+def constrain_inputs(tsl, initl, p_partition_l):
+    pass
+
 def modelcheck(system, dim, partition, regions, init_states, spec, depth):
     indices = [dim]
     d = 1

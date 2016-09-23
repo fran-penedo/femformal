@@ -1,4 +1,5 @@
 import networkx as nx
+import numpy as np
 import matplotlib.pyplot as plt
 
 import logging
@@ -27,11 +28,28 @@ def first_change(a, b):
     return next(((i, x[1] - x[0]) for i, x in enumerate(zip(a, b)) if x[0] != x[1]))
 
 
+def make_groups(l, n):
+    leftover = len(l) % n
+    at = leftover * (n + 1)
+    if leftover > 0:
+        bigger = make_groups(l[:at], n+1)
+    else:
+        bigger = []
+    rest = l[at:]
+    return bigger + [rest[n * i: n * (i + 1)] for i in range(len(rest) / n)]
+
+
+
+def project_states(states):
+    x = np.array(states)
+    return [list(set(c)) for c in x.T]
+
 def subst_spec_labels(spec, regions):
     res = spec
     for k, v in regions.items():
         res = res.replace(k, state_label(v))
     return res
+
 
 def project_list(l, indices):
     return [l[i] for i in indices]
@@ -44,6 +62,7 @@ def project_regions(regions, indices):
     for key, value in regions.items():
         ret[key] = project_list(value, indices)
     return ret
+
 
 def draw_ts(ts):
     nx.draw_networkx(ts)
