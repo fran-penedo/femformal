@@ -51,6 +51,9 @@ def verify_input_constrained(system, partition, regions, init_states, spec,
         initl = [[state_n(ts, state) for state in p_init_states]
                  for ts, p_init_states in zip(tsl, p_init_states_l)]
 
+        verif_subsl = [Subsystem(*x) for x in zip(
+            groups, subsl, p_partition_l, p_init_states_l, tsl, initl)]
+
         constrain_inputs(tsl, initl, p_partition_l)
         if all(check_spec(ts, spec, project_regions(regions, g), init)[0]
                for ts, g, init in zip(tsl, groups, initl)):
@@ -58,8 +61,50 @@ def verify_input_constrained(system, partition, regions, init_states, spec,
         else:
             d +=1
 
-def constrain_inputs(tsl, initl, p_partition_l):
-    pass
+def constrain_inputs(subsystems, system):
+    # f: subs x dindex ->  subs x index
+    # [reach_sets]
+
+    # FIXME add while
+    ikeys = [min(subs.indices) for subs in subsystems]
+    for subs in subsystems:
+        pindices = system.pert_indices(subs.indices)
+        subs.drelated = []
+        for pi in pindices:
+            si = bisect(ikeys, pi)
+            subs_related = subsystems[si]
+            subs.drelated.append((subs_related, system.pert_indices(
+                subs_related.indices).index(pi)))
+
+        #FIXME reach_set() to admit list of init states
+        subs.reach_set = util.project_states(
+            subs.ts.reach_set(subs.p_init_states))
+
+
+    for subs in subsystems:
+        pert_bounds = [[subs.p_pert_part[min(subsr.reach_set[pi])],
+                        subs.p_pert_part[max(subsr.reach_set[pi]) + 1]]
+                       for subsr, pi in subs.drelated]
+        subs.ts = abstract(subs.subs, subs.p_part, pert_bounds)
+
+
+
+
+
+
+
+class Subsystem(object):
+
+    def __init__(self, indices, subs, p_part, p_init_states, ts, init):
+        self.indices = indices
+        self.subs = subs
+        self.p_part = p_part
+        self.p_init_states = p_init_states
+        self.ts = ts
+        self.init = init
+
+
+
 
 def modelcheck(system, dim, partition, regions, init_states, spec, depth):
     indices = [dim]
