@@ -59,7 +59,7 @@ def verify_input_constrained(system, partition, regions, init_states, spec,
 
         constrain_inputs(verif_subsl, system)
         if all(check_spec(
-            subs.ts, subs.spec, project_regions(regions, subs.g), subs.init)[0]
+            subs.ts, spec, project_regions(regions, subs.indices), subs.init)[0]
             for subs in verif_subsl):
             return True
         else:
@@ -72,6 +72,7 @@ def constrain_inputs(subsystems, system):
         converged = True
         ikeys = [min(subs.indices) for subs in subsystems]
         for subs in subsystems:
+            util.draw_ts(subs.ts)
             pindices = system.pert_indices(subs.indices)
             subs.drelated = []
             for pi in pindices:
@@ -88,9 +89,9 @@ def constrain_inputs(subsystems, system):
             subs.reach_set = reach_set
 
         for subs in subsystems:
-            pert_bounds = [[subs.p_pert_part[min(subsr.reach_set[pi])],
-                            subs.p_pert_part[max(subsr.reach_set[pi]) + 1]]
-                        for subsr, pi in subs.drelated]
+            pert_bounds = [[subs.p_pert_part[i][min(subsr.reach_set[pi])],
+                            subs.p_pert_part[i][max(subsr.reach_set[pi]) + 1]]
+                        for i, (subsr, pi) in enumerate(subs.drelated)]
             subs.ts = abstract(subs.subs, subs.p_part, pert_bounds)
 
 class Subsystem(object):

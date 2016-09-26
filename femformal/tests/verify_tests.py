@@ -10,10 +10,10 @@ def verify_2d_test():
     b = np.zeros((2, 1))
     C = np.empty(shape=(0,0))
     system = s.System(A, b, C)
-    partition = [np.arange(-.5, 3.5, 1).tolist() for i in range(2)]
-    regions = {'A': [1, 1], 'B': [1, 2]}
+    partition = [np.arange(-1.5, 3.5, 1).tolist() for i in range(2)]
+    regions = {'A': [2, 2], 'B': [2, 3]}
     spec = "(X state = A) & (F (! (state = B)))"
-    init_states = [[1, 2]]
+    init_states = [[2, 3]]
 
     depth = 2
 
@@ -24,10 +24,10 @@ def verify_ic_2d_test():
     b = np.zeros((2, 1))
     C = np.empty(shape=(0,0))
     system = s.System(A, b, C)
-    partition = [np.arange(-.5, 3.5, 1).tolist() for i in range(2)]
-    regions = {'A': [1, 1], 'B': [1, 2]}
+    partition = [np.arange(-1.5, 3.5, 1).tolist() for i in range(2)]
+    regions = {'A': [2, 2], 'B': [2, 3]}
     spec = "(X state = A) & (F (! (state = B)))"
-    init_states = [[1, 2]]
+    init_states = [[2, 3]]
 
     depth = 2
 
