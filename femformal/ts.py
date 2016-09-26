@@ -5,7 +5,7 @@ try:
     from cStringIO import StringIO
 except:
     from StringIO import StringIO
-from femformal.util import state_label, subst_spec_labels
+from femformal.util import state_label, label_state, subst_spec_labels
 from femformal.system import is_facet_separating
 
 import logging
@@ -35,8 +35,12 @@ class TS(nx.DiGraph):
             if not is_facet_separating(xn['system'], R, normal, dim, pert_bounds):
                 ts.add_edge(state_label(xs), state_label(ys))
 
-    def reach_set(self, init):
-        op = [init]
+    def reach_set_states(self, inits):
+        return [label_state(x)
+                for x in self.reach_set([state_label(s) for s in inits])]
+
+    def reach_set(self, inits):
+        op = list(inits)
         reached = []
         while len(op) > 0:
             nex = op.pop(0)

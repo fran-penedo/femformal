@@ -1,8 +1,9 @@
 import numpy as np
-from .util import project_list, project_regions, label_state, list_extr_points
+from .util import project_list, project_regions, label_state, state_label, list_extr_points
 import util
 from .ts import abstract, state_n
 from .modelcheck import check_spec
+from bisect import bisect_left
 
 import logging
 logger = logging.getLogger('FEMFORMAL')
@@ -35,76 +36,76 @@ def verify_input_constrained(system, partition, regions, init_states, spec,
         if len(item) != system.n:
             raise ValueError(
                 "Region {0} dimensions do not agree with partition".format(key))
-    dims = list(range(system.n))
 
     d = 1
     while d <= depth and d <= system.n:
-        groups = make_groups(range(dims), d)
+        groups = util.make_groups(range(system.n), d)
         subsl = [system.subsystem(g) for g in groups]
         p_partition_l = [project_list(partition, g) for g in groups]
+        p_pert_partition_l = [project_list(
+                        partition, system.pert_indices(g)) for g in groups]
         p_init_states_l = [[project_list(state, g) for state in init_states]
                            for g in groups]
         tsl = [abstract(subs, p_partition,
-                    list_extr_points(project_list(
-                        partition, system.pert_indices(indices))))
-               for subs, p_partition in zip(subsl, p_partition_l)]
+                    list_extr_points(p_pert_partition))
+               for subs, p_partition, p_pert_partition, indices
+               in zip(subsl, p_partition_l, p_pert_partition_l, groups)]
         initl = [[state_n(ts, state) for state in p_init_states]
                  for ts, p_init_states in zip(tsl, p_init_states_l)]
 
         verif_subsl = [Subsystem(*x) for x in zip(
-            groups, subsl, p_partition_l, p_init_states_l, tsl, initl)]
+            groups, subsl, p_partition_l, p_pert_partition_l,
+            p_init_states_l, tsl, initl)]
 
-        constrain_inputs(tsl, initl, p_partition_l)
-        if all(check_spec(ts, spec, project_regions(regions, g), init)[0]
-               for ts, g, init in zip(tsl, groups, initl)):
+        constrain_inputs(verif_subsl, system)
+        if all(check_spec(
+            subs.ts, subs.spec, project_regions(regions, subs.g), subs.init)[0]
+            for subs in verif_subsl):
             return True
         else:
             d +=1
 
 def constrain_inputs(subsystems, system):
-    # f: subs x dindex ->  subs x index
-    # [reach_sets]
+    converged = False
 
-    # FIXME add while
-    ikeys = [min(subs.indices) for subs in subsystems]
-    for subs in subsystems:
-        pindices = system.pert_indices(subs.indices)
-        subs.drelated = []
-        for pi in pindices:
-            si = bisect(ikeys, pi)
-            subs_related = subsystems[si]
-            subs.drelated.append((subs_related, system.pert_indices(
-                subs_related.indices).index(pi)))
+    while not converged:
+        converged = True
+        ikeys = [min(subs.indices) for subs in subsystems]
+        for subs in subsystems:
+            pindices = system.pert_indices(subs.indices)
+            subs.drelated = []
+            for pi in pindices:
+                si = bisect_left(ikeys, pi)
+                subs_related = subsystems[si]
+                subs.drelated.append((subs_related,
+                    subs_related.indices.index(pi)))
 
-        #FIXME reach_set() to admit list of init states
-        subs.reach_set = util.project_states(
-            subs.ts.reach_set(subs.p_init_states))
+            #FIXME sorted won't work
+            reach_set = util.project_states(
+                sorted(subs.ts.reach_set_states(subs.p_init_states)))
+            if not np.array_equal(reach_set, subs.reach_set):
+                converged = False
+            subs.reach_set = reach_set
 
-
-    for subs in subsystems:
-        pert_bounds = [[subs.p_pert_part[min(subsr.reach_set[pi])],
-                        subs.p_pert_part[max(subsr.reach_set[pi]) + 1]]
-                       for subsr, pi in subs.drelated]
-        subs.ts = abstract(subs.subs, subs.p_part, pert_bounds)
-
-
-
-
-
-
+        for subs in subsystems:
+            pert_bounds = [[subs.p_pert_part[min(subsr.reach_set[pi])],
+                            subs.p_pert_part[max(subsr.reach_set[pi]) + 1]]
+                        for subsr, pi in subs.drelated]
+            subs.ts = abstract(subs.subs, subs.p_part, pert_bounds)
 
 class Subsystem(object):
 
-    def __init__(self, indices, subs, p_part, p_init_states, ts, init):
+    def __init__(self, indices, subs, p_part, p_pert_part,
+                 p_init_states, ts, init):
         self.indices = indices
         self.subs = subs
         self.p_part = p_part
+        self.p_pert_part = p_pert_part
         self.p_init_states = p_init_states
         self.ts = ts
         self.init = init
-
-
-
+        self.drelated = []
+        self.reach_set = []
 
 def modelcheck(system, dim, partition, regions, init_states, spec, depth):
     indices = [dim]

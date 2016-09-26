@@ -17,7 +17,7 @@ def reach_set_test():
     ts.add_edge(6,3)
     ts.add_edge(6,6)
 
-    np.testing.assert_array_equal(sorted(ts.reach_set(1)), [1,2,3,5])
+    np.testing.assert_array_equal(sorted(ts.reach_set([1])), [1,2,3,5])
 
 
 def state_n_test():
