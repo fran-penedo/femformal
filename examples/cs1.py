@@ -1,6 +1,6 @@
 import examples.heatlinfem as fem
 
-N = 100
+N = 10
 
 system, partition = fem.heatlinfem(N)
 

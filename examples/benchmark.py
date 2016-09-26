@@ -1,4 +1,4 @@
-from femformal.verify import verify
+from femformal.verify import verify, verify_input_constrained
 import femformal.util as util
 import numpy as np
 import argparse
@@ -13,8 +13,10 @@ logger = logging.getLogger('FEMFORMAL')
 def run_cs_draw(m, args):
     logger.debug(m.system)
     start = timer()
-    res = verify(m.system, m.partition, m.regions, m.init_states, m.spec, m.depth,
-                   plot_file_prefix=args.plot_file_prefix)
+    res = verify_input_constrained(m.system, m.partition, m.regions, m.init_states, m.spec, m.depth,
+                 draw_file_prefix=args.draw_file_prefix,
+                 verbosity=args.verbosity,
+                 draw_constr_ts=args.draw_constr_ts)
     finish = timer()
     print 'Res: {}'.format(res)
     print 'Time {}'.format(finish - start)
@@ -43,11 +45,13 @@ def get_argparser():
     subparsers = parser.add_subparsers(dest='action')
     parser_draw = subparsers.add_parser(
         'draw', help='Run an example once and plot evolution')
-    parser_draw.add_argument('-f', '--plot-file-prefix',
+    parser_draw.add_argument('-f', '--draw-file-prefix',
                              help='plots are saved to svg files with this prefix')
+    parser_draw.add_argument('--draw-constr-ts', action='store_true')
     parser_time = subparsers.add_parser(
         'time', help='Run an example a number of times a show execution times')
     parser.add_argument('module', help='module containing the case study')
+    parser.add_argument('-v', '--verbosity', action='count')
     return parser
 
 

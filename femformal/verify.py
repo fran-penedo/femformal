@@ -37,8 +37,13 @@ def verify_input_constrained(system, partition, regions, init_states, spec,
             raise ValueError(
                 "Region {0} dimensions do not agree with partition".format(key))
 
+    args = VerifyArgs(kwargs)
+
     d = 1
     while d <= depth and d <= system.n:
+        if args.verbosity >= 1:
+            logger.info("Verifying for subsystems of size {}".format(d))
+
         groups = util.make_groups(range(system.n), d)
         subsl = [system.subsystem(g) for g in groups]
         p_partition_l = [project_list(partition, g) for g in groups]
@@ -56,8 +61,8 @@ def verify_input_constrained(system, partition, regions, init_states, spec,
         verif_subsl = [Subsystem(*x) for x in zip(
             groups, subsl, p_partition_l, p_pert_partition_l,
             p_init_states_l, tsl, initl)]
+        constrain_inputs(verif_subsl, system, args)
 
-        constrain_inputs(verif_subsl, system)
         if all(check_spec(
             subs.ts, spec, project_regions(regions, subs.indices), subs.init)[0]
             for subs in verif_subsl):
@@ -65,14 +70,17 @@ def verify_input_constrained(system, partition, regions, init_states, spec,
         else:
             d +=1
 
-def constrain_inputs(subsystems, system):
+def constrain_inputs(subsystems, system, args):
     converged = False
 
     while not converged:
+        if args.verbosity >= 1:
+            logger.info("- Constraining inputs")
         converged = True
         ikeys = [min(subs.indices) for subs in subsystems]
         for subs in subsystems:
-            util.draw_ts(subs.ts)
+            if args.draw_constr_ts:
+                util.draw_ts(subs.ts, args.figprefix)
             pindices = system.pert_indices(subs.indices)
             subs.drelated = []
             for pi in pindices:
@@ -94,19 +102,6 @@ def constrain_inputs(subsystems, system):
                         for i, (subsr, pi) in enumerate(subs.drelated)]
             subs.ts = abstract(subs.subs, subs.p_part, pert_bounds)
 
-class Subsystem(object):
-
-    def __init__(self, indices, subs, p_part, p_pert_part,
-                 p_init_states, ts, init):
-        self.indices = indices
-        self.subs = subs
-        self.p_part = p_part
-        self.p_pert_part = p_pert_part
-        self.p_init_states = p_init_states
-        self.ts = ts
-        self.init = init
-        self.drelated = []
-        self.reach_set = []
 
 def modelcheck(system, dim, partition, regions, init_states, spec, depth):
     indices = [dim]
@@ -160,6 +155,37 @@ def split_state(ts, state, system, partition, indices, ext_indices):
     for x, y in it.product(*new_states):
         ts.add_transition(state_label(x), state_label(y), pert_bounds)
 
+
+class Subsystem(object):
+
+    def __init__(self, indices, subs, p_part, p_pert_part,
+                 p_init_states, ts, init):
+        self.indices = indices
+        self.subs = subs
+        self.p_part = p_part
+        self.p_pert_part = p_pert_part
+        self.p_init_states = p_init_states
+        self.ts = ts
+        self.init = init
+        self.drelated = []
+        self.reach_set = []
+
+
+class VerifyArgs(object):
+    def __init__(self, dic):
+        self.verbosity = 0
+        self.figprefix = None
+        self.draw_constr_ts = False
+
+        copy = dic.copy()
+        self._parse(copy)
+
+        if len(copy) > 0:
+            logger.warning('Unexpected options: {}'.format(copy.keys()))
+
+    def _parse(self, dic):
+        for k in self.__dict__.keys():
+            self.__setattr__(k, dic.pop(k, self.__getattribute__(k)))
 
 
 class ModelcheckResult(object):

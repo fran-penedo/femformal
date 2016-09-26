@@ -68,11 +68,24 @@ def project_regions(regions, indices):
     return ret
 
 
-def draw_ts(ts):
-    nx.draw_networkx(ts)
-    plt.show()
+_figcounter = 0
 
-def draw_ts_2D(ts, partition):
+def draw_ts(ts, prefix=None):
+    global _figcounter
+
+    nx.draw_networkx(ts)
+
+    if prefix is not None:
+        savefig(prefix + str(_figcounter) + '.svg')
+        plt.show()
+        _figcounter += 1
+    else:
+        plt.show()
+
+
+def draw_ts_2D(ts, partition, prefix=None):
+    global _figcounter
+
     if len(label_state(ts.nodes()[0])) != 2:
         raise ValueError("Expected TS from 2D partition")
     if len(partition) != 2:
@@ -84,7 +97,13 @@ def draw_ts_2D(ts, partition):
     for e in ts.edges():
         _draw_edge(e, partition, ax)
 
-    plt.show()
+    if prefix is not None:
+        fig.savefig(prefix + str(_figcounter) + '.svg')
+        plt.close(fig)
+        plt.show()
+        _figcounter += 1
+    else:
+        plt.show()
 
 
 def _draw_edge(e, partition, ax):
