@@ -1,4 +1,5 @@
 import numpy as np
+from system import is_region_invariant
 from .util import project_list, project_regions, label_state, state_label, list_extr_points
 import util
 from .ts import abstract, state_n
@@ -36,6 +37,8 @@ def verify_input_constrained(system, partition, regions, init_states, spec,
         if len(item) != system.n:
             raise ValueError(
                 "Region {0} dimensions do not agree with partition".format(key))
+    if not is_region_invariant(system, np.array(list_extr_points(partition)), []):
+        raise ValueError("Partitioned region is not invariant for system")
 
     args = VerifyArgs(kwargs)
 
