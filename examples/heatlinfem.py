@@ -19,7 +19,7 @@ def heatlinfem(N):
     b = np.linalg.solve(M, F)
     C = np.empty(shape=(0,0))
     system = s.System(A, b, C)
-    partition = [np.arange(5, 105, 10.0).tolist() for i in range(n-1)]
+    partition = [np.arange(5, 115, 10.0).tolist() for i in range(n-1)]
 
     return system, partition
 
