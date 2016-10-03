@@ -2,6 +2,8 @@ import networkx as nx
 import numpy as np
 import matplotlib.pyplot as plt
 import numpy as np
+import itertools as it
+from bisect import bisect_left, bisect_right
 
 import logging
 logger = logging.getLogger('FEMFORMAL')
@@ -61,6 +63,7 @@ class APDisc(object):
         # m : i -> p(x_i)
         self.m = m
 
+
 # xpart : [x_i] (list)
 def ap_cont_to_disc(apcont, xpart):
     r = apcont.r
@@ -78,7 +81,7 @@ def project_apdisc(apdisc, indices, tpart):
                 state_indices.append(list(range(bound_index)))
             if apdisc.r == -1:
                 bound_index = bisect_left(tpart, apdisc.m[i])
-                state_indices.append(list(range(bound_index, len(tpart))))
+                state_indices.append(list(range(bound_index, len(tpart) - 1)))
 
     return list(it.product(*state_indices))
 

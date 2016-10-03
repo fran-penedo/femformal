@@ -21,6 +21,22 @@ def make_groups_test():
     np.testing.assert_array_equal(u.make_groups(x, 3),
                                   [[0,1,2,3], [4,5,6],[7,8,9]])
 
+def ap_test():
+    apc = u.APCont(np.array([0, 2]), 1, lambda x: x)
+    xpart = [0,1,2,3]
+    apd = u.ap_cont_to_disc(apc, xpart)
+    assert apd.r == 1
+    assert apd.m[0] == 0
+    assert apd.m[2] == 2
+    assert 3 not in apd.m
+
+    tpart = [0.5, 1, 1.5, 2.5, 3]
+    proj = u.project_apdisc(apd, [1,2], tpart)
+    np.testing.assert_array_equal(proj, list(it.product(*[[0], [0, 1]])))
+    apd.r = -1
+    proj = u.project_apdisc(apd, [1,2], tpart)
+    np.testing.assert_array_equal(proj, list(it.product(*[[1,2,3], [3]])))
+
 def project_states_test():
     states = [[1,2,3], [4,3,2], [3,4,5]]
     np.testing.assert_array_equal([sorted(x) for x in u.project_states(states)],
