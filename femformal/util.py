@@ -43,10 +43,44 @@ def make_groups(l, n):
     return bigger + [rest[n * i: n * (i + 1)] for i in range(len(rest) / n)]
 
 
-
 def project_states(states):
     x = np.array(states)
     return [list(set(c)) for c in x.T]
+
+
+class APCont(object):
+    def __init__(self, A, r, p):
+        # A : [x_min, x_max] (np.array)
+        self.A = A
+        self.r = r
+        self.p = p
+
+class APDisc(object):
+    def __init__(self, r, m):
+        self.r = r
+        # m : i -> p(x_i)
+        self.m = m
+
+# xpart : [x_i] (list)
+def ap_cont_to_disc(apcont, xpart):
+    r = apcont.r
+    i_min = bisect_left(xpart, apcont.A[0])
+    i_max = bisect_left(xpart, apcont.A[1])
+    m = {i : apcont.p(xpart[i]) for i in range(i_min, i_max + 1)}
+    return APDisc(r, m)
+
+def project_apdisc(apdisc, indices, tpart):
+    state_indices = []
+    for i in indices:
+        if i in apdisc.m:
+            if apdisc.r == 1:
+                bound_index = bisect_right(tpart, apdisc.m[i]) - 1
+                state_indices.append(list(range(bound_index)))
+
+
+
+
+
 
 def subst_spec_labels(spec, regions):
     res = spec
