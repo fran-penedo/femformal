@@ -76,16 +76,20 @@ def project_apdisc(apdisc, indices, tpart):
             if apdisc.r == 1:
                 bound_index = bisect_right(tpart, apdisc.m[i]) - 1
                 state_indices.append(list(range(bound_index)))
+            if apdisc.r == -1:
+                bound_index = bisect_left(tpart, apdisc.m[i])
+                state_indices.append(list(range(bound_index, len(tpart))))
 
-
-
-
-
+    return list(it.product(*state_indices))
 
 def subst_spec_labels(spec, regions):
     res = spec
     for k, v in regions.items():
-        res = res.replace(k, state_label(v))
+        if any(isinstance(el, list) for el in v):
+            replaced = " and ".join([state_label(s) for s in v])
+        else:
+            replaced = state_label(v)
+        res = res.replace(k, replaced)
     return res
 
 
