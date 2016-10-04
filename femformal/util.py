@@ -54,6 +54,7 @@ class APCont(object):
     def __init__(self, A, r, p):
         # A : [x_min, x_max] (np.array)
         self.A = A
+        # r == 1: f < p, r == -1: f > p
         self.r = r
         self.p = p
 
@@ -89,9 +90,10 @@ def subst_spec_labels(spec, regions):
     res = spec
     for k, v in regions.items():
         if any(isinstance(el, list) for el in v):
-            replaced = " and ".join([state_label(s) for s in v])
+            replaced = "(" + " or ".join(["(state = {})".format(state_label(s))
+                                          for s in v]) + ")"
         else:
-            replaced = state_label(v)
+            replaced = "(state = {})".format(state_label(v))
         res = res.replace(k, replaced)
     return res
 
@@ -107,6 +109,13 @@ def project_regions(regions, indices):
     for key, value in regions.items():
         ret[key] = project_list(value, indices)
     return ret
+
+def project_apdict(apdict, indices, tpart):
+    ret = {}
+    for key, value in apdict.items():
+        ret[key] = project_apdisc(value, indices, tpart)
+    return ret
+
 
 
 _figcounter = 0

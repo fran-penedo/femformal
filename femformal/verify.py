@@ -1,6 +1,6 @@
 import numpy as np
 from system import is_region_invariant
-from .util import project_list, project_regions, label_state, state_label, list_extr_points
+from .util import project_list, project_regions, label_state, state_label, list_extr_points, project_apdict
 import util
 from .ts import abstract, state_n
 from .modelcheck import check_spec
@@ -33,10 +33,10 @@ def verify_input_constrained(system, partition, regions, init_states, spec,
                              depth, **kwargs):
     if len(partition) != system.n:
         raise ValueError("System dimensions do not agree with partition")
-    for key, item in regions.items():
-        if len(item) != system.n:
-            raise ValueError(
-                "Region {0} dimensions do not agree with partition".format(key))
+    # for key, item in regions.items():
+    #     if len(item) != system.n:
+    #         raise ValueError(
+    #             "Region {0} dimensions do not agree with partition".format(key))
     if not is_region_invariant(system, np.array(list_extr_points(partition)), []):
         raise ValueError("Partitioned region is not invariant for system")
 
@@ -67,7 +67,9 @@ def verify_input_constrained(system, partition, regions, init_states, spec,
         constrain_inputs(verif_subsl, system, args)
 
         if all(check_spec(
-            subs.ts, spec, project_regions(regions, subs.indices), subs.init)[0]
+                subs.ts, spec,
+                project_apdict(regions, subs.indices, partition[0]), #FIXME
+                subs.init)[0]
             for subs in verif_subsl):
             return True
         else:

@@ -1,5 +1,6 @@
 import femformal.verify as v
 import femformal.system as s
+import femformal.util as u
 import numpy as np
 
 import logging
@@ -12,7 +13,7 @@ def verify_2d_test():
     system = s.System(A, b, C)
     partition = [np.arange(-1.5, 3.5, 1).tolist() for i in range(2)]
     regions = {'A': [2, 2], 'B': [2, 3]}
-    spec = "(X state = A) & (F (! (state = B)))"
+    spec = "(X A) & (F (! (B)))"
     init_states = [[2, 3]]
 
     depth = 2
@@ -25,12 +26,20 @@ def verify_ic_2d_test():
     C = np.empty(shape=(0,0))
     system = s.System(A, b, C)
     partition = [np.arange(-1.5, 3.5, 1).tolist() for i in range(2)]
-    regions = {'A': [2, 2], 'B': [2, 3]}
-    spec = "(X state = A) & (F (! (state = B)))"
+    xpart = [1, 2]
+    apcAl = u.APCont(np.array([0, 2]), -1, lambda x: .5)
+    apcAu = u.APCont(np.array([0, 2]), 1, lambda x: 1.5)
+    apcBl = u.APCont(np.array([0, 2]), -1, lambda x: .5 if x==1 else 1.5)
+    apcBu = u.APCont(np.array([0, 2]), 1, lambda x: 1.5 if x==1 else 2.5)
+    regions = {l : apd for (l, apd) in
+               zip("ABCD",
+                   [u.ap_cont_to_disc(apc, xpart)
+                    for apc in [apcAl, apcAu, apcBl, apcBu]])}
+    spec = "(X (A and B)) & (F (! (C and D)))"
     init_states = [[2, 3]]
 
     depth = 2
 
     assert v.verify_input_constrained(
-        system, partition, regions, init_states, spec, depth) == True
+        system, partition, regions, init_states, spec, depth, verbosity=10) == True
 
