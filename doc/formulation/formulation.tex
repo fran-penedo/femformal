@@ -55,16 +55,16 @@ described by the parameters $L, \rho, c$ and $\kappa$, and with boundary
 conditions $g_0, g_L$.
 
 Let $\Pi = \{\pi_i | i = 1, ..., m\}$ be a set of propositions, where each
-proposition $\pi_i$ is represented as a tuple $(A_i, p_i)$, with $A_i \subseteq
-\Omega$ a closed set (of $\Omega$ with the subset topology) and $p_i : A_i
+proposition $\pi_i$ is represented as a tuple $(X_i, p_i)$, with $X_i \subseteq
+\Omega$ a closed set (of $\Omega$ with the subset topology) and $p_i : X_i
 \rightarrow \R$ a continuous function, and denotes the following subset of
 continuous functions supported in $\bar\Omega$, $C^0(\bar\Omega)$:
 
 \begin{equation}
-    \psat{\pi_i} = \{ f \in C^0(\bar\Omega) | \left.f\right|_{A_i} \sim_i p_i \},
+    \psat{\pi_i} = \{ f \in C^0(\bar\Omega) | \left.f\right|_{X_i} \sim_i p_i \},
 \end{equation}
 
-where $\left.f\right|_{A_i}$ denotes the restriction of $f$ to $A_i$ and $\sim_i
+where $\left.f\right|_{X_i}$ denotes the restriction of $f$ to $X_i$ and $\sim_i
 \in \{<, >\}$.
 
 Consider an LTL formula over $\Pi$, $\phi$, with the usual definition of
@@ -118,7 +118,7 @@ We now make use of the Finite Element Analysis framework to reformulate
 Problem~\ref{pr:pde} in terms of a system of ODEs. Let $\{x_i\}_{i = 0}^{n +
 1}$, where $x_0 = 0, x_{n+1} = L, x_i \in \Omega, i = 1,...,n$, be a partition of
 $\bar\Omega$ such that it is proposition preserving with respect to the set of
-regions $\{A_i\}_{i = 1}^{m}$\footnote{This is well defined since the $A_i$ are
+regions $\{X_i\}_{i = 1}^{m}$\footnote{This is well defined since the $X_i$ are
 closed and there are a finite number of them}. Let $d_i(t), i = 1,...,n$ represent the
 temperature of the rod at the point $x_i$, and let $d = (d_1, ..., d_n)' \in
 \R^n$. It can be shown\footnote{\fran{At some point I'll fill in the details of the
@@ -139,7 +139,7 @@ corresponding to system $\Sigma$.
 
 In order to fully reformulate Problem~\ref{pr:pde}, we need to modify $\phi$ so
 that it can be checked against trajectories of \eqref{eq:fem}. Let $\Pi_{FEM} =
-\{\pi_i^j | i =1,...,m, j \in J_i\}$, where $J_i = \{j | x_j \in A_i\}$ and
+\{\pi_i^j | i =1,...,m, j \in J_i\}$, where $J_i = \{j | x_j \in X_i\}$ and
 $\pi_i^j$ denotes the following region in $\R^n$:
 
 \begin{equation}
@@ -185,5 +185,56 @@ the corresponding FEM system and LTL formula over $\Pi_{FEM}$:
 quality of the FEM approximation. I think this can be done if 
 we can compute error bounds for $\|d_i - u(x_i, \cdot)\|$ and we adjust the
 propositions in $\Pi_{FEM}$ so that the converse of Th.~\ref{th:equiv} is true.}
+
+\section{Approach}
+
+In the following, we assume we are given a system $\Sigma$ and an LTL formula
+$\phi$ over a suitable set $\Pi$, from which we have obtained the 
+FEM system $\Sigma_{FEM}$ and LTL formula $\phi_{FEM}$ over $\Pi_{FEM}$ for a
+given partition. We also assume there is a hyperrectangle $R = \{d \in \R^n |
+d_i \in (r_{min}, r_{max}), i = 1,...,n\}$ that is invariant for $\Sigma_{FEM}$.
+
+Let $I \subseteq \{1,...,n\}$ be a set of indices. 
+
+\begin{definition}
+
+The subsystem of $\Sigma_{FEM}$ corresponding to $I$,
+$\Sigma_{FEM}^I$, is a linear system that evolves according to the following
+equation:
+
+\begin{equation}
+    \dot{d_I} = A_I d_I + b_I + \tilde{A_I}\tilde{d_I},
+\end{equation}
+
+where $d_I \in \R^{|I|}$, $A_I = (a_{ij})_{i, j \in I}$, $b_I = (b_i)_{i
+\in I}$, $\tilde{d_I} \in \R^{|\tilde{I}|} $, $\tilde{A_I} = (a_{ij})_{i \in I, j
+\in \tilde{I_i}}$, $\tilde{I_i} = \{j \in \{1,...,n\} \setminus I | a_{ij} \neq 0\}$, for $i
+\in I$ and $\tilde{I} = \bigcup_{i \in I} \tilde{I_i}$\footnote{\fran{All the
+$\tilde{I_i}$ mess is sort of unnecessary for this definition, since using all
+indices not in $I$ yields an equivalent system (everything extra is multiplied
+by 0). However, this definition makes explicit the fact that a subsystem
+corresponding to $I$ only cares about its own dimensions and the dimensions it's
+related with via $A$.}}.
+
+\end{definition}
+
+\begin{definition}
+
+The projection of $\phi_{FEM}$ onto $I$ is an LTL
+formula over $\Pi_{FEM}^I = \{\pi_i^j | i = 1,...,m, j \in J_i \cap I\}$,
+$\phi_{FEM}^I$, obtained by removing every atomic proposition not in
+$\Pi_{FEM}^I$ from $\phi_{FEM}$.
+
+\end{definition}
+
+\begin{problem}
+
+Solve Problem~\ref{pr:fem} for subsystem $\Sigma_{FEM}^I$ and formula
+$\phi_{FEM}^I$, considering $\tilde{d_I}$ a disturbance whose components are
+all contained in $(r_{min}, r_{max})$. \fran{Review this to state what
+a disturbance is.}
+    
+\end{problem}
+
 
 \end{document}
