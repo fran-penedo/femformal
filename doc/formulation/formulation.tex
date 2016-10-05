@@ -1,0 +1,189 @@
+\documentclass{article}
+\usepackage{color}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{mathtools}
+\usepackage[utf8]{inputenc}
+\usepackage{algpseudocode}
+\usepackage{algorithm}
+
+% Environments
+\newtheorem{theorem}{Theorem}
+\newtheorem{definition}{Definition}
+\newtheorem{problem}{Problem}
+\newtheorem{remark}{Remark}
+
+% Aliases
+
+\newcommand*{\xd}{\dot{x}}
+\newcommand*{\R}{\mathbb{R}}
+\newcommand*{\N}{\mathbb{N}}
+
+\newcommand*{\psat}[1]{[[#1]]}
+
+\newcommand*{\fran}[1]{\textcolor{blue}{#1}}
+
+\title{Placeholder}
+
+\author{Francisco Penedo}
+
+\begin{document}
+
+Let $\Omega = (0, L) \subset \R$ be an open interval representing the interior
+of a one-dimensional rod of length $L$; $\rho, c, \kappa > 0$ 
+constants denoting density, capacity and conductivity of the rod's material respectively;
+$g_0, g_L \in \R$ the boundary conditions at each end of the rod; and $u_0 :
+\Omega \rightarrow \R$ an initial value for the temperature on the rod. 
+The evolution of the temperature at
+each point in the rod can be described by a function $u : \bar \Omega \times [0,
+T] \rightarrow \R$, where $T > 0$ denotes the final time and can be infinity, 
+such that the following equations are satisfied:
+
+\begin{equation}\label{eq:pde}
+    \begin{aligned}
+        \rho c \frac{\partial u}{\partial t} - \kappa \frac{\partial^2
+        u}{\partial^2 x} &= 0, \text{on } \Omega \times (0, T) \\
+        u(0, t) &= g_0, \forall t \in (0, T) \\
+        u(L, t) &= g_L, \forall t \in (0, T) \\
+        u(x, 0) &= u_0(x), \forall x \in \Omega
+    \end{aligned}
+\end{equation}
+
+In the following we will call $\Sigma$ a system governed by \eqref{eq:pde},
+described by the parameters $L, \rho, c$ and $\kappa$, and with boundary
+conditions $g_0, g_L$.
+
+Let $\Pi = \{\pi_i | i = 1, ..., m\}$ be a set of propositions, where each
+proposition $\pi_i$ is represented as a tuple $(A_i, p_i)$, with $A_i \subseteq
+\Omega$ a closed set (of $\Omega$ with the subset topology) and $p_i : A_i
+\rightarrow \R$ a continuous function, and denotes the following subset of
+continuous functions supported in $\bar\Omega$, $C^0(\bar\Omega)$:
+
+\begin{equation}
+    \psat{\pi_i} = \{ f \in C^0(\bar\Omega) | \left.f\right|_{A_i} \sim_i p_i \},
+\end{equation}
+
+where $\left.f\right|_{A_i}$ denotes the restriction of $f$ to $A_i$ and $\sim_i
+\in \{<, >\}$.
+
+Consider an LTL formula over $\Pi$, $\phi$, with the usual definition of
+propositional LTL over a set of atomic propositions and the usual semantics
+given by the satisfaction of $\phi$ at position $i \in \N$ of word $w$, denoted
+by $w(i) \models \phi$. We give a definition for the satisfaction of $\phi$ by a
+continuous function $a : \bar \Omega \times [0, \infty) \rightarrow
+\R$\footnote{\fran{This is mostly copied from Marius work with minor
+adaptations}}. For each $\Theta \in 2^\Pi$, let $\psat{\Theta}$ be the set of
+continuous functions supported in $\bar\Omega$ satisfying all and only
+propositions $\pi \in \Theta$:
+
+\begin{equation}
+    \psat{\Theta} = \bigcap_{\pi \in \Theta} \psat{\pi} \setminus 
+    \bigcup_{\pi \in \Pi \setminus \Theta} \psat{\pi}
+\end{equation}
+
+In the following we use the notation $a(t)$, with $t \in [0, \infty)$ to denote
+the function $a(\cdot , t) : \bar\Omega \rightarrow \R$.
+
+\begin{definition}\label{def:word}
+    The word corresponding to function $a$ is the sequence $w_a = w_a(1)
+    w_a(2)..., w_a(k) \in 2^\Pi, k \geq 1$, generated according to the following
+    rules, which must be satisfied for all $\tau \geq 0$ and $k \geq 1$:
+
+    \begin{itemize}
+        \item $a(0) \in \psat{w_a(1)}$;
+        \item if $a(\tau) \in \psat{w_a(k)}$ and $w_a(k) \neq w_a(k + 1)$, then
+            there exists $\tau' > \tau$ such that: a) $a(\tau') \in \psat{w_a(k
+            + 1)}$, b) $a(t) \notin \psat{\pi}, \forall t \in [\tau, \tau'], \forall \pi \in
+            \Pi \setminus (w_a(k) \cup w_a(k + 1))$, and c) \fran{[not sure how
+            to adapt this one; mostly technical]};
+        \item if $a(t) \in \psat{w_a(k)}$ and $w_a(k) = w_a(k + 1)$, then $a(t) \in
+        \psat{w_a(k)}, \forall t \geq \tau$.
+    \end{itemize}
+\end{definition}
+
+\begin{definition}\label{def:sat}
+    A function $a : \bar \Omega \times [0, \infty) \rightarrow \R$ satisfies an
+        LTL formula $\phi$, denoted as $a \models \phi$, if and only if $w_a
+        \models \phi$, where $w_a$ is the word corresponding to $a$.
+\end{definition}
+
+\begin{problem}\label{pr:pde}
+    Given a system $\Sigma$ as in \eqref{eq:pde}, an LTL formula $\phi$ and an
+    initial region represented as $\Theta \in 2^\Pi$, check whether the trajectories of $\Sigma$
+    satisfy $\phi$, for all $u_0 \in \psat{\Theta}$.
+\end{problem}
+
+We now make use of the Finite Element Analysis framework to reformulate
+Problem~\ref{pr:pde} in terms of a system of ODEs. Let $\{x_i\}_{i = 0}^{n +
+1}$, where $x_0 = 0, x_{n+1} = L, x_i \in \Omega, i = 1,...,n$, be a partition of
+$\bar\Omega$ such that it is proposition preserving with respect to the set of
+regions $\{A_i\}_{i = 1}^{m}$\footnote{This is well defined since the $A_i$ are
+closed and there are a finite number of them}. Let $d_i(t), i = 1,...,n$ represent the
+temperature of the rod at the point $x_i$, and let $d = (d_1, ..., d_n)' \in
+\R^n$. It can be shown\footnote{\fran{At some point I'll fill in the details of the
+construction of $A$ and $b$}} that $d_i(t)$ is a good approximation of 
+$u(x, t)$ at $x=x_i$, where $u(x,t)$ is the trajectory of $\Sigma$ for an
+initial value $u_0$, and $d$ evolves
+according to the following linear system, $\Sigma_{FEM}$:
+
+\begin{equation}\label{eq:fem}
+    \begin{aligned}
+        \dot{d} &= A d + b
+    \end{aligned}
+\end{equation}
+
+with initial value $d_i(0) = u_0(x_i), i = 1,...,n$. In the above, $A$ is a
+banded matrix of bandwidth 3. We call $\Sigma_{FEM}$ the FEM system
+corresponding to system $\Sigma$.
+
+In order to fully reformulate Problem~\ref{pr:pde}, we need to modify $\phi$ so
+that it can be checked against trajectories of \eqref{eq:fem}. Let $\Pi_{FEM} =
+\{\pi_i^j | i =1,...,m, j \in J_i\}$, where $J_i = \{j | x_j \in A_i\}$ and
+$\pi_i^j$ denotes the following region in $\R^n$:
+
+\begin{equation}
+    \psat{\pi_i^j} = \{d \in \R^n | d_j \sim_i p_i(x_j)\}
+\end{equation}
+
+\begin{definition}\label{def:femformula}
+    The LTL formula over $\Pi_{FEM}$, $\phi_{FEM}$, corresponding to an LTL formula
+    $\phi$ over $\Pi$, is a formula obtained by substituting every atomic
+    proposition $\pi_i$ in $\phi$ by the formula $\bigwedge_{j \in J_i}
+    \pi_i^j$.
+\end{definition}
+
+We define the word corresponding to a trajectory of \eqref{eq:fem} and
+satisfaction of a formula $\phi_{FEM}$ by a trajectory in a similar way as in
+Def.~\ref{def:word} and \ref{def:sat}. An immediate consequence of
+Def.~\ref{def:femformula} is the following:
+
+\begin{theorem}\label{th:equiv}
+    Let $a : \bar\Omega \times [0, \infty) \rightarrow \R$ be a function
+    satisfying the LTL formula over $\Pi$, $\phi$. Then, the trajectory $d : [0,
+    \infty) \rightarrow \R^n$ given by $d_i(t) = a(x_i, t), t \geq 0, i =
+    1,...,n$, satisfies the corresponding LTL formula over $\Pi_{FEM}$, $\phi_{FEM}$.
+\end{theorem}
+
+We can now formulate a corresponding problem to Problem~\ref{pr:pde} in terms of 
+the corresponding FEM system and LTL formula over $\Pi_{FEM}$:
+
+\begin{problem}\label{pr:fem}
+    Given a system $\Sigma$, an LTL formula $\phi$ over $\Pi$ and an initial
+    region $\Theta \in 2^\Pi$, check whether the trajectories of the corresponding
+    FEM system, $\Sigma_{FEM}$, satisfies the corresponding LTL formula over
+    $\Pi_{FEM}$, $\phi_{FEM}$, for all initial values corresponding to the
+    initial values $u_0 \in \psat{\Theta}$ of $\Sigma$.
+\end{problem}
+
+\begin{theorem}
+    If the solution to Problem~\ref{pr:fem} is SAT, then the solution to
+    Problem~\ref{pr:pde} is SAT.
+\end{theorem}
+
+\fran{As of now, this theorem is clearly false: we need to account for the
+quality of the FEM approximation. I think this can be done if 
+we can compute error bounds for $\|d_i - u(x_i, \cdot)\|$ and we adjust the
+propositions in $\Pi_{FEM}$ so that the converse of Th.~\ref{th:equiv} is true.}
+
+\end{document}
