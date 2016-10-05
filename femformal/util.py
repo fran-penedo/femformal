@@ -89,8 +89,8 @@ def project_apdisc(apdisc, indices, tpart):
 def subst_spec_labels(spec, regions):
     res = spec
     for k, v in regions.items():
-        if any(isinstance(el, list) for el in v):
-            replaced = "(" + " or ".join(["(state = {})".format(state_label(s))
+        if any(isinstance(el, list) or isinstance(el, tuple) for el in v):
+            replaced = "(" + " | ".join(["(state = {})".format(state_label(s))
                                           for s in v]) + ")"
         else:
             replaced = "(state = {})".format(state_label(v))

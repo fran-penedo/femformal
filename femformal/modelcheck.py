@@ -20,18 +20,17 @@ def check_spec(ts, spec, regions, init):
     # logger.debug(out)
     # logger.debug(err)
     try:
-        return _parse_nusmv(out)
+        return _parse_nusmv(out, err)
     except ParserException:
         logger.debug(ts.toNUSMV(spec, regions, init))
         logger.debug(out)
         logger.debug(err)
-        raise ParserExceptionException()
+        raise ParserException()
 
-def _parse_nusmv(out):
+def _parse_nusmv(out, err):
     if out.find('true') != -1:
         return True, []
-    elif out.find('Parser error') != -1:
-        print out
+    elif err.find('Parser error') != -1:
         raise ParserException()
     else:
         lines = out.splitlines()

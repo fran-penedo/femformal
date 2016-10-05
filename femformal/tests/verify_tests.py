@@ -35,11 +35,11 @@ def verify_ic_2d_test():
                zip("ABCD",
                    [u.ap_cont_to_disc(apc, xpart)
                     for apc in [apcAl, apcAu, apcBl, apcBu]])}
-    spec = "(X (A and B)) & (F (! (C and D)))"
+    spec = "(X (A & B)) & (F (! (C & D)))"
     init_states = [[2, 3]]
 
     depth = 2
 
     assert v.verify_input_constrained(
-        system, partition, regions, init_states, spec, depth, verbosity=10) == True
+        system, partition, regions, init_states, spec, depth, verbosity=10, draw_constr_ts=False) == True
 

@@ -4,7 +4,7 @@ from .util import project_list, project_regions, label_state, state_label, list_
 import util
 from .ts import abstract, state_n
 from .modelcheck import check_spec
-from bisect import bisect_left
+from bisect import bisect_right
 
 import logging
 logger = logging.getLogger('FEMFORMAL')
@@ -89,7 +89,7 @@ def constrain_inputs(subsystems, system, args):
             pindices = system.pert_indices(subs.indices)
             subs.drelated = []
             for pi in pindices:
-                si = bisect_left(ikeys, pi)
+                si = bisect_right(ikeys, pi) - 1
                 subs_related = subsystems[si]
                 subs.drelated.append((subs_related,
                     subs_related.indices.index(pi)))
