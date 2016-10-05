@@ -1,12 +1,9 @@
 import numpy as np
 import femformal.system as s
 
-def heatlinfem(N):
-    L = N * 1.0
+def heatlinfem(N, L, T):
     n = N
     l = L / n
-
-    T = [10.0, 100.0]
 
     M = np.diag([5.0 for i in range(n - 1)]) * l / 6
     K = (np.diag([2.0 for i in range(n - 1)]) +
@@ -19,9 +16,10 @@ def heatlinfem(N):
     b = np.linalg.solve(M, F)
     C = np.empty(shape=(0,0))
     system = s.System(A, b, C)
-    partition = [np.arange(5, 115, 10.0).tolist() for i in range(n-1)]
+    tpart = [np.arange(5, 115, 10.0).tolist() for i in range(n-1)]
+    xpart = np.linspace(0, L, N + 1)
 
-    return system, partition
+    return system, xpart, tpart
 
 def diag(n, m, i):
     d = np.hstack([j * np.ones((n - 1) / m, dtype=int) for j in range(m)])
