@@ -16,7 +16,8 @@ def run_cs_draw(m, args):
     res = verify_input_constrained(m.system, m.partition, m.regions, m.init_states, m.spec, m.depth,
                  draw_file_prefix=args.draw_file_prefix,
                  verbosity=args.verbosity,
-                 draw_constr_ts=args.draw_constr_ts)
+                 draw_constr_ts=args.draw_constr_ts,
+                 check_inv=args.check_inv)
     finish = timer()
     print 'Res: {}'.format(res)
     print 'Time {}'.format(finish - start)
@@ -52,6 +53,7 @@ def get_argparser():
         'time', help='Run an example a number of times a show execution times')
     parser.add_argument('module', help='module containing the case study')
     parser.add_argument('-v', '--verbosity', action='count')
+    parser.add_argument('--check-inv', action='store_true')
     return parser
 
 

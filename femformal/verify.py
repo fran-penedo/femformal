@@ -31,16 +31,18 @@ def verify(system, partition, regions, init_states, spec, depth, **kwargs):
 
 def verify_input_constrained(system, partition, regions, init_states, spec,
                              depth, **kwargs):
+    args = VerifyArgs(kwargs)
     if len(partition) != system.n:
         raise ValueError("System dimensions do not agree with partition")
     # for key, item in regions.items():
     #     if len(item) != system.n:
     #         raise ValueError(
     #             "Region {0} dimensions do not agree with partition".format(key))
-    if not is_region_invariant(system, np.array(list_extr_points(partition)), []):
-        raise ValueError("Partitioned region is not invariant for system")
-
-    args = VerifyArgs(kwargs)
+    if args.check_inv == True:
+        if args.verbosity >= 1:
+            logger.info("Checking if partitioned region is invariant")
+        if not is_region_invariant(system, np.array(list_extr_points(partition)), []):
+            raise ValueError("Partitioned region is not invariant for system")
 
     d = 1
     while d <= depth and d <= system.n:
@@ -65,6 +67,8 @@ def verify_input_constrained(system, partition, regions, init_states, spec,
             groups, subsl, p_partition_l, p_pert_partition_l,
             p_init_states_l, tsl, initl)]
         constrain_inputs(verif_subsl, system, args)
+        #draw_ts(verif_subsl[0].ts, 'foo')
+        #draw_ts(verif_subsl[500].ts, 'bar')
 
         if all(check_spec(
                 subs.ts, spec,
@@ -181,6 +185,7 @@ class VerifyArgs(object):
         self.verbosity = 0
         self.figprefix = None
         self.draw_constr_ts = False
+        self.check_inv = False
 
         copy = dic.copy()
         self._parse(copy)
