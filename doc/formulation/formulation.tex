@@ -2,6 +2,7 @@
 \usepackage{color}
 \usepackage{graphicx}
 \usepackage{amsmath}
+\usepackage{amsthm}
 \usepackage{amsfonts}
 \usepackage{mathtools}
 \usepackage[utf8]{inputenc}
@@ -19,6 +20,19 @@
 \newcommand*{\xd}{\dot{x}}
 \newcommand*{\R}{\mathbb{R}}
 \newcommand*{\N}{\mathbb{N}}
+
+%% Temporal logic symbols
+% \newcommand{\not}{\neg}
+% \newcommand{\and}{\wedge}
+% \newcommand{\or}{\vee}
+\newcommand{\Next}{\mathbf{X}}
+\newcommand{\Always}{\mathbf{G}}
+\newcommand{\Event}{\mathbf{F}}
+\newcommand{\Implies}{\Rightarrow}
+\newcommand{\Not}{\lnot}
+\newcommand{\True}{\top}
+
+% \newcommand*{\iff}{\Leftrightarrow}
 
 \newcommand*{\psat}[1]{[[#1]]}
 
@@ -194,6 +208,85 @@ FEM system $\Sigma_{FEM}$ and LTL formula $\phi_{FEM}$ over $\Pi_{FEM}$ for a
 given partition. We also assume there is a hyperrectangle $R = \{d \in \R^n |
 d_i \in (r_{min}, r_{max}), i = 1,...,n\}$ that is invariant for $\Sigma_{FEM}$.
 
+\fran{The above may not actually be needed at all}
+
+Let $T = \{ p_i(x_j) | i = 1,...,m, j \in J_i \} \cup \{r_{min}, r_{max}\} =
+\{t_i | i = 1,..., |T|\}$, with $t_i < t_{i+1}$, represent a partition of $[r_{min},
+r_{max}]$, which can be extended to a partition of $R$ into hyperrectangles. We
+denote each hyperrectangle in the following way:
+
+\begin{equation}
+    R_{(a_j)_{j=1}^n} = \{d \in \R^n | d_i \in (t_{a_i}, t_{a_i + 1})\},
+\end{equation}
+
+where $a_j \in \{1,...,n\}, j=1,...,n$. We can now define the quotient
+transition system associated with $\Sigma_{FEM}$ and partition $T$,
+$TS = (Q, Q_0, \rightarrow, O, o)$, where:
+
+\begin{itemize}
+    \item $Q = \{(a_j)_{j=1}^n | a_j \in \{1,...,|T|\}\}$ is the set of states.
+    \item $Q_0 \subseteq Q$ is the set of initial states.
+    \item $(q,q') \in \rightarrow$ if and only if there exists $d \in R_q$ such
+        that the trajectory of $\Sigma_{FEM}$ with initial value $d$ leaves
+        $R_q$ in finite time and enters $R_{q'}$ immediately
+        after\footnote{\fran{This is not formal enough}}.
+    \item $O = 2^{\Pi_{FEM}}$ is the set of observations.
+    \item $o(q) = \Theta$ if and only if $R_q \subseteq [[\Theta]]$.
+\end{itemize}
+
+We define the following set of equivalence relations in $Q$:
+
+\begin{equation}
+    ((a_j)_{j=1}^n,(b_j)_{j=1}^n) \in S_I \iff a_j = b_j, \forall j \in I
+\end{equation}
+
+And the corresponding quotient transition systems $TS/S_I = (Q/S_I, Q_0/S_I,
+\to/S_I, O/S_I, o/S_I)$. Here, $O/S_I$ is the power set of the set of atomic
+propositions related to state variable with index in $I$, i.e., the set
+$\{\pi_i^j \in \Pi_{FEM} | j \in I \}$. This ensures that $o/S_I$ has a unique
+value for each equivalence class in $Q/S_I$.
+
+Let $\psi$ be an LTL formula over $\Pi_{FEM}$. We
+denote by $\Gamma(\phi_{ij})$ the set of coordinate indices that appear in
+atomic propositions in $\phi_{ij}$, i.e.,
+
+\begin{equation}
+    \Gamma(\psi) = \{j \in \{1,...,n\}| \text{ some }\pi_i^j \in \Pi_{FEM} \text{ appears in } \psi\}
+\end{equation}
+
+
+\begin{theorem}
+
+Let $\phi = \bigvee \bigwedge \phi_{ij}$ be an LTL formula over $\Pi_{FEM}$. If
+there exists $i$ such that for all $j$, some overapproximation of the quotient transition system
+$TS/S_{\Gamma(\phi_{ij})}$ satisfies $\phi_{ij}$, then the transition system $TS$
+satisfies $\phi$.
+    
+\end{theorem}
+
+\begin{proof}
+
+Suppose by contradiction that $TS$ does not satisfy $\phi$, i.e., there exists a
+trajectory in $TS$, $\mathbf{q} = q_0 q_1...$ such that the corresponding observed
+word $\mathbf{o} = o(q_0) o(q_1)...$ does not satisfy $\phi$. Due to the structure
+of $\phi$, this implies that for all $i$ there exists $j$ such that $\mathbf{o}$ does
+not satisfy $\phi_{ij}$. Let $\mathbf{o^{ij}}$ be the word obtained from
+$\mathbf{o}$ by substituting every symbol not in $O/S_{\Gamma{\phi_{ij}}}$ by
+the last preceding symbol that was in the set. Then, $\mathbf{o^{ij}}$ is a word
+produced by $TS/S_{\Gamma(\phi_{ij})}$, which implies the latter transition system
+does not satisfy $\phi_{ij}$. This contradicts the hypothesis of the
+theorem.
+    
+\end{proof}
+
+The previous theorem allows us to avoid the computation of the full transition
+system $TS$ when checking the satisfaction of a formula structured as a boolean
+combination of LTL formulas over atomic propositions referring to a small subset
+of the state variables. Instead, we only need overapproximations of the quotient
+transition systems, which can be computed without $TS$, as explained below. Also
+note that we can use any valid rule of inference in LTL in order to rewrite the
+formula so that the components $\phi_{ij}$ have a smaller $\Gamma$ set.
+
 Let $I \subseteq \{1,...,n\}$ be a set of indices. 
 
 \begin{definition}
@@ -218,23 +311,123 @@ related with via $A$.}}.
 
 \end{definition}
 
-\begin{definition}
+% \begin{definition}
+%
+% The projection of $\phi_{FEM}$ onto $I$ is an LTL
+% formula over $\Pi_{FEM}^I = \{\pi_i^j | i = 1,...,m, j \in J_i \cap I\}$,
+% $\phi_{FEM}^I$, obtained by removing every atomic proposition not in
+% $\Pi_{FEM}^I$ from $\phi_{FEM}$.
+%
+% \end{definition}
+%
+% \begin{problem}
+%
+% Solve Problem~\ref{pr:fem} for subsystem $\Sigma_{FEM}^I$ and formula
+% $\phi_{FEM}^I$, considering $\tilde{d_I}$ a disturbance whose components are
+% all contained in $(r_{min}, r_{max})$. \fran{Review this to state what
+% a disturbance is.}
+%     
+% \end{problem}
+%
 
-The projection of $\phi_{FEM}$ onto $I$ is an LTL
-formula over $\Pi_{FEM}^I = \{\pi_i^j | i = 1,...,m, j \in J_i \cap I\}$,
-$\phi_{FEM}^I$, obtained by removing every atomic proposition not in
-$\Pi_{FEM}^I$ from $\phi_{FEM}$.
+\begin{theorem}
 
-\end{definition}
-
-\begin{problem}
-
-Solve Problem~\ref{pr:fem} for subsystem $\Sigma_{FEM}^I$ and formula
-$\phi_{FEM}^I$, considering $\tilde{d_I}$ a disturbance whose components are
-all contained in $(r_{min}, r_{max})$. \fran{Review this to state what
-a disturbance is.}
+The quotient transition system associated with $\Sigma_{FEM}^I$ and
+partition $T$, $TS^I$, is an overapproximation of $TS/S_I$.
     
-\end{problem}
+\end{theorem}
 
+\section{Examples}
+\label{sec:examples}
+
+Consider a rod with parameters given in Table~\ref{tab:ex_pars}. We define
+the following atomic propositions: 
+
+\begin{table}
+\centering
+\begin{tabular}{|c|c|c|c|c|c|c|}
+    \hline
+    & $L$ & $\rho$ & $c$ & $\kappa$ & $g_0$ & $g_L$ \\
+    \hline
+    Rod 1 & 1000 & 1 & 1 & 1 & 10 & 100 \\
+    \hline
+\end{tabular}
+\caption{Rod parameters}
+\label{tab:ex_pars}
+\end{table}
+
+\begin{equation}
+    \begin{aligned}
+        \pi_1 &= ([0, 500], <, 85) \\
+        \pi_2 &= ([500, 1000], <, 125) \\
+        \pi_3 &= ([0, 1000], <, 25) \\
+    \end{aligned}
+\end{equation}
+
+We want to check the satisfaction of the following specifications for the
+initial region $\{\pi_3\}$:
+
+\begin{equation}
+\label{eq:ex_specs}
+    \begin{aligned}
+        \phi &= \Always \pi_1 \wedge \Always \pi_2 \\ 
+    \end{aligned}
+\end{equation}
+
+We use as our FEM partition the set $\{k | k = 0,...,1000\}$, which results
+in a FEM system with the following matrices:
+
+\begin{equation}
+    A = - \frac{6} {5} \begin{pmatrix}
+        2 & -1  & 0 & \cdots \\ 
+        -1 & 2 & -1 & \ddots \\ 
+        0 & -1 & 2 & \ddots \\
+        \vdots & \ddots & \ddots & \ddots 
+    \end{pmatrix},
+    b = \frac{6} {5}\begin{pmatrix}
+        10 \\
+        0 \\
+        \vdots \\
+        0 \\
+        100
+    \end{pmatrix}
+\end{equation}
+
+The corresponding FEM formulas for the specifications given in
+\eqref{eq:ex_specs} are:
+
+\begin{equation}
+    \begin{aligned}
+        \phi_{FEM} = (\Always \bigwedge_{i = 1}^{500} d_i < 80) \wedge (\Always
+            \bigwedge_{i = 500}^{999} d_i < 120)
+    \end{aligned}
+\end{equation}
+
+Note that $\phi_{FEM}$ has the form $\phi_{FEM} = \phi^1_{FEM} \wedge
+\phi^2_{FEM}$, with $\Gamma(\phi^1_{FEM}) = \{1,...,500\}, \Gamma(\phi^1_{FEM})
+= \{500,...,999\}$. These $\Gamma$ sets are too big to compute the corresponding
+quotients in Th~\ref{th:partition}. However, we can manipulate $\phi_{FEM}$ to obtain the
+following formula:
+
+\begin{equation}
+    \phi_{FEM} = (\bigwedge_{i = 1}^{500} \Always (d_i < 80)) \wedge
+    (\bigwedge_{i = 500}^{999} \Always (d_i < 120))
+\end{equation}
+
+which has the form $\phi_{FEM} = \bigwedge_{i=1}^{1000} \bar{\phi}^i_{FEM}$ and
+each subformula $\bar{\phi}^i_{FEM}$ has a $\Gamma$ set of size 1. The problem
+is now reduced to check the satisfaction of $\bar{\phi}^i_{FEM}$ in the TS
+$TS/S_{\Gamma(\bar{\phi}^i{FEM})}$, for all $i=1,...,1000$. We use $T =
+\{10, 15, 25,...,105,110\}$ for the temperature partition. We show in
+Fig~\ref{fig:ex_ts} some of the resulting transition systems. The model-checking
+tool returned SAT for all instances, so we conclude that $\phi_{FEM}$ is
+satisfied by $\Sigma_{FEM}$.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.8\linewidth]{name.ext}
+    \caption{Name}
+    \label{fig:ex_ts}
+\end{figure}
 
 \end{document}
