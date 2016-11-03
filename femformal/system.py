@@ -1,5 +1,7 @@
 import numpy as np
 from scipy.optimize import linprog
+from scipy.integrate import odeint
+import scipy.linalg as la
 
 import logging
 logger = logging.getLogger('FEMFORMAL')
@@ -94,3 +96,20 @@ def rect_in_semispace(R, a, b):
             return False
         else:
             return - res.fun <= b
+
+def cont_to_disc(system):
+    A = la.expm(system.A)
+    b = A.dot(- la.solve(
+        system.A, (la.expm(-system.A) - np.identity(system.n)))).dot(system.b)
+    return System(A, b)
+
+def cont_integrate(system, x0, t):
+    return odeint(lambda x, t: (system.A.dot(x) + system.b.T).flatten(), x0, t)
+
+def disc_integrate(system, x0, t):
+    xs = [x0]
+    x = x0
+    for i in range(t):
+        x = (system.A.dot(x) + system.b.T).flatten()
+        xs.append(x)
+    return xs

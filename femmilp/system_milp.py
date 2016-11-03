@@ -15,6 +15,8 @@ def rh_system_sat(system, d0, N, spec):
         fvar, vbds = milp.add_stl_constr(m, "spec", spec)
         m.params.outputflag = 0
         m.update()
+        # if j == 0:
+        #     m.write("out.lp")
         m.optimize()
 
         if m.status != milp.GRB.status.OPTIMAL:

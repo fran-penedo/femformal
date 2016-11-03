@@ -69,3 +69,17 @@ def region_invariant_test():
     R = np.array([[-1, -0.2], [-1, 1]])
     assert not s.is_region_invariant(system, R, dist_bounds)
 
+
+def cont_disc_test():
+    A = np.array([[-2, 1], [1, -2]])
+    b = np.array([[1], [2]])
+    system = s.System(A, b)
+    x0 = np.array([1,2])
+    t_cont = np.linspace(0, 10, 101)
+    t_disc = 10
+
+    system_d = s.cont_to_disc(system)
+    x_c = s.cont_integrate(system, x0, t_cont)
+    x_d = s.disc_integrate(system_d, x0, t_disc)
+    np.testing.assert_array_almost_equal(x_c[-1], x_d[-1])
+
