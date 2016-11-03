@@ -1,4 +1,5 @@
 from femformal.verify import verify, verify_input_constrained
+from femmilp.system_milp import rh_system_sat
 import femformal.util as util
 import numpy as np
 import argparse
@@ -22,6 +23,13 @@ def run_cs_draw(m, args):
     print 'Res: {}'.format(res)
     print 'Time {}'.format(finish - start)
 
+def run_cs_milp(m, args):
+    logger.debug(m.system)
+    start = timer()
+    res = rh_system_sat(m.system, m.d0, m.rh_N, m.spec)
+    finish = timer()
+    print 'Res: {}'.format(res)
+    print 'Time {}'.format(finish - start)
 
 def run_cs_time(m, args):
     times = []
@@ -51,6 +59,8 @@ def get_argparser():
     parser_draw.add_argument('--draw-constr-ts', action='store_true')
     parser_time = subparsers.add_parser(
         'time', help='Run an example a number of times a show execution times')
+    parser_milp = subparsers.add_parser(
+        'milp', help='Run an example using MILP')
     parser.add_argument('module', help='module containing the case study')
     parser.add_argument('-v', '--verbosity', action='count')
     parser.add_argument('--check-inv', action='store_true')
@@ -67,5 +77,7 @@ def main():
         run_cs_draw(module, args)
     elif args.action == 'time':
         run_cs_time(module, args)
+    elif args.action == 'milp':
+        run_cs_milp(module, args)
     else:
         parser.print_help()

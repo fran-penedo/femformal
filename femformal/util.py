@@ -86,6 +86,15 @@ def project_apdisc(apdisc, indices, tpart):
 
     return list(it.product(*state_indices))
 
+def subst_spec_labels_disc(spec, regions):
+    res = spec
+    for k, v in regions.items():
+        replaced = "(" + " & ".join(["({0} {1} {2})".format(
+            i, "<" if v.r == 1 else ">", p) for (i, p) in v.m.items()]) + ")"
+        res = res.replace(k, replaced)
+    return res
+
+
 def subst_spec_labels(spec, regions):
     res = spec
     for k, v in regions.items():
