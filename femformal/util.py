@@ -135,7 +135,7 @@ def draw_ts(ts, prefix=None):
     nx.draw_networkx(ts)
 
     if prefix is not None:
-        savefig(prefix + str(_figcounter) + '.svg')
+        plt.savefig(prefix + str(_figcounter) + '.svg')
         plt.show()
         _figcounter += 1
     else:

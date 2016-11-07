@@ -12,7 +12,7 @@ system = s.cont_to_disc(system)
 
 
 v = fem.diag(N, 9, -1)
-apc1 = u.APCont([0, 50], 1, lambda x: 85)
+apc1 = u.APCont([0, 50], -1, lambda x: 85)
 apc2 = u.APCont([50, 100], 1, lambda x: 125)
 apc3 = u.APCont([0, 100], 1, lambda x: 25)
 regions = {'A': u.ap_cont_to_disc(apc1, xpart),
