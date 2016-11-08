@@ -67,17 +67,30 @@ def verify_input_constrained(system, partition, regions, init_states, spec,
             groups, subsl, p_partition_l, p_pert_partition_l,
             p_init_states_l, tsl, initl)]
         constrain_inputs(verif_subsl, system, args)
-        #draw_ts(verif_subsl[0].ts, 'foo')
-        #draw_ts(verif_subsl[500].ts, 'bar')
+        # util.draw_ts(verif_subsl[0].ts, 'foo')
+        # util.draw_ts(verif_subsl[500].ts, 'bar')
+        logger.debug(project_apdict(regions, verif_subsl[500].indices, partition[0]))
+        logger.debug(verif_subsl[500].init)
+        sss = verif_subsl[500]
+        logger.debug(sss.ts.toNUSMV(spec, project_apdict(regions, sss.indices, partition[0]), sss.init))
+        logger.debug(check_spec(
+                sss.ts, spec,
+                project_apdict(regions, sss.indices, partition[0]), #FIXME
+                sss.init, True)[0])
 
-        if all(check_spec(
+
+        reses = [check_spec(
                 subs.ts, spec,
                 project_apdict(regions, subs.indices, partition[0]), #FIXME
                 subs.init)[0]
-            for subs in verif_subsl):
+            for subs in verif_subsl]
+        if all(reses):
+            logger.debug(reses)
             return True
         else:
             d +=1
+
+    return False
 
 def constrain_inputs(subsystems, system, args):
     converged = False
