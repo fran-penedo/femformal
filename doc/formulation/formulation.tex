@@ -398,8 +398,8 @@ The corresponding FEM formulas for the specifications given in
 
 \begin{equation}
     \begin{aligned}
-        \phi_{FEM} = (\Always \bigwedge_{i = 1}^{500} d_i < 80) \wedge (\Always
-            \bigwedge_{i = 500}^{999} d_i < 120)
+        \phi_{FEM} = (\Always \bigwedge_{i = 1}^{500} d_i < 85) \wedge (\Always
+            \bigwedge_{i = 500}^{999} d_i < 125)
     \end{aligned}
 \end{equation}
 
@@ -410,8 +410,8 @@ quotients in Th~\ref{th:partition}. However, we can manipulate $\phi_{FEM}$ to o
 following formula:
 
 \begin{equation}
-    \phi_{FEM} = (\bigwedge_{i = 1}^{500} \Always (d_i < 80)) \wedge
-    (\bigwedge_{i = 500}^{999} \Always (d_i < 120))
+    \phi_{FEM} = (\bigwedge_{i = 1}^{500} \Always (d_i < 85)) \wedge
+    (\bigwedge_{i = 500}^{999} \Always (d_i < 125))
 \end{equation}
 
 which has the form $\phi_{FEM} = \bigwedge_{i=1}^{1000} \bar{\phi}^i_{FEM}$ and
@@ -420,8 +420,12 @@ is now reduced to check the satisfaction of $\bar{\phi}^i_{FEM}$ in the TS
 $TS/S_{\Gamma(\bar{\phi}^i{FEM})}$, for all $i=1,...,1000$. We use $T =
 \{10, 15, 25,...,105,110\}$ for the temperature partition. We show in
 Fig~\ref{fig:ex_ts} some of the resulting transition systems. The model-checking
-tool returned SAT for all instances, so we conclude that $\phi_{FEM}$ is
-satisfied by $\Sigma_{FEM}$.
+tool returned UNSAT for some instances, so we cannot conclude that $\phi_{FEM}$ is
+satisfied by $\Sigma_{FEM}$. To see why this is the case, notice the transition
+system in Fig~\ref{fig:ex_ts} contains all posible transitions, i.e., it does
+not give us any information about the subsystem it abstracts. Consequently, the
+corresponding formula $\phi_{FEM}^{xxxx} = \Always (d_{500} < 85)$ is not
+satisfied.
 
 \begin{figure}
     \centering
