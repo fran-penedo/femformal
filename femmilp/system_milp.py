@@ -13,11 +13,15 @@ def rh_system_sat(system, d0, N, spec):
         m = milp.create_milp("rhc_system")
         d = milp.add_affsys_constr(m, "d", system.A, system.b, dcur, H, None)
         fvar, vbds = milp.add_stl_constr(m, "spec", spec)
+        m.addConstr(fvar >= 0)
         m.params.outputflag = 0
         m.update()
         # if j == 0:
         #     m.write("out.lp")
         m.optimize()
+        # if j == 0:
+        #     for v in m.getVars():
+        #         print v
 
         if m.status != milp.GRB.status.OPTIMAL:
             return False
