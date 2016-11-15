@@ -44,6 +44,9 @@
 
 \begin{document}
 
+\section{Problem Formulation}
+\label{sec:problem_formulation}
+
 Let $\Omega = (0, L) \subset \R$ be an open interval representing the interior
 of a one-dimensional rod of length $L$; $\rho, c, \kappa > 0$ 
 constants denoting density, capacity and conductivity of the rod's material respectively;
@@ -68,8 +71,11 @@ In the following we will call $\Sigma$ a system governed by \eqref{eq:pde},
 described by the parameters $L, \rho, c$ and $\kappa$, and with boundary
 conditions $g_0, g_L$.
 
-Let $\Pi = \{\pi_i | i = 1, ..., m\}$ be a set of propositions, where each
-proposition $\pi_i$ is represented as a tuple $(X_i, p_i)$, with $X_i \subseteq
+\subsection{Linear Temporal Logic}
+\label{sub:linear_temporal_logic}
+
+Let $\Pi = \{\pi_i | i = 1, ..., m\}$ be a set of predicates, where each
+predicate $\pi_i$ is represented as a tuple $(X_i, \sim_i, p_i)$, with $X_i \subseteq
 \Omega$ a closed set (of $\Omega$ with the subset topology) and $p_i : X_i
 \rightarrow \R$ a continuous function, and denotes the following subset of
 continuous functions supported in $\bar\Omega$, $C^0(\bar\Omega)$:
@@ -199,6 +205,40 @@ the corresponding FEM system and LTL formula over $\Pi_{FEM}$:
 quality of the FEM approximation. I think this can be done if 
 we can compute error bounds for $\|d_i - u(x_i, \cdot)\|$ and we adjust the
 propositions in $\Pi_{FEM}$ so that the converse of Th.~\ref{th:equiv} is true.}
+
+\subsection{Signal Temporal Logic}
+\label{sub:signal_temporal_logic}
+
+Let $\Lambda = \{\lambda_i | i = 1,...,m\}$ be a set of predicates, where
+$\lambda_i$ is a predicate represented as a tuple $(Q_i, X_i, \mu_i)$, with $Q_i
+\in \{\forall, \exists\}$, $X_i
+\subseteq \bar\Omega$ a closed set and $\mu_i : X_i \to \R$ a continuous function,
+and informally represented using the syntax $``Q_i x \in X_i : \mu_i(u(x)) >
+0"$. We consider STL formulas defined with the usual syntax and recursive boolean
+semantics over the set of predicates $\Lambda$, where the satisfaction of a
+predicate with respect to a continuous-time signal $u : \bar\Omega \times [0, T]
+\to \R$ at time $t \in \R$ is defined as $u[t] \models \lambda_i \iff 
+\mu_i(u(x, t)) > 0$ for all $x \in X_i$ if $Q_i = \forall$ or for some $x \in
+X_i$ otherwise.
+
+\begin{problem}
+    Given a system $\Sigma$, an STL formula $\psi$ and initial state $u_0$,
+    check wether the trajectory of $\Sigma$ for the initial state $u_0$
+    satisfies $\psi$ at time 0.
+\end{problem}
+
+Again, we define a logic suitable to describe properties for $\Sigma_{FEM}$. Let
+$\Lambda_{FEM} = \{\lambda_i^j | i = 1,...,m, j \in J_i\}$, where $J_i= \{j |
+x_j \in X_i\}$ and $\lambda_i^j$ is defined by $d[t] \models \lambda_i^j \iff
+\mu(d_j(t)) > 0$, for a continuous-time signal $d : [0, T] \to \R^n$.
+
+\begin{definition}
+    The STL formula over $\Lambda_{FEM}$, $\psi_{FEM}$, corresponding to an STL
+    formula $\psi$ over $\Lambda$, is a formula obtained by substituting every
+    predicate $\lambda_i$ in $\psi$ by the formula $\bigoplus_{j \in J_i}
+    \lambda_i^j$, where $\oplus = \wedge$ if $Q_i = \forall$ and $\oplus = \vee$
+    otherwise.
+\end{definition}
 
 \section{Approach}
 
