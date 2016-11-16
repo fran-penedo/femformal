@@ -67,8 +67,8 @@ def verify_input_constrained(system, partition, regions, init_states, spec,
             groups, subsl, p_partition_l, p_pert_partition_l,
             p_init_states_l, tsl, initl)]
         constrain_inputs(verif_subsl, system, args)
-        # util.draw_ts(verif_subsl[0].ts, 'foo')
-        # util.draw_ts(verif_subsl[500].ts, 'bar')
+        util.draw_ts(verif_subsl[0].ts, 'foo')
+        util.draw_ts(verif_subsl[500].ts, 'bar')
         logger.debug(project_apdict(regions, verif_subsl[500].indices, partition[0]))
         logger.debug(verif_subsl[500].init)
         sss = verif_subsl[500]

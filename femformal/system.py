@@ -99,6 +99,7 @@ def rect_in_semispace(R, a, b):
 
 def cont_to_disc(system):
     A = la.expm(system.A)
+    print A
     b = A.dot(- la.solve(
         system.A, (la.expm(-system.A) - np.identity(system.n)))).dot(system.b)
     return System(A, b)
