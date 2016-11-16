@@ -139,11 +139,27 @@ Problem~\ref{pr:pde} in terms of a system of ODEs. Let $\{x_i\}_{i = 0}^{n +
 1}$, where $x_0 = 0, x_{n+1} = L, x_i \in \Omega, i = 1,...,n$, be a partition of
 $\bar\Omega$ such that it is proposition preserving with respect to the set of
 regions $\{X_i\}_{i = 1}^{m}$\footnote{This is well defined since the $X_i$ are
-closed and there are a finite number of them}. Let $d_i(t), i = 1,...,n$ represent the
-temperature of the rod at the point $x_i$, and let $d = (d_1, ..., d_n)' \in
-\R^n$. It can be shown\footnote{\fran{At some point I'll fill in the details of the
-construction of $A$ and $b$}} that $d_i(t)$ is a good approximation of 
-$u(x, t)$ at $x=x_i$, where $u(x,t)$ is the trajectory of $\Sigma$ for an
+closed and there are a finite number of them}. Let $d_i(t), i = 0,...,n+1$ represent the
+temperature of the rod at the point $x_i$, with $d_0(t) = g_0, d_{n+1} = g_L$ and let $d = (d_1, ..., d_n)' \in
+\R^n$. We define the following linear node shape function matrices for $i =
+0,...,n+1$:
+
+\begin{equation}
+    N_i(x) = \begin{cases}
+        \frac{x - x_{i - 1}}{x_i - x_{i - 1}} & i > 0, x \in [x_{i-1}, x_i] \\
+        \frac{x_{i+1} - x}{x_{i+1} - x_{i}} & i < n+1, x \in [x_{i}, x_{i+1}] 
+    \end{cases} 
+\end{equation}
+
+and the following linear interpolation of $d$:
+
+\begin{equation}
+    u^d(x, t) = \sum_{i=0}^{n+1} N_i(x) d_i(t)
+\end{equation}
+
+It can be shown\footnote{\fran{At some point I'll fill in the details of the
+construction of $A$ and $b$}} that $u^d(x, t)$ is a good approximation of 
+$u(x, t)$, where $u(x,t)$ is the trajectory of $\Sigma$ for an
 initial value $u_0$, and $d$ evolves
 according to the following linear system, $\Sigma_{FEM}$:
 
@@ -212,13 +228,13 @@ propositions in $\Pi_{FEM}$ so that the converse of Th.~\ref{th:equiv} is true.}
 Let $\Lambda = \{\lambda_i | i = 1,...,m\}$ be a set of predicates, where
 $\lambda_i$ is a predicate represented as a tuple $(Q_i, X_i, \mu_i)$, with $Q_i
 \in \{\forall, \exists\}$, $X_i
-\subseteq \bar\Omega$ a closed set and $\mu_i : X_i \to \R$ a continuous function,
-and informally represented using the syntax $``Q_i x \in X_i : \mu_i(u(x)) >
+\subseteq \bar\Omega$ a closed set and $\mu_i : X_i \times \R \to \R$ a continuous function,
+and informally represented using the syntax $``Q_i x \in X_i : \mu_i(x, u(x)) >
 0"$. We consider STL formulas defined with the usual syntax and recursive boolean
 semantics over the set of predicates $\Lambda$, where the satisfaction of a
 predicate with respect to a continuous-time signal $u : \bar\Omega \times [0, T]
 \to \R$ at time $t \in \R$ is defined as $u[t] \models \lambda_i \iff 
-\mu_i(u(x, t)) > 0$ for all $x \in X_i$ if $Q_i = \forall$ or for some $x \in
+\mu_i(x, u(x, t)) > 0$ for all $x \in X_i$ if $Q_i = \forall$ or for some $x \in
 X_i$ otherwise.
 
 \begin{problem}
@@ -230,7 +246,7 @@ X_i$ otherwise.
 Again, we define a logic suitable to describe properties for $\Sigma_{FEM}$. Let
 $\Lambda_{FEM} = \{\lambda_i^j | i = 1,...,m, j \in J_i\}$, where $J_i= \{j |
 x_j \in X_i\}$ and $\lambda_i^j$ is defined by $d[t] \models \lambda_i^j \iff
-\mu(d_j(t)) > 0$, for a continuous-time signal $d : [0, T] \to \R^n$.
+\mu_i(x_j, d_j(t)) > 0$, for a continuous-time signal $d : [0, T] \to \R^n$.
 
 \begin{definition}
     The STL formula over $\Lambda_{FEM}$, $\psi_{FEM}$, corresponding to an STL
