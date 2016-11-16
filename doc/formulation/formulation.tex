@@ -230,7 +230,9 @@ $\lambda_i$ is a predicate represented as a tuple $(Q_i, X_i, \mu_i)$, with $Q_i
 \in \{\forall, \exists\}$, $X_i
 \subseteq \bar\Omega$ a closed set and $\mu_i : X_i \times \R \to \R$ a continuous function,
 and informally represented using the syntax $``Q_i x \in X_i : \mu_i(x, u(x)) >
-0"$. We consider STL formulas defined with the usual syntax and recursive boolean
+0"$. We will sometimes use $Q_\lambda, X_\lambda, \mu_\lambda$ to refer to the
+elements of the tuple representing $\lambda$. We consider STL formulas 
+defined with the usual syntax and recursive boolean
 semantics over the set of predicates $\Lambda$, where the satisfaction of a
 predicate with respect to a continuous-time signal $u : \bar\Omega \times [0, T]
 \to \R$ at time $t \in \R$ is defined as $u[t] \models \lambda_i \iff 
@@ -238,23 +240,114 @@ predicate with respect to a continuous-time signal $u : \bar\Omega \times [0, T]
 X_i$ otherwise.
 
 \begin{problem}
+\label{pr:stl}
     Given a system $\Sigma$, an STL formula $\psi$ and initial state $u_0$,
     check wether the trajectory of $\Sigma$ for the initial state $u_0$
     satisfies $\psi$ at time 0.
 \end{problem}
 
-Again, we define a logic suitable to describe properties for $\Sigma_{FEM}$. Let
-$\Lambda_{FEM} = \{\lambda_i^j | i = 1,...,m, j \in J_i\}$, where $J_i= \{j |
-x_j \in X_i\}$ and $\lambda_i^j$ is defined by $d[t] \models \lambda_i^j \iff
-\mu_i(x_j, d_j(t)) > 0$, for a continuous-time signal $d : [0, T] \to \R^n$.
+We want to reformulate the spec $\psi$ in such a way that we can verify instead the
+approximation given by $\Sigma_{FEM}$. Recall that we denote as $u(x,t)$ the
+trajectory of $\Sigma$ and $u^d(x, t)$ the piecewise linear approximation
+obtained by interpolating the trajectory of $\Sigma_{FEM}$. Suppose we are given
+an a priori bound, $\epsilon(x, t)$, on the pointwise difference between them, i.e., 
+$|u(x, t) - u^d(x, t)| \leq \epsilon(x, t)$.
 
 \begin{definition}
-    The STL formula over $\Lambda_{FEM}$, $\psi_{FEM}$, corresponding to an STL
-    formula $\psi$ over $\Lambda$, is a formula obtained by substituting every
-    predicate $\lambda_i$ in $\psi$ by the formula $\bigoplus_{j \in J_i}
-    \lambda_i^j$, where $\oplus = \wedge$ if $Q_i = \forall$ and $\oplus = \vee$
-    otherwise.
+\label{def:m_perturbation}
+    Let $\lambda \in \Lambda$ be the predicate represented by the tuple $(Q, X,
+    \mu)$ and let $M : \bar\Omega \to \R$ be a continuous function. The perturbation of
+    $\lambda$ by $M$, $\lambda^M$, is the predicate given by the tuple $(Q, X,
+    \mu^M)$, where $\mu^M(x, u) = \mu(x, u) + M(x)$.
 \end{definition}
+
+\begin{definition}
+\label{def:delta_perturbation}
+    Let $\psi$ be an STL formula over $\Lambda$ in negation normal form 
+    and let $\delta : \bar\Omega \to \R$ be a continuous function. The
+    conservative perturbation of $\psi$ by $\delta$, $\psi^\delta$, is an STL
+    formula in negation normal form obtained by substituting every predicate
+    $\lambda$ that appears in $\psi$ and is represented by $(Q, X, \mu)$ in the
+    following way:
+
+    \begin{itemize}
+        \item If $\lambda$ is not preceded by a negation operator, then it is
+            substituted by $\lambda^{-M}$.
+        \item Otherwise, it is substituted by $\lambda^{M}$
+    \end{itemize}
+
+    In both cases, 
+    
+    \begin{equation}
+        M(x) = \delta(x) \max_{u} \frac{\partial \mu}{\partial u} (x, u)
+    \end{equation}
+
+    We will also use $\Lambda^{\delta}$ to refer to the set of all $M$ and $-M$
+    perturbations of predicates in $\Lambda$.
+\end{definition}
+
+\begin{theorem}
+\label{th:epsilon_approximation}
+    If $u^d \models \psi^{\delta}$, with $\delta(x) = \max_t \epsilon(x, t)$, then $u \models \psi$.
+\end{theorem}
+\begin{proof}
+    \fran{Lipschitz stuff}
+\end{proof}
+
+Theorem~\ref{th:epsilon_approximation} gives us a way to conservatively solve
+Problem~\ref{pr:stl} using the approximation obtained from $\Sigma_{FEM}$.
+However, we still need to deal with continuous functions in continuous time. Our
+next step will be to reformulate the problem into a verification problem over
+the trajectory of $\Sigma_{FEM}$, i.e., $d(t)$.
+
+Let $\Lambda^{\delta}_{FEM} = \{\alpha_{\lambda, j} | \lambda \in
+\Lambda^{\delta}, j \in J_i\}$, where $J_i= \{j |
+x_j \in X_\lambda\}$ and $\alpha_{\lambda, j}$ is defined by $d[t] \models
+\alpha_{\lambda, j} \iff \mu_\lambda(x_j, d_j(t)) > 0$, for a continuous-time signal $d : [0, T] \to \R^n$.
+Note that this set of predicates includes the perturbations defined in
+Def.~\ref{def:delta_perturbation}. We define perturbations of predicates in
+$\Lambda^{\delta}_{FEM}$ by a real number $K$ in a manner analogous to
+Def.~\ref{def:m_perturbation}, and we denote it as $\alpha^K$.
+
+\begin{definition}
+    The STL formula over $\Lambda^{\delta}_{FEM}$, $\psi^{\delta, L}_{FEM}$, corresponding to an STL
+    formula in negation normal form, $\psi^\delta$, over $\Lambda^\delta$, with
+    $L : \bar\Omega \to \R$, is a formula obtained by substituting every
+    predicate $\lambda$ in $\psi^\delta$ by the formula $\bigoplus_{j=1}^{|J_i|
+    - 1} \beta_j$, where $\oplus = \wedge$ if $Q_i = \forall$ and $\oplus = \vee$
+    otherwise, and $\beta_j$ is defined as the following STL formula:
+
+    \begin{itemize}
+        \item If $\delta$ is not preceded by a negation operator, then $\beta_j
+            = \alpha_j^{-K_j} \vee \alpha_{j+1}^{-K_j}$.
+        \item Otherwise, $\beta_j = \alpha_j^{K_j} \vee \alpha_{j+1}^{K_j}$.
+    \end{itemize}
+
+    In both cases, \footnote{\fran{This might be too conservative for
+    verification}}
+
+    \begin{equation}
+    \begin{aligned}
+        K_j = (x_{j+1} - x_j) & \left (\max_{c \in [x_j, x_{j+1}], u} \left \{ 
+            \frac{\partial \mu}{\partial x}(c, u) \right \} + \right.\\
+            & \left. \max_{c \in [x_j, x_{j+1}], u} \left \{ 
+            \frac{\partial \mu}{\partial u}(c, u) \right \} 
+            \max_{c \in [x_j, x_{j+1}]} \left \{ L(c) \right \} \right )
+    \end{aligned}
+    \end{equation}
+\end{definition}
+% \frac{\partial u}{\partial x}(c, t)
+
+\begin{theorem}
+    If $d \models \psi^{\delta, L}_{FEM}$, with $L(x) \geq |\max_t \frac{\partial
+    u^d}{\partial x}(x, t)|$\footnote{\fran{I think I have a bound for this}}, 
+    then $u^d \models \psi^\delta$.
+\end{theorem}
+\begin{proof}
+    \fran{More Lipschitz stuff}
+\end{proof}
+
+\fran{Next: Translate into discrete time}
 
 \section{Approach}
 
