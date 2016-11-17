@@ -97,12 +97,12 @@ def rect_in_semispace(R, a, b):
         else:
             return - res.fun <= b
 
-def cont_to_disc(system):
-    A = la.expm(system.A)
-    print A
-    b = A.dot(- la.solve(
-        system.A, (la.expm(-system.A) - np.identity(system.n)))).dot(system.b)
-    return System(A, b)
+def cont_to_disc(system, dt=1.0):
+    Adt = system.A * dt
+    Atil = la.expm(Adt)
+    btil = Atil.dot(- la.solve(
+        system.A, (la.expm(-Adt) - np.identity(system.n)))).dot(system.b)
+    return System(Atil, btil)
 
 def cont_integrate(system, x0, t):
     return odeint(lambda x, t: (system.A.dot(x) + system.b.T).flatten(), x0, t)

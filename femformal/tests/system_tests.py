@@ -1,4 +1,5 @@
 import femformal.system as s
+import femformal.util as u
 import examples.heatlinfem as fem
 import numpy as np
 
@@ -84,12 +85,22 @@ def cont_disc_test():
     x_d = s.disc_integrate(system_d, x0, t_disc)
     np.testing.assert_array_almost_equal(x_c[-1], x_d[-1])
 
-    N = 10
+    t_cont = np.linspace(0, 10, 101)
+    t_disc = 20
+
+    system_d = s.cont_to_disc(system, .5)
+    x_c = s.cont_integrate(system, x0, t_cont)
+    x_d = s.disc_integrate(system_d, x0, t_disc)
+    np.testing.assert_array_almost_equal(x_c[-1], x_d[-1])
+
+    N = 100
     L = 10.0
     T = [10.0, 100.0]
+    t_cont = np.linspace(0, 10, 101)
+    t_disc = 1000
 
     system, xpart, partition = fem.heatlinfem(N, L, T)
-    system_d = s.cont_to_disc(system)
+    system_d = s.cont_to_disc(system, 0.01)
     x0 = [20.0 for i in range(N - 1)]
 
     x_c = s.cont_integrate(system, x0, t_cont)

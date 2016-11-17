@@ -44,6 +44,13 @@ class SysSignal(stl.Signal):
         self.f = lambda vs: (vs[0] - self.p) * (-1 if self.op == stl.LE else 1)
         self.bounds = [-1000, 1000] #FIXME
 
+
+def scale_time(formula, dt):
+    formula.bounds = [int(b / dt) for b in formula.bounds]
+    for arg in formula.args:
+        if arg.op != stl.EXPR:
+            scale_time(arg, dt)
+
 def expr_parser():
     num = stl.num_parser()
 
