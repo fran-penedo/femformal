@@ -1,7 +1,7 @@
 import networkx as nx
 import numpy as np
 import matplotlib.pyplot as plt
-import numpy as np
+import matplotlib.animation as animation
 import itertools as it
 from bisect import bisect_left, bisect_right
 
@@ -163,6 +163,30 @@ def draw_ts_2D(ts, partition, prefix=None):
         _figcounter += 1
     else:
         plt.show()
+
+
+def draw_pde_trajectory(ds, xs, ts, prefix=None):
+    d_min, d_max = np.amin(ds), np.amax(ds)
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    ax.set_xlim(xs[0], xs[-1])
+    ax.set_ylim(d_min, d_max)
+    ax.set_xlabel('x')
+    ax.set_ylabel('u')
+
+    l, = ax.plot([], [], 'b-')
+    time_text = ax.text(.02, .95, '', transform=ax.transAxes)
+
+    def update_line(i):
+        l.set_data(xs[1:-1], ds[i])
+        time_text.set_text('t = {}'.format(ts[i]))
+        return l, time_text
+
+    line_ani = animation.FuncAnimation(
+        fig, update_line, frames=len(ts), interval=20, blit=True)
+
+    plt.show()
 
 
 def _draw_edge(e, partition, ax):
