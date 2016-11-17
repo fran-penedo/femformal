@@ -3,6 +3,16 @@ import stlmilp.stl as stl
 from collections import deque
 from pyparsing import Word, Literal, MatchFirst, nums
 
+import logging
+logger = logging.getLogger('FEMMILP')
+handler = logging.StreamHandler()
+formatter = logging.Formatter('%(levelname)s %(module)s:%(lineno)d:%(funcName)s: %(message)s')
+handler.setFormatter(formatter)
+logger.addHandler(handler)
+logger.propagate = False
+
+logger.setLevel(logging.DEBUG)
+
 def rh_system_sat(system, d0, N, spec):
     hd = max(0, spec.horizon())
     H = hd
@@ -11,14 +21,18 @@ def rh_system_sat(system, d0, N, spec):
 
     for j in range(N - 1):
         m = milp.create_milp("rhc_system")
+        logger.debug("Adding affine system constraints")
         d = milp.add_affsys_constr(m, "d", system.A, system.b, dcur, H, None)
+        logger.debug("Adding STL constraints")
         fvar, vbds = milp.add_stl_constr(m, "spec", spec)
         m.addConstr(fvar >= 0)
         m.params.outputflag = 0
         m.update()
         # if j == 0:
         #     m.write("out.lp")
+        logger.debug("Optimizing")
         m.optimize()
+        logger.debug("Finished optimizing")
         # if j == 0:
         #     for v in m.getVars():
         #         print v

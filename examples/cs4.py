@@ -3,12 +3,12 @@ import femformal.util as u
 import femmilp.system_milp as sysmilp
 import femformal.system as s
 
-N = 100
+N = 50
 L = 10.0
 T = [10.0, 100.0]
 
 system, xpart, partition = fem.heatlinfem(N, L, T)
-dt = .1 *  L / N
+dt = .1
 system = s.cont_to_disc(system, dt)
 
 
@@ -25,5 +25,5 @@ spec_disc = u.subst_spec_labels_disc(spec_cont, regions)
 spec = sysmilp.stl_parser().parseString(spec_disc)[0]
 sysmilp.scale_time(spec, dt)
 
-rh_N = 100
+rh_N = 2
 d0 = [20.0 for i in range(N - 1)]
