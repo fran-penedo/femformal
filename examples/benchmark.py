@@ -31,6 +31,21 @@ def run_cs_milp(m, args):
     print 'Res: {}'.format(res)
     print 'Time {}'.format(finish - start)
 
+def run_cs_milp_batch(m, args):
+    res = []
+    times = []
+    for cs in m.cslist:
+        print "---- cs"
+        start = timer()
+        res.append(rh_system_sat(cs.system, cs.d0, cs.rh_N, cs.spec))
+        end = timer()
+        times.append(end - start)
+        print "- time {}".format(times[-1])
+        print "- res {}".format(res[-1])
+
+    print "times: {}".format(times)
+    print "results: {}".format(res)
+
 def run_cs_time(m, args):
     times = []
     its = 20
@@ -61,6 +76,8 @@ def get_argparser():
         'time', help='Run an example a number of times a show execution times')
     parser_milp = subparsers.add_parser(
         'milp', help='Run an example using MILP')
+    parser_milp_batch = subparsers.add_parser(
+        'milp_batch', help='Run several examples in batch using MILP')
     parser.add_argument('module', help='module containing the case study')
     parser.add_argument('-v', '--verbosity', action='count')
     parser.add_argument('--check-inv', action='store_true')
@@ -79,5 +96,7 @@ def main():
         run_cs_time(module, args)
     elif args.action == 'milp':
         run_cs_milp(module, args)
+    elif args.action == 'milp_batch':
+        run_cs_milp_batch(module, args)
     else:
         parser.print_help()
