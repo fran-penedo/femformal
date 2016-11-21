@@ -1,5 +1,7 @@
 import stlmilp.milp_util as milp
 import stlmilp.stl as stl
+import femformal.system as sys
+import numpy as np
 from collections import deque
 from pyparsing import Word, Literal, MatchFirst, nums
 
@@ -48,6 +50,24 @@ def rh_system_sat(system, d0, N, spec):
 
     return True
 
+class ContModel(object):
+    def __init__(self, model):
+        self.model = model
+        self.tinter = 1
+
+    def getVarByName(self, var_t):
+        _, i, t = milp.unlabel(var_t)
+        return self.model[t][i]
+
+def csystem_robustness(spec, system, d0, dt):
+    scale_time(spec, dt)
+    h = spec.horizon()
+    T = dt * h
+    t = np.linspace(0, T, h + 1)
+    model = ContModel(sys.cont_integrate(system, d0, t))
+
+    return milp.robustness(spec, model)
+
 class SysSignal(stl.Signal):
     def __init__(self, index=0, op=stl.LE, p=0):
         self.index = index
@@ -57,7 +77,6 @@ class SysSignal(stl.Signal):
         self.labels = [lambda t: milp.label("d", self.index, t)]
         self.f = lambda vs: (vs[0] - self.p) * (-1 if self.op == stl.LE else 1)
         self.bounds = [-1000, 1000] #FIXME
-
 
 def scale_time(formula, dt):
     formula.bounds = [int(b / dt) for b in formula.bounds]

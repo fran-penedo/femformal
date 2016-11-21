@@ -35,15 +35,17 @@ def diag(n, m, i):
 
     return d
 
-def build_cs(N, L, T, dt, d0, cregions, cspec):
+def build_cs(N, L, T, dt, d0, cregions, cspec, discretize_system=True):
     system, xpart, partition = heatlinfem(N, L, T)
-    system = s.cont_to_disc(system, dt)
+    if discretize_system:
+        system = s.cont_to_disc(system, dt)
 
     regions = {label: u.ap_cont_to_disc(pred, xpart)
                for label, pred in cregions.items()}
     dspec = u.subst_spec_labels_disc(cspec, regions)
     spec = sysmilp.stl_parser().parseString(dspec)[0]
-    sysmilp.scale_time(spec, dt)
+    if discretize_system:
+        sysmilp.scale_time(spec, dt)
 
     rh_N = 2
 

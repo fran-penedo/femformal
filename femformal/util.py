@@ -68,9 +68,12 @@ class APDisc(object):
 # xpart : [x_i] (list)
 def ap_cont_to_disc(apcont, xpart):
     r = apcont.r
-    i_min = bisect_left(xpart, apcont.A[0])
-    i_max = bisect_left(xpart, apcont.A[1])
-    m = {i : apcont.p(xpart[i]) for i in range(i_min, i_max + 1)}
+    N1 = len(xpart)
+    i_min = max(bisect_left(xpart, apcont.A[0]), 0)
+    i_max = min(bisect_left(xpart, apcont.A[1]), N1 - 1)
+    m = {i - 1 : apcont.p(xpart[i]) for i in range(i_min, i_max + 1)
+         if i > 0 and i < N1 - 1}
+    assert max([x for x in m.keys()]) < 999
     return APDisc(r, m)
 
 def project_apdisc(apdisc, indices, tpart):

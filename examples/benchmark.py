@@ -1,5 +1,5 @@
 from femformal.verify import verify, verify_input_constrained
-from femmilp.system_milp import rh_system_sat
+from femmilp.system_milp import rh_system_sat, csystem_robustness
 import femformal.util as util
 import numpy as np
 import argparse
@@ -34,17 +34,22 @@ def run_cs_milp(m, args):
 def run_cs_milp_batch(m, args):
     res = []
     times = []
-    for cs in m.cslist:
+    trues = []
+    for cs, cstrue in zip(m.cslist, m.cstrues):
         print "---- cs"
         start = timer()
         res.append(rh_system_sat(cs.system, cs.d0, cs.rh_N, cs.spec))
         end = timer()
         times.append(end - start)
+        trues.append(csystem_robustness(cstrue.spec, cstrue.system,
+                                        cstrue.d0, cstrue.dt))
         print "- time {}".format(times[-1])
         print "- res {}".format(res[-1])
+        print "- trueres {}".format(trues[-1])
 
     print "times: {}".format(times)
     print "results: {}".format(res)
+    print "true results: {}".format(trues)
 
 def run_cs_time(m, args):
     times = []
