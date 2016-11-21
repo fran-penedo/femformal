@@ -3,7 +3,7 @@ import femformal.util as u
 import femmilp.system_milp as sysmilp
 import femformal.system as s
 
-N = 50
+N = 10
 L = 10.0
 T = [10.0, 100.0]
 
@@ -20,7 +20,7 @@ regions = {'A': u.ap_cont_to_disc(apc1, xpart),
            'B': u.ap_cont_to_disc(apc2, xpart)}
            # 'C': u.ap_cont_to_disc(apc3, xpart)}
 
-spec_cont = "G_[0, 10] (A) G_[0, 10] (B)"
+spec_cont ="((G_[0, 10] (A)) & (G_[0, 10] (B)))"
 spec_disc = u.subst_spec_labels_disc(spec_cont, regions)
 spec = sysmilp.stl_parser().parseString(spec_disc)[0]
 sysmilp.scale_time(spec, dt)
