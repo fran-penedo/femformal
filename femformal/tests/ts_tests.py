@@ -2,7 +2,7 @@ import numpy as np
 import networkx as nx
 import femformal.ts as t
 import femformal.system as s
-from femformal.util import draw_ts
+from femformal.draw_util import draw_ts
 
 import logging
 logger = logging.getLogger('FEMFORMAL')

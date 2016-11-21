@@ -26,15 +26,15 @@ def ap_test():
     xpart = [0,1,2,3]
     apd = u.ap_cont_to_disc(apc, xpart)
     assert apd.r == 1
-    assert apd.m[0] == 0
-    assert apd.m[2] == 2
-    assert 3 not in apd.m
+    assert apd.m[0] == 1
+    assert apd.m[1] == 2
+    assert 2 not in apd.m
 
     tpart = [0.5, 1, 1.5, 2.5, 3]
-    proj = u.project_apdisc(apd, [1,2], tpart)
+    proj = u.project_apdisc(apd, [0,1], tpart)
     np.testing.assert_array_equal(proj, list(it.product(*[[0], [0, 1]])))
     apd.r = -1
-    proj = u.project_apdisc(apd, [1,2], tpart)
+    proj = u.project_apdisc(apd, [0,1], tpart)
     np.testing.assert_array_equal(proj, list(it.product(*[[1,2,3], [3]])))
 
 def project_states_test():
