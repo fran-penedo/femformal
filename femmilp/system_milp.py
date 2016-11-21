@@ -48,7 +48,7 @@ def rh_system_sat(system, d0, N, spec):
             # if j > hd:
             #     dhist.popleft()
 
-    return True
+    return fvar.getAttr("x")
 
 class ContModel(object):
     def __init__(self, model):
@@ -77,6 +77,13 @@ class SysSignal(stl.Signal):
         self.labels = [lambda t: milp.label("d", self.index, t)]
         self.f = lambda vs: (vs[0] - self.p) * (-1 if self.op == stl.LE else 1)
         self.bounds = [-1000, 1000] #FIXME
+
+    def __str__(self):
+        return "{} {} {}".format(self.index, "<" if self.op == stl.LE else ">",
+                                 self.p)
+
+    def __repr__(self):
+        return self.__str__()
 
 def scale_time(formula, dt):
     formula.bounds = [int(b / dt) for b in formula.bounds]

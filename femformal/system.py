@@ -2,6 +2,7 @@ import numpy as np
 from scipy.optimize import linprog
 from scipy.integrate import odeint
 import scipy.linalg as la
+from bisect import bisect_left
 
 import logging
 logger = logging.getLogger('FEMFORMAL')
@@ -113,4 +114,28 @@ def disc_integrate(system, x0, t):
     for i in range(t):
         x = (system.A.dot(x) + system.b.T).flatten()
         xs.append(x)
-    return xs
+    return np.array(xs)
+
+def linterx(d, xpart):
+    def u(x):
+        i = bisect_left(xpart, x)
+        if i <= 1:
+            return d[:, 0]
+        if i >= len(xpart) - 1:
+            return d[:, -1]
+        else:
+            return (d[:, i-2] * (xpart[i] - x) + d[:, i-1] * (x - xpart[i-1])) / \
+                    (xpart[i] - xpart[i-1])
+    return u
+
+def diff(x, y, dtx, dty, xpart, ypart, T):
+    if dty > dtx:
+        x, y = y, x
+        dtx, dty = dty, dtx
+
+    yy = y[::(dtx / dty)]
+    xinter = linterx(x, xpart)
+    yinter = linterx(yy, ypart)
+    d = np.array([xinter(z) - yinter(z) for z in ypart[1:-1]]).T
+    return d
+

@@ -15,7 +15,7 @@ apc2 = u.APCont([L0/2, L0], 1, lambda x: 125)
 cregionss = [{'A': apc1,
         'B': apc2} for i in range(Nlen)]
 
-cspecs = ["G_[0, 10] (A) G_[0, 10] (B)" for i in range(Nlen)]
+cspecs = ["((G_[0, 10] (A)) & (G_[0, 10] (B)))" for i in range(Nlen)]
 
 cslist = [fem.build_cs(N, L, T, dt, d0, cregions, cspec)
           for N, L, T, dt, d0, cregions, cspec
