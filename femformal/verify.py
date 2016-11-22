@@ -1,6 +1,7 @@
 import numpy as np
 from system import is_region_invariant
-from .util import project_list, project_regions, label_state, state_label, list_extr_points, project_apdict
+from .util import project_list, project_regions, state_label, list_extr_points
+from .logic import project_apdict
 import util
 from .ts import abstract, state_n
 from .modelcheck import check_spec

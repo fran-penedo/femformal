@@ -5,7 +5,8 @@ try:
     from cStringIO import StringIO
 except:
     from StringIO import StringIO
-from femformal.util import state_label, label_state, subst_spec_labels
+from femformal.util import state_label, label_state
+from femformal.logic import subst_spec_labels
 from femformal.system import is_facet_separating
 
 import logging
