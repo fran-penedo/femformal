@@ -228,15 +228,15 @@ propositions in $\Pi_{FEM}$ so that the converse of Th.~\ref{th:equiv} is true.}
 Let $\Lambda = \{\lambda_i | i = 1,...,m\}$ be a set of predicates, where
 $\lambda_i$ is a predicate represented as a tuple $(Q_i, X_i, \mu_i)$, with $Q_i
 \in \{\forall, \exists\}$, $X_i
-\subseteq \bar\Omega$ a closed set and $\mu_i : X_i \times \R \to \R$ a continuous function,
-and informally represented using the syntax $``Q_i x \in X_i : \mu_i(x, u(x)) >
+\subseteq \bar\Omega$ a closed set and $\mu_i : X_i \to \R$ a continuous function,
+and informally represented using the syntax $``Q_i x \in X_i : u(x) - \mu_i(x) >
 0"$. We will sometimes use $Q_\lambda, X_\lambda, \mu_\lambda$ to refer to the
 elements of the tuple representing $\lambda$. We consider STL formulas 
 defined with the usual syntax and recursive boolean
 semantics over the set of predicates $\Lambda$, where the satisfaction of a
 predicate with respect to a continuous-time signal $u : \bar\Omega \times [0, T]
 \to \R$ at time $t \in \R$ is defined as $u[t] \models \lambda_i \iff 
-\mu_i(x, u(x, t)) > 0$ for all $x \in X_i$ if $Q_i = \forall$ or for some $x \in
+  u(x, t) - \mu_i(x) > 0$ for all $x \in X_i$ if $Q_i = \forall$ or for some $x \in
 X_i$ otherwise.
 
 \begin{problem}
@@ -272,17 +272,12 @@ $|u(x, t) - u^d(x, t)| \leq \epsilon(x, t)$.
 
     \begin{itemize}
         \item If $\lambda$ is not preceded by a negation operator, then it is
-            substituted by $\lambda^{-M}$.
-        \item Otherwise, it is substituted by $\lambda^{M}$
+            substituted by $\lambda^{-\delta}$.
+        \item Otherwise, it is substituted by $\lambda^{\delta}$
     \end{itemize}
 
-    In both cases, 
-    
-    \begin{equation}
-        M(x) = \delta(x) \max_{u} \frac{\partial \mu}{\partial u} (x, u)
-    \end{equation}
-
-    We will also use $\Lambda^{\delta}$ to refer to the set of all $M$ and $-M$
+    We will also use $\Lambda^{\delta}$ to refer to the set of all $\delta$ and
+    $-\delta$
     perturbations of predicates in $\Lambda$.
 \end{definition}
 
@@ -301,26 +296,41 @@ next step will be to reformulate the problem into a verification problem over
 the trajectory of $\Sigma_{FEM}$, i.e., $d(t)$.
 
 Let $\Lambda^{\delta}_{FEM} = \{\alpha_{\lambda, j} | \lambda \in
-\Lambda^{\delta}, j \in J_i\}$, where $J_i= \{j |
-x_j \in X_\lambda\}$ and $\alpha_{\lambda, j}$ is defined by $d[t] \models
-\alpha_{\lambda, j} \iff \mu_\lambda(x_j, d_j(t)) > 0$, for a continuous-time signal $d : [0, T] \to \R^n$.
+\Lambda^{\delta}, e \in E_{\lambda}\} \cup \{\beta_{\lambda, j} | \lambda \in
+\Lambda^{\delta}, j \in J_{\lambda}\}$, where $E_{\lambda} = \{e | [x_e, x_{e+1}] \subseteq
+X_{\lambda}\}, J_{\lambda} = \{j | x_j \in X_\lambda, [x_{j-1}, x_j] \not\subseteq
+X_\lambda, [x_{j}, x_{j+1}] \not\subseteq X_\lambda \}$,
+and satisfaction of $\alpha_{\lambda, e}$ and $\beta_{\lambda, j}$ by 
+for a continuous-time signal $d : [0, T] \to \R^n$
+is defined in the following way  
+
+\begin{equation}
+    d[t] \models \alpha_{\lambda, e} \iff y_e(t) - 
+    \mu_\lambda(\frac{x_e + x_{e + 1}}{2}) > 0 
+\end{equation}
+\begin{equation}
+     d[t] \models \beta_{\lambda, j} \iff d_j(t) - \mu_\lambda(x_j) > 0
+\end{equation}
+
+where $y_e = \frac{d_e(t) + d_{e+1}(t)}{2}$.
 Note that this set of predicates includes the perturbations defined in
 Def.~\ref{def:delta_perturbation}. We define perturbations of predicates in
 $\Lambda^{\delta}_{FEM}$ by a real number $K$ in a manner analogous to
 Def.~\ref{def:m_perturbation}, and we denote it as $\alpha^K$.
 
 \begin{definition}
-    The STL formula over $\Lambda^{\delta}_{FEM}$, $\psi^{\delta, L}_{FEM}$, corresponding to an STL
+    The STL formula over $\Lambda^{\delta}_{FEM}$, $\psi^{\delta, \eta}_{FEM}$, corresponding to an STL
     formula in negation normal form, $\psi^\delta$, over $\Lambda^\delta$, with
-    $L : \bar\Omega \to \R$, is a formula obtained by substituting every
-    predicate $\lambda$ in $\psi^\delta$ by the formula $\bigoplus_{j=1}^{|J_i|
-    - 1} \beta_j$, where $\oplus = \wedge$ if $Q_i = \forall$ and $\oplus = \vee$
-    otherwise, and $\beta_j$ is defined as the following STL formula:
+    $\eta : \bar\Omega \to \R$, is a formula obtained by substituting every
+    predicate $\lambda$ in $\psi^\delta$ by the formula $\bigoplus_{e \in
+    E_\lambda} \gamma_{\lambda,e} \oplus \bigoplus_{j \in J_\lambda} \beta_{\lambda, j}$, 
+    where $\oplus = \wedge$ if $Q_i = \forall$ and $\oplus = \vee$
+    otherwise, and $\gamma_{\lambda,e}$ is defined as the following STL formula:
 
     \begin{itemize}
-        \item If $\delta$ is not preceded by a negation operator, then $\beta_j
-            = \alpha_j^{-K_j} \vee \alpha_{j+1}^{-K_j}$.
-        \item Otherwise, $\beta_j = \alpha_j^{K_j} \vee \alpha_{j+1}^{K_j}$.
+        \item If $\lambda$ is not preceded by a negation operator, then
+            $\gamma_{\lambda, e} = \alpha_{\lambda, e}^{-K_e}$.
+        \item Otherwise, $\gamma_{\lambda, e} = \alpha_{\lambda, e}^{K_e}$.
     \end{itemize}
 
     In both cases, \footnote{\fran{This might be too conservative for
@@ -328,18 +338,15 @@ Def.~\ref{def:m_perturbation}, and we denote it as $\alpha^K$.
 
     \begin{equation}
     \begin{aligned}
-        K_j = (x_{j+1} - x_j) & \left (\max_{c \in [x_j, x_{j+1}], u} \left \{ 
-            \frac{\partial \mu}{\partial x}(c, u) \right \} + \right.\\
-            & \left. \max_{c \in [x_j, x_{j+1}], u} \left \{ 
-            \frac{\partial \mu}{\partial u}(c, u) \right \} 
-            \max_{c \in [x_j, x_{j+1}]} \left \{ L(c) \right \} \right )
+        K_e = \frac{x_{e+1} - x_e}{2} & \left (\max_{c \in [x_e, x_{e+1}]} \mu'(c) +
+            \max_{c \in [x_e, x_{e+1}]} \eta(c) \right )
     \end{aligned}
     \end{equation}
 \end{definition}
 % \frac{\partial u}{\partial x}(c, t)
 
 \begin{theorem}
-    If $d \models \psi^{\delta, L}_{FEM}$, with $L(x) \geq |\max_t \frac{\partial
+    If $d \models \psi^{\delta, \eta}_{FEM}$, with $\eta(x) \geq |\max_t \frac{\partial
     u^d}{\partial x}(x, t)|$\footnote{\fran{I think I have a bound for this}}, 
     then $u^d \models \psi^\delta$.
 \end{theorem}
@@ -347,7 +354,39 @@ Def.~\ref{def:m_perturbation}, and we denote it as $\alpha^K$.
     \fran{More Lipschitz stuff}
 \end{proof}
 
-\fran{Next: Translate into discrete time}
+Finally, we reformulate the problem into a verification problem over the
+trajectory of a time discretization of $\Sigma_{FEM}$. Let $\Delta T \in \R$ be
+a positive time interval. The discretization of $\Sigma_{FEM}$ with time
+interval $\Delta t$, $\Sigma^{\Delta t}_{FEM}$, is a system that evolves
+according to the following difference equation:
+
+\begin{equation}
+    \begin{aligned}
+        \tilde d^{k+1} &= \tilde A \tilde d^k + \tilde b \\
+        \tilde d^0 &= d(0)
+    \end{aligned}
+\end{equation}
+
+where $\tilde A = e^{A \Delta t}$ and $\tilde b = - e^{A \Delta t} A^{-1} \left
+( e^{- A \Delta t} - I \right ) b$. Note that $d(k \Delta t) = \tilde d^k,
+\forall k \in \N$. We define satisfaction of an STL formula by a discrete time
+signal in a similar way to continuous time. However, we make a slight abuse of
+notation so that the time bounds for the temporal operators should be understood
+in the continuous sense, i.e, $\tilde d[k] \models \Always_{[a, b]} \psi \iff 
+\forall j \in [\frac{a}{\Delta t}, \frac{b}{\Delta t}] \cap \N, \tilde d^{k + j} \models
+\psi$ and similarly with the eventually operator.
+
+We define a conservative perturbation of $\psi^{\delta, \eta}_{FEM}$ by a real
+vector $\nu = (\nu^y, \nu^d)$, $\psi^{\delta, \eta, \nu}_{FEM}$ in a similar way to Def~\ref{},
+noting that the predicate $\gamma_{\lambda, e}$ is perturbed using the component
+$\nu^y_e$ and the predicate $\beta_{\lambda, j}$ is perturbed using the
+component $\nu^d_j$.
+
+\begin{theorem}
+    If $\tilde d \models \psi^{\delta, \eta, \nu}_{FEM}$, with
+    $\nu^y_e = \max_t \frac{\dot d_e(t) + \dot d_{e+1}(t)}{2}$ and $\nu^d_j = \max_t
+    \dot d_j(t)$, then $d \models \psi^{\delta, \eta}_{FEM}$.
+\end{theorem}
 
 \section{Approach}
 
