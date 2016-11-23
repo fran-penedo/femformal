@@ -3,7 +3,7 @@ import stlmilp.stl as stl
 import femformal.system as sys
 import numpy as np
 from collections import deque
-from pyparsing import Word, Literal, MatchFirst, nums
+from pyparsing import Word, Literal, MatchFirst, nums, alphas
 
 import logging
 logger = logging.getLogger('FEMMILP')
@@ -43,7 +43,7 @@ def rh_system_sat(system, d0, N, spec):
             return False
         else:
             d_opt = m.getAttr("x", d)
-            dcur = [d_opt[milp.label("d", i, 1)] for i in range(system.n)]
+            dcur = [d_opt[milp.label("d", i, 1)] for i in range(system.n + 2)]
             # dhist.append(dcur)
             # if j > hd:
             #     dhist.popleft()
@@ -69,13 +69,19 @@ def csystem_robustness(spec, system, d0, dt):
     return milp.robustness(spec, model)
 
 class SysSignal(stl.Signal):
-    def __init__(self, index=0, op=stl.LE, p=0):
+    def __init__(self, index=0, op=stl.LE, p=0, isnode=True):
         self.index = index
         self.op = op
         self.p = p
+        self.isnode = isnode
 
-        self.labels = [lambda t: milp.label("d", self.index, t)]
-        self.f = lambda vs: (vs[0] - self.p) * (-1 if self.op == stl.LE else 1)
+        if isnode:
+            self.labels = [lambda t: milp.label("d", self.index, t)]
+            self.f = lambda vs: (vs[0] - self.p) * (-1 if self.op == stl.LE else 1)
+        else:
+            self.labels = [lambda t: milp.label("d", self.index + i, t) for i in range(2)]
+            self.f = lambda vs: ((vs[0] + vs[1]) / 2.0 - self.p) * (-1 if self.op == stl.LE else 1)
+
         self.bounds = [-1000, 1000] #FIXME
 
     def __str__(self):
@@ -98,9 +104,10 @@ def expr_parser():
     T_GR = Literal(">")
 
     integer = Word(nums).setParseAction(lambda t: int(t[0]))
+    isnode = Word(alphas).setParseAction(lambda t: t == "d")
     relation = (T_LE | T_GR).setParseAction(lambda t: stl.LE if t[0] == "<" else stl.GT)
-    expr = integer + relation + num
-    expr.setParseAction(lambda t: SysSignal(t[0], t[1], t[2]))
+    expr = isnode + integer + relation + num
+    expr.setParseAction(lambda t: SysSignal(t[1], t[2], t[3], t[0]))
 
     return expr
 

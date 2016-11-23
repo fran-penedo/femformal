@@ -11,9 +11,11 @@ class APCont(object):
         self.p = p
 
 class APDisc(object):
-    def __init__(self, r, m):
+    def __init__(self, r, m, isnode):
+        # r == 1: f < p, r == -1: f > p
         self.r = r
-        # m : i -> p(x_i)
+        self.isnode = isnode
+        # m : i -> p((x_i + x_{i+1})/2) if not isnode else i -> p(x_i)
         self.m = m
 
 
@@ -22,11 +24,17 @@ class APDisc(object):
 def ap_cont_to_disc(apcont, xpart):
     r = apcont.r
     N1 = len(xpart)
-    i_min = max(bisect_left(xpart, apcont.A[0]), 0)
-    i_max = min(bisect_left(xpart, apcont.A[1]), N1 - 1)
-    m = {i - 1 : apcont.p(xpart[i]) for i in range(i_min, i_max + 1)
-         if i > 0 and i < N1 - 1}
-    return APDisc(r, m)
+    if apcont.A[0] == apcont.A[1]:
+        i = min(max(bisect_left(xpart, apcont.A[0]), 0), N1 - 1)
+        m = {i - 1: apcont.p(xpart[i])}
+        isnode = True
+    else:
+        i_min = max(bisect_left(xpart, apcont.A[0]), 0)
+        i_max = min(bisect_left(xpart, apcont.A[1]), N1 - 1)
+        m = {i : apcont.p((xpart[i] + xpart[i+1]) / 2)
+             for i in range(i_min, i_max)}
+        isnode = False
+    return APDisc(r, m, isnode)
 
 def project_apdisc(apdisc, indices, tpart):
     state_indices = []
@@ -44,8 +52,9 @@ def project_apdisc(apdisc, indices, tpart):
 def subst_spec_labels_disc(spec, regions):
     res = spec
     for k, v in regions.items():
-        replaced = "(" + " & ".join(["({0} {1} {2})".format(
-            i, "<" if v.r == 1 else ">", p) for (i, p) in v.m.items()]) + ")"
+        replaced = "(" + " & ".join(["({} {} {} {})".format(
+            "d" if v.isnode else "y", i,
+            "<" if v.r == 1 else ">", p) for (i, p) in v.m.items()]) + ")"
         res = res.replace(k, replaced)
     return res
 

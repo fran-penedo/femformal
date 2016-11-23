@@ -2,7 +2,7 @@ import femformal.logic as logic
 import numpy as np
 import itertools as it
 
-def ap_test():
+def _ap_test():
     apc = logic.APCont(np.array([0, 2]), 1, lambda x: x)
     xpart = [0,1,2,3]
     apd = logic.ap_cont_to_disc(apc, xpart)
