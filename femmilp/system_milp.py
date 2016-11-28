@@ -69,6 +69,12 @@ def csystem_robustness(spec, system, d0, dt):
 
     return milp.robustness(spec, model)
 
+def _Build_f(p, op, isnode):
+    if isnode:
+        return lambda vs: (vs[0] - p) * (-1 if op == stl.LE else 1)
+    else:
+        return lambda vs: (.5 * vs[0] + .5 * vs[1] - p) * (-1 if op == stl.LE else 1)
+
 class SysSignal(stl.Signal):
     def __init__(self, index=0, op=stl.LE, p=0, isnode=True):
         self.index = index
@@ -78,12 +84,15 @@ class SysSignal(stl.Signal):
 
         if isnode:
             self.labels = [lambda t: milp.label("d", self.index, t)]
-            self.f = lambda vs: (vs[0] - self.p) * (-1 if self.op == stl.LE else 1)
         else:
             self.labels = [(lambda t, i=i: milp.label("d", self.index + i, t)) for i in range(2)]
-            self.f = lambda vs: (.5 * vs[0] + .5 * vs[1] - self.p) * (-1 if self.op == stl.LE else 1)
 
+        self.f = _Build_f(p, op, isnode)
         self.bounds = [-1000, 1000] #FIXME
+
+    def perturb(self, eps):
+        self.f = _Build_f(self.p + eps, self.op, self.isnode) #FIXME op +-
+
 
     def __str__(self):
         return "{} {} {} {}".format("d" if self.isnode else "y", self.index,
