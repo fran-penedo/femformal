@@ -1,5 +1,6 @@
 import examples.heatlinfem as fem
 import femformal.util as u
+import femformal.logic as logic
 
 
 Ns = [10, 20, 30, 40, 50]
@@ -7,11 +8,11 @@ Nlen = len(Ns)
 Ls = [10.0 for i in range(Nlen)]
 Ts = [[10.0, 100.0] for i in range(Nlen)]
 dts = [.1 for i in range(Nlen)]
-d0s = [[20.0 for i in range(N - 1)] for N in Ns]
+d0s = [[20.0 for i in range(N + 1)] for N in Ns]
 
 L0 = Ls[0]
-apc1 = u.APCont([0, L0/2], 1, lambda x: 85)
-apc2 = u.APCont([L0/2, L0], 1, lambda x: 125)
+apc1 = logic.APCont([1, L0/2], 1, lambda x: 85)
+apc2 = logic.APCont([L0/2, L0 - 1], 1, lambda x: 125)
 cregionss = [{'A': apc1,
         'B': apc2} for i in range(Nlen)]
 

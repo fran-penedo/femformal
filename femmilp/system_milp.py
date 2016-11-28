@@ -16,6 +16,7 @@ logger.propagate = False
 logger.setLevel(logging.DEBUG)
 
 def rh_system_sat(system, d0, N, spec):
+    print spec
     hd = max(0, spec.horizon())
     H = hd
     dcur = d0
@@ -27,7 +28,7 @@ def rh_system_sat(system, d0, N, spec):
         d = milp.add_affsys_constr(m, "d", system.A, system.b, dcur, H, None)
         logger.debug("Adding STL constraints")
         fvar, vbds = milp.add_stl_constr(m, "spec", spec)
-        m.addConstr(fvar >= 0)
+        # m.addConstr(fvar >= 0)
         m.params.outputflag = 0
         m.update()
         # if j == 0:
@@ -79,14 +80,14 @@ class SysSignal(stl.Signal):
             self.labels = [lambda t: milp.label("d", self.index, t)]
             self.f = lambda vs: (vs[0] - self.p) * (-1 if self.op == stl.LE else 1)
         else:
-            self.labels = [lambda t: milp.label("d", self.index + i, t) for i in range(2)]
-            self.f = lambda vs: ((vs[0] + vs[1]) / 2.0 - self.p) * (-1 if self.op == stl.LE else 1)
+            self.labels = [(lambda t, i=i: milp.label("d", self.index + i, t)) for i in range(2)]
+            self.f = lambda vs: (.5 * vs[0] + .5 * vs[1] - self.p) * (-1 if self.op == stl.LE else 1)
 
         self.bounds = [-1000, 1000] #FIXME
 
     def __str__(self):
-        return "{} {} {}".format(self.index, "<" if self.op == stl.LE else ">",
-                                 self.p)
+        return "{} {} {} {}".format("d" if self.isnode else "y", self.index,
+                                    "<" if self.op == stl.LE else ">", self.p)
 
     def __repr__(self):
         return self.__str__()

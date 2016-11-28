@@ -1,6 +1,7 @@
 import numpy as np
 import femformal.system as s
 import femformal.util as u
+import femformal.logic as logic
 import femmilp.system_milp as sysmilp
 
 def heatlinfem(N, L, T):
@@ -40,9 +41,9 @@ def build_cs(N, L, T, dt, d0, cregions, cspec, discretize_system=True):
     if discretize_system:
         system = s.cont_to_disc(system, dt)
 
-    regions = {label: u.ap_cont_to_disc(pred, xpart)
+    regions = {label: logic.ap_cont_to_disc(pred, xpart)
                for label, pred in cregions.items()}
-    dspec = u.subst_spec_labels_disc(cspec, regions)
+    dspec = logic.subst_spec_labels_disc(cspec, regions)
     spec = sysmilp.stl_parser().parseString(dspec)[0]
     if discretize_system:
         sysmilp.scale_time(spec, dt)
