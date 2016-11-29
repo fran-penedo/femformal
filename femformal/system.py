@@ -111,7 +111,7 @@ def cont_integrate(system, x0, t):
 def disc_integrate(system, x0, t):
     xs = [x0]
     x = x0
-    for i in range(t):
+    for i in range(t - 1):
         x = (system.A.dot(x) + system.b.T).flatten()
         xs.append(x)
     return np.array(xs)
@@ -128,14 +128,25 @@ def linterx(d, xpart):
                     (xpart[i] - xpart[i-1])
     return u
 
-def diff(x, y, dtx, dty, xpart, ypart, T):
+def diff(x, y, dtx, dty, xpart, ypart):
     if dty > dtx:
         x, y = y, x
         dtx, dty = dty, dtx
 
-    yy = y[::(dtx / dty)]
+    yy = y[::int(dtx / dty)]
     xinter = linterx(x, xpart)
     yinter = linterx(yy, ypart)
     d = np.array([xinter(z) - yinter(z) for z in ypart[1:-1]]).T
     return d
+
+def sys_max_diff(xsys, ysys, dtx, dty, xpart, ypart, x0, y0, T):
+    tx = int(T / dtx)
+    ty = np.linspace(0, T, T / dty)
+    x = disc_integrate(xsys, x0[-1:1], tx)
+    x = np.c_[x0[0] * np.ones(x.shape[0]), x, x0[-1] * np.ones(x.shape[0])]
+    y = cont_integrate(ysys, y0[-1:1], ty)
+    y = np.c_[y0[0] * np.ones(y.shape[0]), y, y0[-1] * np.ones(y.shape[0])]
+    absdif = np.abs(diff(x, y, dtx, dty, xpart, ypart))
+    return np.max(absdif)
+
 

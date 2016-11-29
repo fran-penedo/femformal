@@ -91,8 +91,8 @@ class SysSignal(stl.Signal):
         self.bounds = [-1000, 1000] #FIXME
 
     def perturb(self, eps):
-        self.f = _Build_f(self.p + eps, self.op, self.isnode) #FIXME op +-
-
+        self.f = _Build_f(self.p + (eps if self.op == stl.LE else -eps),
+                          self.op, self.isnode)
 
     def __str__(self):
         return "{} {} {} {}".format("d" if self.isnode else "y", self.index,

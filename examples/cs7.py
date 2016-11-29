@@ -26,7 +26,7 @@ cslist = [fem.build_cs(N, L, T, dt, d0, cregions, cspec)
 
 cstrues = [fem.build_cs(1000, L, T, 0.01,
                         [a + (i+1) * (b - a) / 1000 for i in range(1000 - 1)],
-                        cregions, cspec, False)
+                        cregions, cspec, discretize_system=False)
           for L, T, cregions, cspec, (a,b)
           in zip(Ls, Ts, cregionss, cspecs, ab)]
 
