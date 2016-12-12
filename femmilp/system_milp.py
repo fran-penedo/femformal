@@ -65,7 +65,7 @@ def csystem_robustness(spec, system, d0, dt):
     h = spec.horizon()
     T = dt * h
     t = np.linspace(0, T, h + 1)
-    model = ContModel(sys.cont_integrate(system, d0, t))
+    model = ContModel(sys.cont_integrate(system, d0[1:-1], t))
 
     return milp.robustness(spec, model)
 
@@ -91,8 +91,8 @@ class SysSignal(stl.Signal):
         self.bounds = [-1000, 1000] #FIXME
 
     def perturb(self, eps):
-        self.f = _Build_f(self.p + (eps if self.op == stl.LE else -eps),
-                          self.op, self.isnode)
+        self.p = self.p + (eps if self.op == stl.LE else -eps)
+        self.f = _Build_f(self.p, self.op, self.isnode)
 
     def __str__(self):
         return "{} {} {} {}".format("d" if self.isnode else "y", self.index,
@@ -106,6 +106,9 @@ def scale_time(formula, dt):
     for arg in formula.args:
         if arg.op != stl.EXPR:
             scale_time(arg, dt)
+
+def perturb(formula, eps):
+    return stl.perturb(formula, eps)
 
 def expr_parser():
     num = stl.num_parser()

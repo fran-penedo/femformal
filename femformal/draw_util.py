@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
 _figcounter = 0
+_holds = []
 
 def draw_ts(ts, prefix=None):
     global _figcounter
@@ -41,10 +42,15 @@ def draw_ts_2D(ts, partition, prefix=None):
         plt.show()
 
 
-def draw_pde_trajectory(ds, xs, ts, prefix=None):
+def draw_pde_trajectory(ds, xs, ts, prefix=None, hold=False):
+    global _figcounter
+    global _holds
+
+    print ds.shape, xs.shape
     d_min, d_max = np.amin(ds), np.amax(ds)
 
     fig = plt.figure()
+
     ax = fig.add_subplot(111)
     ax.set_xlim(xs[0], xs[-1])
     ax.set_ylim(d_min, d_max)
@@ -55,14 +61,25 @@ def draw_pde_trajectory(ds, xs, ts, prefix=None):
     time_text = ax.text(.02, .95, '', transform=ax.transAxes)
 
     def update_line(i):
-        l.set_data(xs[1:-1], ds[i])
+        l.set_data(xs, ds[i])
         time_text.set_text('t = {}'.format(ts[i]))
         return l, time_text
 
+    frames = min(len(ts), len(ds))
     line_ani = animation.FuncAnimation(
-        fig, update_line, frames=len(ts), interval=20, blit=True)
+        fig, update_line, frames=frames, interval=5000/frames, blit=True)
+    _holds.append(line_ani)
 
-    plt.show()
+    if not hold:
+        if prefix is not None:
+            line_ani.save(prefix + str(_figcounter) + '.mp4')
+            plt.close(fig)
+            plt.show()
+        else:
+            plt.show()
+        _holds = []
+
+    _figcounter += 1
 
 
 def _draw_edge(e, partition, ax):

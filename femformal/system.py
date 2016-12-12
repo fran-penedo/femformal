@@ -2,7 +2,8 @@ import numpy as np
 from scipy.optimize import linprog
 from scipy.integrate import odeint
 import scipy.linalg as la
-from bisect import bisect_left
+from bisect import bisect_left, bisect_right
+import draw_util as draw
 
 import logging
 logger = logging.getLogger('FEMFORMAL')
@@ -119,16 +120,16 @@ def disc_integrate(system, x0, t):
 def linterx(d, xpart):
     def u(x):
         i = bisect_left(xpart, x)
-        if i <= 1:
+        if i < 1:
             return d[:, 0]
-        if i >= len(xpart) - 1:
+        if i > len(xpart) - 1:
             return d[:, -1]
         else:
-            return (d[:, i-2] * (xpart[i] - x) + d[:, i-1] * (x - xpart[i-1])) / \
+            return (d[:, i-1] * (xpart[i] - x) + d[:, i] * (x - xpart[i-1])) / \
                     (xpart[i] - xpart[i-1])
     return u
 
-def diff(x, y, dtx, dty, xpart, ypart):
+def diff(x, y, dtx, dty, xpart, ypart, xl, xr):
     if dty > dtx:
         x, y = y, x
         dtx, dty = dty, dtx
@@ -136,17 +137,31 @@ def diff(x, y, dtx, dty, xpart, ypart):
     yy = y[::int(dtx / dty)]
     xinter = linterx(x, xpart)
     yinter = linterx(yy, ypart)
-    d = np.array([xinter(z) - yinter(z) for z in ypart[1:-1]]).T
+    yl = bisect_left(ypart, xl)
+    yr = bisect_right(ypart, xr) - 1
+    d = np.array([xinter(z) - yinter(z) for z in ypart[yl:yr]]).T
     return d
 
-def sys_max_diff(xsys, ysys, dtx, dty, xpart, ypart, x0, y0, T):
+def sys_diff(xsys, ysys, dtx, dty, xpart, ypart, x0, y0, t0, T, xl, xr, plot=True):
     tx = int(T / dtx)
-    ty = np.linspace(0, T, T / dty)
-    x = disc_integrate(xsys, x0[-1:1], tx)
+    ty = np.linspace(0, T, int(T / dty))
+    x = disc_integrate(xsys, x0[1:-1], tx)
     x = np.c_[x0[0] * np.ones(x.shape[0]), x, x0[-1] * np.ones(x.shape[0])]
-    y = cont_integrate(ysys, y0[-1:1], ty)
+    x = x[int(t0/dtx):]
+    y = cont_integrate(ysys, y0[1:-1], ty)
     y = np.c_[y0[0] * np.ones(y.shape[0]), y, y0[-1] * np.ones(y.shape[0])]
-    absdif = np.abs(diff(x, y, dtx, dty, xpart, ypart))
-    return np.max(absdif)
+    y = y[int(t0/dty):]
+    absdif = np.abs(diff(x, y, dtx, dty, xpart, ypart, xl, xr))
+    if plot:
+        yl = bisect_left(ypart, xl)
+        yr = bisect_right(ypart, xr) - 1
+        ttx = np.linspace(0, T, int(T / dtx))
+        draw.draw_pde_trajectory(x, xpart, ttx, hold=True)
+        draw.draw_pde_trajectory(y, ypart, ty, hold=True)
+        draw.draw_pde_trajectory(absdif, ypart[yl:yr], ttx, hold=False)
+    return absdif
 
+def sys_max_diff(xsys, ysys, dtx, dty, xpart, ypart, x0, y0, t0, T, xl, xr):
+    absdif = sys_max_diff(xsys, ysys, dtx, dty, xpart, ypart, x0, y0, t0, T, xl, xr)
+    return np.max(absdif)
 

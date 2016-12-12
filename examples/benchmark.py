@@ -31,6 +31,9 @@ def run_cs_milp(m, args):
     print 'Res: {}'.format(res)
     print 'Time {}'.format(finish - start)
 
+def run_load(m, args):
+    pass
+
 def run_cs_milp_batch(m, args):
     res = []
     times = []
@@ -83,6 +86,8 @@ def get_argparser():
         'milp', help='Run an example using MILP')
     parser_milp_batch = subparsers.add_parser(
         'milp_batch', help='Run several examples in batch using MILP')
+    parser_load = subparsers.add_parser(
+        'load', help='Load a benchmark file')
     parser.add_argument('module', help='module containing the case study')
     parser.add_argument('-v', '--verbosity', action='count')
     parser.add_argument('--check-inv', action='store_true')
@@ -103,5 +108,7 @@ def main():
         run_cs_milp(module, args)
     elif args.action == 'milp_batch':
         run_cs_milp_batch(module, args)
+    elif args.action == 'load':
+        run_load(module, args)
     else:
         parser.print_help()
