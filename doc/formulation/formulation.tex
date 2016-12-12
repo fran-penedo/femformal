@@ -71,6 +71,8 @@ In the following we will call $\Sigma$ a system governed by \eqref{eq:pde},
 described by the parameters $L, \rho, c$ and $\kappa$, and with boundary
 conditions $g_0, g_L$.
 
+\iffalse
+
 \subsection{Linear Temporal Logic}
 \label{sub:linear_temporal_logic}
 
@@ -134,8 +136,9 @@ the function $a(\cdot , t) : \bar\Omega \rightarrow \R$.
     satisfy $\phi$, for all $u_0 \in \psat{\Theta}$.
 \end{problem}
 
-We now make use of the Finite Element Analysis framework to reformulate
-Problem~\ref{pr:pde} in terms of a system of ODEs. Let $\{x_i\}_{i = 0}^{n +
+\fi
+
+Let $\{x_i\}_{i = 0}^{n +
 1}$, where $x_0 = 0, x_{n+1} = L, x_i \in \Omega, i = 1,...,n$, be a partition of
 $\bar\Omega$ such that it is proposition preserving with respect to the set of
 regions $\{X_i\}_{i = 1}^{m}$\footnote{This is well defined since the $X_i$ are
@@ -172,6 +175,8 @@ according to the following linear system, $\Sigma_{FEM}$:
 with initial value $d_i(0) = u_0(x_i), i = 1,...,n$. In the above, $A$ is a
 banded matrix of bandwidth 3. We call $\Sigma_{FEM}$ the FEM system
 corresponding to system $\Sigma$.
+
+\iffalse
 
 In order to fully reformulate Problem~\ref{pr:pde}, we need to modify $\phi$ so
 that it can be checked against trajectories of \eqref{eq:fem}. Let $\Pi_{FEM} =
@@ -221,6 +226,8 @@ the corresponding FEM system and LTL formula over $\Pi_{FEM}$:
 quality of the FEM approximation. I think this can be done if 
 we can compute error bounds for $\|d_i - u(x_i, \cdot)\|$ and we adjust the
 propositions in $\Pi_{FEM}$ so that the converse of Th.~\ref{th:equiv} is true.}
+
+\fi
 
 \subsection{Signal Temporal Logic}
 \label{sub:signal_temporal_logic}
@@ -388,6 +395,7 @@ component $\nu^d_j$.
     \dot d_j(t)$, then $d \models \psi^{\delta, \eta}_{FEM}$.
 \end{theorem}
 
+\iffalse
 \section{Approach}
 
 In the following, we assume we are given a system $\Sigma$ and an LTL formula
@@ -525,7 +533,9 @@ partition $T$, $TS^I$, is an overapproximation of $TS/S_I$.
     
 \end{theorem}
 
-\section{Examples}
+\fi
+
+\section{Examples [Outdated]}
 \label{sec:examples}
 
 Consider a rod with parameters given in Table~\ref{tab:ex_pars}. We define
