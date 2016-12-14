@@ -162,6 +162,6 @@ def sys_diff(xsys, ysys, dtx, dty, xpart, ypart, x0, y0, t0, T, xl, xr, plot=Tru
     return absdif
 
 def sys_max_diff(xsys, ysys, dtx, dty, xpart, ypart, x0, y0, t0, T, xl, xr):
-    absdif = sys_max_diff(xsys, ysys, dtx, dty, xpart, ypart, x0, y0, t0, T, xl, xr)
+    absdif = sys_diff(xsys, ysys, dtx, dty, xpart, ypart, x0, y0, t0, T, xl, xr)
     return np.max(absdif)
 

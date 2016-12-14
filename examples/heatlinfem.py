@@ -74,7 +74,7 @@ def max_diff(sys, dt, xpart, t0, tt, xl, xr, T, cstrue):
     for i in range(50):
         if i % 10 == 0:
             logger.debug("Iteration: {}, mdiff = {}".format(i, mdiff))
-        a = np.random.rand() * 4 * abs(T[1] - T[0]) / xpart[-1]
+        a = (np.random.rand() * 4 - 2) * abs(T[1] - T[0]) / xpart[-1]
         b = np.random.rand() * abs(T[1] - T[0])
         x0 = [T[0]] + [min(max(a * x + b, T[0]), T[1]) for x in xpart[1:-1]] + [T[1]]
         y0 = [T[0]] + [min(max(a * x + b, T[0]), T[1]) for x in cstrue.xpart[1:-1]] + [T[1]]
