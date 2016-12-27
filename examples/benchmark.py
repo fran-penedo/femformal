@@ -1,5 +1,5 @@
 from femformal.verify import verify, verify_input_constrained
-from femmilp.system_milp import rh_system_sat, csystem_robustness
+from femmilp.system_milp import rh_system_sat, rh_system_sat_set, csystem_robustness
 import femformal.util as util
 import numpy as np
 import argparse
@@ -27,6 +27,14 @@ def run_cs_milp(m, args):
     logger.debug(m.system)
     start = timer()
     res = rh_system_sat(m.system, m.d0, m.rh_N, m.spec)
+    finish = timer()
+    print 'Res: {}'.format(res)
+    print 'Time {}'.format(finish - start)
+
+def run_cs_milp_set(m, args):
+    cs = m.cs
+    start = timer()
+    res = rh_system_sat_set(cs.system, cs.pset, cs.xpart, cs.rh_N, cs.spec)
     finish = timer()
     print 'Res: {}'.format(res)
     print 'Time {}'.format(finish - start)
@@ -84,6 +92,8 @@ def get_argparser():
         'time', help='Run an example a number of times a show execution times')
     parser_milp = subparsers.add_parser(
         'milp', help='Run an example using MILP')
+    parser_milp = subparsers.add_parser(
+        'milp_set', help='Run an example for initial sets using MILP')
     parser_milp_batch = subparsers.add_parser(
         'milp_batch', help='Run several examples in batch using MILP')
     parser_load = subparsers.add_parser(
@@ -106,6 +116,8 @@ def main():
         run_cs_time(module, args)
     elif args.action == 'milp':
         run_cs_milp(module, args)
+    elif args.action == 'milp_set':
+        run_cs_milp_set(module, args)
     elif args.action == 'milp_batch':
         run_cs_milp_batch(module, args)
     elif args.action == 'load':

@@ -16,7 +16,7 @@ logger.propagate = False
 logger.setLevel(logging.DEBUG)
 
 def rh_system_sat(system, d0, N, spec):
-    print spec
+    # print spec
     hd = max(0, spec.horizon())
     H = hd
     dcur = d0
@@ -25,7 +25,7 @@ def rh_system_sat(system, d0, N, spec):
     for j in range(N - 1):
         m = milp.create_milp("rhc_system")
         logger.debug("Adding affine system constraints")
-        d = milp.add_affsys_constr(m, "d", system.A, system.b, dcur, H, None)
+        d = milp.add_affsys_constr_x0(m, "d", system.A, system.b, dcur, H, None)
         logger.debug("Adding STL constraints")
         fvar, vbds = milp.add_stl_constr(m, "spec", spec)
         # m.addConstr(fvar >= 0)
@@ -50,6 +50,33 @@ def rh_system_sat(system, d0, N, spec):
             #     dhist.popleft()
 
     return fvar.getAttr("x")
+
+def rh_system_sat_set(system, pset, xpart, N, spec):
+    # print spec
+    hd = max(0, spec.horizon())
+    H = hd
+
+    m = milp.create_milp("rhc_system")
+    logger.debug("Adding affine system constraints")
+    d = milp.add_affsys_constr_x0_set(m, "d", system.A, system.b, H, xpart, pset)
+    logger.debug("Adding STL constraints")
+    fvar, vbds = milp.add_stl_constr(m, "spec", spec)
+    fvar.setAttr("obj", 1.0)
+    m.params.outputflag = 0
+    m.update()
+    # if j == 0:
+    #     m.write("out.lp")
+    logger.debug("Optimizing")
+    m.optimize()
+    logger.debug("Finished optimizing")
+    # if j == 0:
+    #     for v in m.getVars():
+    #         print v
+
+    if m.status != milp.GRB.status.OPTIMAL:
+        return False
+    else:
+        return fvar.getAttr("x")
 
 class ContModel(object):
     def __init__(self, model):

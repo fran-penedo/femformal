@@ -39,7 +39,7 @@ def diag(n, m, i):
 
     return d
 
-def build_cs(N, L, T, dt, d0, cregions, cspec, discretize_system=True, cstrue=None, eps=None):
+def build_cs(N, L, T, dt, d0, cregions, cspec, pset=None, discretize_system=True, cstrue=None, eps=None):
     system, xpart, partition = heatlinfem(N, L, T)
     if discretize_system:
         system = s.cont_to_disc(system, dt)
@@ -66,7 +66,7 @@ def build_cs(N, L, T, dt, d0, cregions, cspec, discretize_system=True, cstrue=No
 
     rh_N = 2
 
-    return CaseStudy(system, xpart, T, dt, d0, regions, spec, rh_N)
+    return CaseStudy(system, xpart, T, dt, d0, pset, regions, spec, rh_N)
 
 def max_diff(sys, dt, xpart, t0, tt, xl, xr, T, cstrue):
     mdiff = 0.0
@@ -87,12 +87,13 @@ def max_diff(sys, dt, xpart, t0, tt, xl, xr, T, cstrue):
 
 class CaseStudy(object):
 
-    def __init__(self, system, xpart, T, dt, d0, regions, spec, rh_N):
+    def __init__(self, system, xpart, T, dt, d0, pset, regions, spec, rh_N):
         self.system = system
         self.xpart = xpart
         self.T = T
         self.dt = dt
         self.d0 = d0
+        self.pset = pset
         self.regions = regions
         self.spec = spec
         self.rh_N = rh_N
