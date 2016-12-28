@@ -28,6 +28,7 @@
 \newcommand{\Next}{\mathbf{X}}
 \newcommand{\Always}{\mathbf{G}}
 \newcommand{\Event}{\mathbf{F}}
+\newcommand{\luntil}{\mathbf{U}}
 \newcommand{\Implies}{\Rightarrow}
 \newcommand{\Not}{\lnot}
 \newcommand{\True}{\top}
@@ -43,6 +44,66 @@
 \author{Francisco Penedo}
 
 \begin{document}
+
+\section{Preliminaries}
+\label{sec:preliminaries}
+
+\subsection{Signal Temporal Logic}
+\label{sub:signal_temporal_logic}
+
+An STL formula $\phi$ is defined recursively in the following way:
+
+\begin{equation}
+    \phi ::= \mu | \lnot \mu | \phi_1 \land \phi_2 | \phi_1 \luntil_{[a,b]} \phi_2
+\end{equation}
+
+where $\mu$ is a predicate over signals of the form $\mu \equiv \mu(s) > 0$,
+$\phi_1$ and $\phi_2$ are STL formulas,
+$\lnot$ and $\land$ are the Boolean operators negation and conjunction, and
+$\luntil_{[a, b]}$ is the bounded temporal operator \emph{until}. The satisfaction
+of an STL formula at time $t$ for a signal $s :
+\mathbb{T} \to \R$, where $\mathbb{T}$ is a discrete or continuous time domain
+and $t \in \mathbb{T}$, is defined recursively as follows:
+
+\begin{equation}
+    \begin{aligned}
+        s[t] &\models \mu &\iff &\mu(s(t)) > 0 \\
+        s[t] &\models \lnot \mu &\iff &\lnot (s[t] \models \mu) \\
+        s[t] &\models \phi_1 \land \phi_2 &\iff &s[t] \models \phi_1 \land s[t]
+        \models \phi_2 \\
+        s[t] &\models \phi_1 \luntil_{[a,b]} \phi_2 &\iff 
+            &\exists t' \in [t+a, t+b] \text{ s.t. } s[t'] \models \phi_2 \\
+        & & &\land \forall t'' \in [t, t'] s[t''] \models \phi_1]
+    \end{aligned}
+\end{equation}
+
+In the above equation, the time intervals are to be understood inside
+$\mathbb{T}$. A signal $s$ satisfies an STL formula, $s \models \phi$, if and
+only if $s[0] \models \phi$. We define other Boolean operators (disjunction,
+implication and equivalence) and constants (true and false) in the usual way, 
+and the temporal operators
+\emph{eventually} and \emph{globally} as $\Event_{[a, b]} \phi \equiv \top
+\luntil_{[a,b]} \phi$ and $\Always_{[a, b]} \phi \equiv \lnot \Event_{[a,b]}
+\lnot \phi$ respectively.
+
+We also define quantitative semantics for STL formula over a signal $s$
+using the real valued function $r(\phi, s, t)$, which satisfies the property $s[t]
+\models \phi \iff r(\phi,s, t) > 0$ and is computed as follows:
+
+\begin{equation}
+    \begin{aligned}
+        &r(\mu, s, t) &= &\mu(s(t)) \\
+        &r(\lnot \mu, s, t) &= &-r(\mu, s,t) \\
+        &r(\phi_1 \land \phi_2, s, t) &= &\min\{r(\phi_1,s, t),
+    r(\phi_2,s, t)\} \\
+    &r(\phi_1 \luntil_{[a,b]} \phi_2,s, t) &= 
+    &\max_{t' \in [t+a, t+b]} \left \{ \min\{ r(\phi_2,s, t), 
+\min_{t'' \in [t, t']}\{r(\phi_1,s, t)\}\} \right \}
+    \end{aligned}
+\end{equation}
+
+We call $r(\phi,s, t)$ the robustness degree of $s$ with respect to $\phi$ at
+time $t$.
 
 \section{Problem Formulation}
 \label{sec:problem_formulation}
@@ -71,72 +132,6 @@ In the following we will call $\Sigma$ a system governed by \eqref{eq:pde},
 described by the parameters $L, \rho, c$ and $\kappa$, and with boundary
 conditions $g_0, g_L$.
 
-\iffalse
-
-\subsection{Linear Temporal Logic}
-\label{sub:linear_temporal_logic}
-
-Let $\Pi = \{\pi_i | i = 1, ..., m\}$ be a set of predicates, where each
-predicate $\pi_i$ is represented as a tuple $(X_i, \sim_i, p_i)$, with $X_i \subseteq
-\Omega$ a closed set (of $\Omega$ with the subset topology) and $p_i : X_i
-\rightarrow \R$ a continuous function, and denotes the following subset of
-continuous functions supported in $\bar\Omega$, $C^0(\bar\Omega)$:
-
-\begin{equation}
-    \psat{\pi_i} = \{ f \in C^0(\bar\Omega) | \left.f\right|_{X_i} \sim_i p_i \},
-\end{equation}
-
-where $\left.f\right|_{X_i}$ denotes the restriction of $f$ to $X_i$ and $\sim_i
-\in \{<, >\}$.
-
-Consider an LTL formula over $\Pi$, $\phi$, with the usual definition of
-propositional LTL over a set of atomic propositions and the usual semantics
-given by the satisfaction of $\phi$ at position $i \in \N$ of word $w$, denoted
-by $w(i) \models \phi$. We give a definition for the satisfaction of $\phi$ by a
-continuous function $a : \bar \Omega \times [0, \infty) \rightarrow
-\R$\footnote{\fran{This is mostly copied from Marius work with minor
-adaptations}}. For each $\Theta \in 2^\Pi$, let $\psat{\Theta}$ be the set of
-continuous functions supported in $\bar\Omega$ satisfying all and only
-propositions $\pi \in \Theta$:
-
-\begin{equation}
-    \psat{\Theta} = \bigcap_{\pi \in \Theta} \psat{\pi} \setminus 
-    \bigcup_{\pi \in \Pi \setminus \Theta} \psat{\pi}
-\end{equation}
-
-In the following we use the notation $a(t)$, with $t \in [0, \infty)$ to denote
-the function $a(\cdot , t) : \bar\Omega \rightarrow \R$.
-
-\begin{definition}\label{def:word}
-    The word corresponding to function $a$ is the sequence $w_a = w_a(1)
-    w_a(2)..., w_a(k) \in 2^\Pi, k \geq 1$, generated according to the following
-    rules, which must be satisfied for all $\tau \geq 0$ and $k \geq 1$:
-
-    \begin{itemize}
-        \item $a(0) \in \psat{w_a(1)}$;
-        \item if $a(\tau) \in \psat{w_a(k)}$ and $w_a(k) \neq w_a(k + 1)$, then
-            there exists $\tau' > \tau$ such that: a) $a(\tau') \in \psat{w_a(k
-            + 1)}$, b) $a(t) \notin \psat{\pi}, \forall t \in [\tau, \tau'], \forall \pi \in
-            \Pi \setminus (w_a(k) \cup w_a(k + 1))$, and c) \fran{[not sure how
-            to adapt this one; mostly technical]};
-        \item if $a(t) \in \psat{w_a(k)}$ and $w_a(k) = w_a(k + 1)$, then $a(t) \in
-        \psat{w_a(k)}, \forall t \geq \tau$.
-    \end{itemize}
-\end{definition}
-
-\begin{definition}\label{def:sat}
-    A function $a : \bar \Omega \times [0, \infty) \rightarrow \R$ satisfies an
-        LTL formula $\phi$, denoted as $a \models \phi$, if and only if $w_a
-        \models \phi$, where $w_a$ is the word corresponding to $a$.
-\end{definition}
-
-\begin{problem}\label{pr:pde}
-    Given a system $\Sigma$ as in \eqref{eq:pde}, an LTL formula $\phi$ and an
-    initial region represented as $\Theta \in 2^\Pi$, check whether the trajectories of $\Sigma$
-    satisfy $\phi$, for all $u_0 \in \psat{\Theta}$.
-\end{problem}
-
-\fi
 
 Let $\{x_i\}_{i = 0}^{n +
 1}$, where $x_0 = 0, x_{n+1} = L, x_i \in \Omega, i = 1,...,n$, be a partition of
@@ -176,61 +171,7 @@ with initial value $d_i(0) = u_0(x_i), i = 1,...,n$. In the above, $A$ is a
 banded matrix of bandwidth 3. We call $\Sigma_{FEM}$ the FEM system
 corresponding to system $\Sigma$.
 
-\iffalse
 
-In order to fully reformulate Problem~\ref{pr:pde}, we need to modify $\phi$ so
-that it can be checked against trajectories of \eqref{eq:fem}. Let $\Pi_{FEM} =
-\{\pi_i^j | i =1,...,m, j \in J_i\}$, where $J_i = \{j | x_j \in X_i\}$ and
-$\pi_i^j$ denotes the following region in $\R^n$:
-
-\begin{equation}
-    \psat{\pi_i^j} = \{d \in \R^n | d_j \sim_i p_i(x_j)\}
-\end{equation}
-
-\begin{definition}\label{def:femformula}
-    The LTL formula over $\Pi_{FEM}$, $\phi_{FEM}$, corresponding to an LTL formula
-    $\phi$ over $\Pi$, is a formula obtained by substituting every atomic
-    proposition $\pi_i$ in $\phi$ by the formula $\bigwedge_{j \in J_i}
-    \pi_i^j$.
-\end{definition}
-
-We define the word corresponding to a trajectory of \eqref{eq:fem} and
-satisfaction of a formula $\phi_{FEM}$ by a trajectory in a similar way as in
-Def.~\ref{def:word} and \ref{def:sat}. An immediate consequence of
-Def.~\ref{def:femformula} is the following:
-
-\begin{theorem}\label{th:equiv}
-    Let $a : \bar\Omega \times [0, \infty) \rightarrow \R$ be a function
-    satisfying the LTL formula over $\Pi$, $\phi$. Then, the trajectory $d : [0,
-    \infty) \rightarrow \R^n$ given by $d_i(t) = a(x_i, t), t \geq 0, i =
-    1,...,n$, satisfies the corresponding LTL formula over $\Pi_{FEM}$, $\phi_{FEM}$.
-\end{theorem}
-
-We can now formulate a corresponding problem to Problem~\ref{pr:pde} in terms of 
-the corresponding FEM system and LTL formula over $\Pi_{FEM}$:
-
-\begin{problem}\label{pr:fem}
-    Given a system $\Sigma$, an LTL formula $\phi$ over $\Pi$ and an initial
-    region $\Theta \in 2^\Pi$, check whether the trajectories of the corresponding
-    FEM system, $\Sigma_{FEM}$, satisfies the corresponding LTL formula over
-    $\Pi_{FEM}$, $\phi_{FEM}$, for all initial values corresponding to the
-    initial values $u_0 \in \psat{\Theta}$ of $\Sigma$.
-\end{problem}
-
-\begin{theorem}
-    If the solution to Problem~\ref{pr:fem} is SAT, then the solution to
-    Problem~\ref{pr:pde} is SAT.
-\end{theorem}
-
-\fran{As of now, this theorem is clearly false: we need to account for the
-quality of the FEM approximation. I think this can be done if 
-we can compute error bounds for $\|d_i - u(x_i, \cdot)\|$ and we adjust the
-propositions in $\Pi_{FEM}$ so that the converse of Th.~\ref{th:equiv} is true.}
-
-\fi
-
-\subsection{Signal Temporal Logic}
-\label{sub:signal_temporal_logic}
 
 Let $\Lambda = \{\lambda_i | i = 1,...,m\}$ be a set of predicates, where
 $\lambda_i$ is a predicate represented as a tuple $(Q_i, X_i, \mu_i)$, with $Q_i
@@ -244,13 +185,22 @@ semantics over the set of predicates $\Lambda$, where the satisfaction of a
 predicate with respect to a continuous-time signal $u : \bar\Omega \times [0, T]
 \to \R$ at time $t \in \R$ is defined as $u[t] \models \lambda_i \iff 
   u(x, t) - \mu_i(x) > 0$ for all $x \in X_i$ if $Q_i = \forall$ or for some $x \in
-X_i$ otherwise.
+  X_i$ otherwise. We also define quantitative semantics as usual with
+  $r(\lambda_i,u, t) = \min_{x \in X_i} u(x, t)$ if $Q_i = \forall$ and
+  $r(\lambda_i,u, t) = \max_{x \in X_i} u(x, t)$ otherwise.
 
 \begin{problem}
 \label{pr:stl}
     Given a system $\Sigma$, an STL formula $\psi$ and initial state $u_0$,
     check wether the trajectory of $\Sigma$ for the initial state $u_0$
     satisfies $\psi$ at time 0.
+\end{problem}
+
+\begin{problem}
+\label{pr:stl_set}
+    Given a system $\Sigma$, an STL formula $\psi$ and a set of initial states
+    $U_0$, check wether the trajectory of $\Sigma$ satisfies $\psi$ at time 0
+    for any initial state $u_0 \in U_0$.
 \end{problem}
 
 We want to reformulate the spec $\psi$ in such a way that we can verify instead the
@@ -293,7 +243,18 @@ $|u(x, t) - u^d(x, t)| \leq \epsilon(x, t)$.
     If $u^d \models \psi^{\delta}$, with $\delta(x) = \max_t \epsilon(x, t)$, then $u \models \psi$.
 \end{theorem}
 \begin{proof}
-    \fran{Lipschitz stuff}
+    We only need to consider a predicate $\lambda$ and its negation. We have
+    \begin{equation}
+        \label{eq:th_epsilon}
+         |u(x, t) - \mu_\lambda(x) - u^d(x, t) + \mu_\lambda(x)| = 
+         |u(x, t) - u^d(x, t)| \leq \delta(x)
+    \end{equation}
+    Thus, $u(x, t) - \mu_\lambda(x) \geq u^d(x, t) -
+    \mu_\lambda(x) - \delta(x)$, which proves the result for $\psi = \lambda$. For $\psi
+    = \lnot \lambda$, note that satisfaction is equivalent to $u(x, t) -
+    \mu_\lambda(x) < 0$ for $x$ quantified opposite to $Q_\lambda$. Then, from
+    \eqref{eq:th_epsilon} we have $u(x, t) - \mu_\lambda(x) \leq u^d(x, t) +
+    \mu_\lambda(x) - \delta(x)$, completing the proof.
 \end{proof}
 
 Theorem~\ref{th:epsilon_approximation} gives us a way to conservatively solve
@@ -319,7 +280,8 @@ is defined in the following way
      d[t] \models \beta_{\lambda, j} \iff d_j(t) - \mu_\lambda(x_j) > 0
 \end{equation}
 
-where $y_e = \frac{d_e(t) + d_{e+1}(t)}{2}$.
+where $y_e = \frac{d_e(t) + d_{e+1}(t)}{2}$. The robustness degree for these
+predicates is defined as in Sec.~\ref{sub:signal_temporal_logic}.
 Note that this set of predicates includes the perturbations defined in
 Def.~\ref{def:delta_perturbation}. We define perturbations of predicates in
 $\Lambda^{\delta}_{FEM}$ by a real number $K$ in a manner analogous to
@@ -535,11 +497,25 @@ partition $T$, $TS^I$, is an overapproximation of $TS/S_I$.
 
 \fi
 
-\section{Examples [Outdated]}
+\section{Examples}
 \label{sec:examples}
 
-Consider a rod with parameters given in Table~\ref{tab:ex_pars}. We define
-the following atomic propositions: 
+Consider a rod with parameters given in Table~\ref{tab:ex_pars}. We want to
+verify the following specification:
+
+\begin{equation}
+    \begin{aligned}
+        \phi &= \Always_{[1, 10]} ``\forall x \in [1, 9]: u(x) - 9x > 0" \\
+        &\wedge \Event_{[4, 6]} \lnot ``\exists x \in [6, 7]: u(x) - (9x + 15) > 0"
+\end{aligned}
+\end{equation}
+
+which reads in natural language: ``Always between 1 and 10 time units, at all
+points in the rod between lengths 1 and 9, the temperature profile is above the
+profile $\mu_1(x) = 9x$. Additionally, eventually between 4 and 6 time units,
+there does not exist a point in the rod between lengths 6 and 7 such that the
+temperature profile is above the profile $\mu_2(x) = 9x + 15$." Note that we used
+the informal syntax for predicates to improve the readability of the formula.
 
 \begin{table}
 \centering
@@ -547,13 +523,82 @@ the following atomic propositions:
     \hline
     & $L$ & $\rho$ & $c$ & $\kappa$ & $g_0$ & $g_L$ \\
     \hline
-    Rod 1 & 1000 & 1 & 1 & 1 & 10 & 100 \\
+    Rod 1 & 10 & 1 & 1 & 1 & 10 & 100 \\
     \hline
 \end{tabular}
 \caption{Rod parameters}
 \label{tab:ex_pars}
 \end{table}
 
+Throughout this
+section we will consider the true trajectory of the system for some initial
+value, $u^*(x, t)$, the solution of the associated FEM system with a uniform mesh of
+size $h = 0.01$.
+
+We consider first the verification of a single initial value, $u_0(x) = 20.0$
+for $x \in (0, L)$, $u_0(0) = g_0, u_0(L) = g_L$, using uniform meshes of
+different sizes. We computed the bound $\delta(x) = \delta$ as the maximum pointwise
+error between simulations of the true trajectory and the trajectory for the
+given mesh using random initial values of the form $u_0(x) = \min\{\max\{a x +
+b, g_0\}, g_L\}$ with $|a| < 2 |g_L - g_0| / L$ and $b \in (0, |g_L - g_0|)$.
+The results are shown in Table~\ref{tab:res_meshes}. As expected, finer meshes
+yield robustness values closer to the true robustness.
+
+\begin{table}
+\centering
+\begin{tabular}{|c|c|c|c|c|}
+    \hline
+    $h$ & $\delta$ & $r(\phi_{FEM}^{0, 0, 0})$ & $r(\phi_{FEM}^{\delta, 0,
+0})$ & Time (s)  \\
+    \hline
+    1 & 5.1 & 1.6 & -3.4 & 0.6 \\
+    0.5 & 1.36 & -1.6 & -2.9 & 2.0 \\
+    0.33 & 0.63 & -2.3 & -2.9 & 4.3 \\
+    0.2 & 0.35 & -2.7 & -3.0 & 7.6 \\
+    0.1 & 0.2 & -2.7 & -2.9 & 11.9 \\
+    \hline
+\end{tabular}
+\caption{Verification of a single initial value. Robustness of the true
+trajectory is -2.7}
+\label{tab:res_sets}
+\end{table}
+
+We checked the validity of our approach as well as the degree of
+conservativeness that the perturbations add by verifying random initial values
+of the previous form. We used for this example a uniform mesh of size $h = 0.2$. We
+show in Fig~\ref{fig:res_diffs} the difference between the true robustness and
+the robustness for our mesh, both with and without the perturbation. Note that
+when we include the perturbation, we correctly verify as satisfying all examples
+that are satisfying. Regarding the conservatism of the approach, we obtain a
+difference of about 1 degree in the robustness, which would allow us to verify a
+specification that is satisfied by at least 1 degree at all points in a system
+that ranges through 90 degrees. It took an average of 49.8 seconds with a
+standard deviation of 2.2 to verify the perturbed formula.
+
+Finally, we verified the specification for sets of initial conditions of the
+form $u_0(x) = a x + b$ with $a$ and $b$ constrained as before. Again we use a
+mesh of size $h = 0.2$. We summarize our results in Table~\ref{tab:res_sets}.
+
+\begin{table}
+\centering
+\begin{tabular}{|c|c|c|c|c|}
+    \hline
+    $a$ & $b$ & Minimum robustness & Result & Time (s)  \\
+    \hline
+    9 & [5, 15] & 0.7 & Satisfies & 4291 \\
+    9 & [0, 10] & -1.0 & Undefined & 315 \\
+    \hline
+\end{tabular}
+\caption{Verification of sets of initial values}
+\label{tab:res_sets}
+\end{table}
+
+\iffalse
+\section{Examples [Outdated]}
+% \label{sec:examples}
+
+Consider a rod with parameters given in Table~\ref{tab:ex_pars}. We define
+the following atomic propositions: 
 \begin{equation}
     \begin{aligned}
         \pi_1 &= ([0, 500], <, 85) \\
@@ -631,5 +676,126 @@ satisfied.
     \caption{Name}
     \label{fig:ex_ts}
 \end{figure}
+
+\fi
+
+\iffalse
+
+In order to fully reformulate Problem~\ref{pr:pde}, we need to modify $\phi$ so
+that it can be checked against trajectories of \eqref{eq:fem}. Let $\Pi_{FEM} =
+\{\pi_i^j | i =1,...,m, j \in J_i\}$, where $J_i = \{j | x_j \in X_i\}$ and
+$\pi_i^j$ denotes the following region in $\R^n$:
+
+\begin{equation}
+    \psat{\pi_i^j} = \{d \in \R^n | d_j \sim_i p_i(x_j)\}
+\end{equation}
+
+\begin{definition}\label{def:femformula}
+    The LTL formula over $\Pi_{FEM}$, $\phi_{FEM}$, corresponding to an LTL formula
+    $\phi$ over $\Pi$, is a formula obtained by substituting every atomic
+    proposition $\pi_i$ in $\phi$ by the formula $\bigwedge_{j \in J_i}
+    \pi_i^j$.
+\end{definition}
+
+We define the word corresponding to a trajectory of \eqref{eq:fem} and
+satisfaction of a formula $\phi_{FEM}$ by a trajectory in a similar way as in
+Def.~\ref{def:word} and \ref{def:sat}. An immediate consequence of
+Def.~\ref{def:femformula} is the following:
+
+\begin{theorem}\label{th:equiv}
+    Let $a : \bar\Omega \times [0, \infty) \rightarrow \R$ be a function
+    satisfying the LTL formula over $\Pi$, $\phi$. Then, the trajectory $d : [0,
+    \infty) \rightarrow \R^n$ given by $d_i(t) = a(x_i, t), t \geq 0, i =
+    1,...,n$, satisfies the corresponding LTL formula over $\Pi_{FEM}$, $\phi_{FEM}$.
+\end{theorem}
+
+We can now formulate a corresponding problem to Problem~\ref{pr:pde} in terms of 
+the corresponding FEM system and LTL formula over $\Pi_{FEM}$:
+
+\begin{problem}\label{pr:fem}
+    Given a system $\Sigma$, an LTL formula $\phi$ over $\Pi$ and an initial
+    region $\Theta \in 2^\Pi$, check whether the trajectories of the corresponding
+    FEM system, $\Sigma_{FEM}$, satisfies the corresponding LTL formula over
+    $\Pi_{FEM}$, $\phi_{FEM}$, for all initial values corresponding to the
+    initial values $u_0 \in \psat{\Theta}$ of $\Sigma$.
+\end{problem}
+
+\begin{theorem}
+    If the solution to Problem~\ref{pr:fem} is SAT, then the solution to
+    Problem~\ref{pr:pde} is SAT.
+\end{theorem}
+
+\fran{As of now, this theorem is clearly false: we need to account for the
+quality of the FEM approximation. I think this can be done if 
+we can compute error bounds for $\|d_i - u(x_i, \cdot)\|$ and we adjust the
+propositions in $\Pi_{FEM}$ so that the converse of Th.~\ref{th:equiv} is true.}
+
+\fi
+\iffalse
+
+\subsection{Linear Temporal Logic}
+\label{sub:linear_temporal_logic}
+
+Let $\Pi = \{\pi_i | i = 1, ..., m\}$ be a set of predicates, where each
+predicate $\pi_i$ is represented as a tuple $(X_i, \sim_i, p_i)$, with $X_i \subseteq
+\Omega$ a closed set (of $\Omega$ with the subset topology) and $p_i : X_i
+\rightarrow \R$ a continuous function, and denotes the following subset of
+continuous functions supported in $\bar\Omega$, $C^0(\bar\Omega)$:
+
+\begin{equation}
+    \psat{\pi_i} = \{ f \in C^0(\bar\Omega) | \left.f\right|_{X_i} \sim_i p_i \},
+\end{equation}
+
+where $\left.f\right|_{X_i}$ denotes the restriction of $f$ to $X_i$ and $\sim_i
+\in \{<, >\}$.
+
+Consider an LTL formula over $\Pi$, $\phi$, with the usual definition of
+propositional LTL over a set of atomic propositions and the usual semantics
+given by the satisfaction of $\phi$ at position $i \in \N$ of word $w$, denoted
+by $w(i) \models \phi$. We give a definition for the satisfaction of $\phi$ by a
+continuous function $a : \bar \Omega \times [0, \infty) \rightarrow
+\R$\footnote{\fran{This is mostly copied from Marius work with minor
+adaptations}}. For each $\Theta \in 2^\Pi$, let $\psat{\Theta}$ be the set of
+continuous functions supported in $\bar\Omega$ satisfying all and only
+propositions $\pi \in \Theta$:
+
+\begin{equation}
+    \psat{\Theta} = \bigcap_{\pi \in \Theta} \psat{\pi} \setminus 
+    \bigcup_{\pi \in \Pi \setminus \Theta} \psat{\pi}
+\end{equation}
+
+In the following we use the notation $a(t)$, with $t \in [0, \infty)$ to denote
+the function $a(\cdot , t) : \bar\Omega \rightarrow \R$.
+
+\begin{definition}\label{def:word}
+    The word corresponding to function $a$ is the sequence $w_a = w_a(1)
+    w_a(2)..., w_a(k) \in 2^\Pi, k \geq 1$, generated according to the following
+    rules, which must be satisfied for all $\tau \geq 0$ and $k \geq 1$:
+
+    \begin{itemize}
+        \item $a(0) \in \psat{w_a(1)}$;
+        \item if $a(\tau) \in \psat{w_a(k)}$ and $w_a(k) \neq w_a(k + 1)$, then
+            there exists $\tau' > \tau$ such that: a) $a(\tau') \in \psat{w_a(k
+            + 1)}$, b) $a(t) \notin \psat{\pi}, \forall t \in [\tau, \tau'], \forall \pi \in
+            \Pi \setminus (w_a(k) \cup w_a(k + 1))$, and c) \fran{[not sure how
+            to adapt this one; mostly technical]};
+        \item if $a(t) \in \psat{w_a(k)}$ and $w_a(k) = w_a(k + 1)$, then $a(t) \in
+        \psat{w_a(k)}, \forall t \geq \tau$.
+    \end{itemize}
+\end{definition}
+
+\begin{definition}\label{def:sat}
+    A function $a : \bar \Omega \times [0, \infty) \rightarrow \R$ satisfies an
+        LTL formula $\phi$, denoted as $a \models \phi$, if and only if $w_a
+        \models \phi$, where $w_a$ is the word corresponding to $a$.
+\end{definition}
+
+\begin{problem}\label{pr:pde}
+    Given a system $\Sigma$ as in \eqref{eq:pde}, an LTL formula $\phi$ and an
+    initial region represented as $\Theta \in 2^\Pi$, check whether the trajectories of $\Sigma$
+    satisfy $\phi$, for all $u_0 \in \psat{\Theta}$.
+\end{problem}
+
+\fi
 
 \end{document}
