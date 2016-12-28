@@ -2,6 +2,10 @@ import networkx as nx
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
+from matplotlib.widgets import Slider
+import matplotlib.colors as colors
+import matplotlib.cm as cmx
+from bisect import bisect_left
 
 _figcounter = 0
 _holds = []
@@ -42,16 +46,14 @@ def draw_ts_2D(ts, partition, prefix=None):
         plt.show()
 
 
-def draw_pde_trajectory(ds, xs, ts, prefix=None, hold=False):
-    global _figcounter
+def draw_pde_trajectory(ds, xs, ts, animate=True, prefix=None, hold=False):
     global _holds
 
-    print ds.shape, xs.shape
     d_min, d_max = np.amin(ds), np.amax(ds)
 
     fig = plt.figure()
 
-    ax = fig.add_subplot(111)
+    ax = fig.add_subplot(121)
     ax.set_xlim(xs[0], xs[-1])
     ax.set_ylim(d_min, d_max)
     ax.set_xlabel('x')
@@ -60,19 +62,44 @@ def draw_pde_trajectory(ds, xs, ts, prefix=None, hold=False):
     l, = ax.plot([], [], 'b-')
     time_text = ax.text(.02, .95, '', transform=ax.transAxes)
 
+    cmap = plt.get_cmap('cool')
+    cnorm = colors.Normalize(0, len(ts))
+    scalarmap = cmx.ScalarMappable(norm=cnorm, cmap=cmap)
     def update_line(i):
         l.set_data(xs, ds[i])
+        l.set_color(scalarmap.to_rgba(i))
         time_text.set_text('t = {}'.format(ts[i]))
         return l, time_text
 
-    frames = min(len(ts), len(ds))
-    line_ani = animation.FuncAnimation(
-        fig, update_line, frames=frames, interval=5000/frames, blit=True)
-    _holds.append(line_ani)
+    savefun = None
+    if animate:
+        frames = min(len(ts), len(ds))
+        line_ani = animation.FuncAnimation(
+            fig, update_line, frames=frames, interval=5000/frames, blit=True)
+        _holds.append(line_ani)
+        if prefix:
+            savefun = lambda: line_ani.save(prefix + str(_figcounter) + '.mp4')
+    else:
+        axall = fig.add_subplot(122, sharex=ax, sharey=ax)
+        fig.subplots_adjust(bottom=0.05)
+        axslider = plt.axes([0.0, 0.0, 1, .05])
+        slider = Slider(axslider, 'Time', ts[0], ts[-1], valinit=ts[0])
+        slider.on_changed(lambda val: update_line(bisect_left(ts, val)))
+        update_line(0)
+
+        for i in range(len(ts)):
+            axall.plot(xs, ds[i], color=scalarmap.to_rgba(i))
+
+    _render(fig, savefun, hold)
+
+
+def _render(fig, savefun, hold):
+    global _holds
+    global _figcounter
 
     if not hold:
-        if prefix is not None:
-            line_ani.save(prefix + str(_figcounter) + '.mp4')
+        if savefun is not None:
+            savefun()
             plt.close(fig)
             plt.show()
         else:
@@ -111,7 +138,4 @@ def _draw_grid(partition, ax):
         for x in p:
             data[i][0] = data[i][1] = x
             ax.plot(data[0], data[1], color='k', linestyle='--', linewidth=2)
-
-
-
 

@@ -99,6 +99,7 @@ def rect_in_semispace(R, a, b):
         else:
             return - res.fun <= b
 
+
 def cont_to_disc(system, dt=1.0):
     Adt = system.A * dt
     Atil = la.expm(Adt)
@@ -116,6 +117,7 @@ def disc_integrate(system, x0, t):
         x = (system.A.dot(x) + system.b.T).flatten()
         xs.append(x)
     return np.array(xs)
+
 
 def linterx(d, xpart):
     def u(x):
@@ -164,4 +166,11 @@ def sys_diff(xsys, ysys, dtx, dty, xpart, ypart, x0, y0, t0, T, xl, xr, plot=Tru
 def sys_max_diff(xsys, ysys, dtx, dty, xpart, ypart, x0, y0, t0, T, xl, xr):
     absdif = sys_diff(xsys, ysys, dtx, dty, xpart, ypart, x0, y0, t0, T, xl, xr)
     return np.max(absdif)
+
+
+def draw_system_disc(sys, x0, dt, T, xpart, prefix=None, animate=True):
+    tx = np.linspace(0, T, int(T/dt))
+    x = disc_integrate(sys, x0[1:-1], int(T/dt))
+    x = np.c_[x0[0] * np.ones(x.shape[0]), x, x0[-1] * np.ones(x.shape[0])]
+    draw.draw_pde_trajectory(x, xpart, tx, prefix=prefix, animate=animate)
 

@@ -10,7 +10,7 @@ T = [10.0, 100.0]
 dt = .1
 
 apc1 = logic.APCont([1, 9], -1, lambda x: 9.0 * x)
-apc2 = logic.APCont([6, 7], 1, lambda x: 9.0 * x + 20.0)
+apc2 = logic.APCont([6, 7], 1, lambda x: 9.0 * x + 15.0)
 cregions = {'A': apc1, 'B': apc2}
 
 cspec = "((G_[1, 10] (A)) & (F_[4, 6] (B)))"
