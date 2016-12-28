@@ -30,7 +30,7 @@ spec = cs.spec
 
 import femformal.system as fsys
 
-# fsys.draw_system_disc(system, d0, dt, 10, cs.xpart, animate=False)
+fsys.draw_system_disc(system, d0, dt, 10, cs.xpart, animate=False)
 
 
 print "loaded cs"

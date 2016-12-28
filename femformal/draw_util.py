@@ -62,12 +62,13 @@ def draw_pde_trajectory(ds, xs, ts, animate=True, prefix=None, hold=False):
     l, = ax.plot([], [], 'b-')
     time_text = ax.text(.02, .95, '', transform=ax.transAxes)
 
-    cmap = plt.get_cmap('cool')
-    cnorm = colors.Normalize(0, len(ts))
+    cmap = plt.get_cmap('autumn')
+    cnorm = colors.Normalize(ts[0], ts[-1])
     scalarmap = cmx.ScalarMappable(norm=cnorm, cmap=cmap)
+    scalarmap.set_array(ts)
     def update_line(i):
         l.set_data(xs, ds[i])
-        l.set_color(scalarmap.to_rgba(i))
+        l.set_color(scalarmap.to_rgba(ts[i]))
         time_text.set_text('t = {}'.format(ts[i]))
         return l, time_text
 
@@ -81,14 +82,16 @@ def draw_pde_trajectory(ds, xs, ts, animate=True, prefix=None, hold=False):
             savefun = lambda: line_ani.save(prefix + str(_figcounter) + '.mp4')
     else:
         axall = fig.add_subplot(122, sharex=ax, sharey=ax)
-        fig.subplots_adjust(bottom=0.05)
-        axslider = plt.axes([0.0, 0.0, 1, .05])
+        fig.subplots_adjust(bottom=0.1)
+        axslider = plt.axes([0.0, 0.0, 1, .03])
         slider = Slider(axslider, 'Time', ts[0], ts[-1], valinit=ts[0])
         slider.on_changed(lambda val: update_line(bisect_left(ts, val)))
         update_line(0)
 
         for i in range(len(ts)):
-            axall.plot(xs, ds[i], color=scalarmap.to_rgba(i))
+            axall.plot(xs, ds[i], color=scalarmap.to_rgba(ts[i]))
+        cbar = fig.colorbar(scalarmap, ax=axall)
+        cbar.set_label('Time (s)')
 
     _render(fig, savefun, hold)
 
