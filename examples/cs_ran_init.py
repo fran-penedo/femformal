@@ -74,7 +74,7 @@ cregions = {'A': apc1, 'B': apc2}
 
 cspec = "((G_[1, 10] (A)) & (F_[4, 6] (B)))"
 # t \in [1,10], T = [10, 100], x \in [1, 9], N = [10, 20, 30, 40, 50], L = 10
-eps = [1.0 for N in Ns]
+eps = [0.238 for N in Ns]
 
 cstrues = [fem.build_cs(
     1000, L, T, 0.01, [T[0]] + [min(max(a * x + b, T[0]), T[1])

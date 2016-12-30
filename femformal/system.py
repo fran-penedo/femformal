@@ -144,7 +144,7 @@ def diff(x, y, dtx, dty, xpart, ypart, xl, xr):
     d = np.array([xinter(z) - yinter(z) for z in ypart[yl:yr]]).T
     return d
 
-def sys_diff(xsys, ysys, dtx, dty, xpart, ypart, x0, y0, t0, T, xl, xr, plot=True):
+def sys_diff(xsys, ysys, dtx, dty, xpart, ypart, x0, y0, t0, T, xl, xr, plot=False):
     tx = int(T / dtx)
     ty = np.linspace(0, T, int(T / dty))
     x = disc_integrate(xsys, x0[1:-1], tx)

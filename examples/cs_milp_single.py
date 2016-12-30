@@ -12,7 +12,7 @@ dt = .1
 # d0s = [[T[0]] + [min(max(a * x + b, T[0]), T[1])
 #                  for x in np.linspace(0, L, N + 1)[1:-1]] + [T[1]]
 #        for (a, b), N in zip(ablist, Ns)]
-(a, b) = (9, 0)
+a, b = (3.7082817514645745, 74.01390422706666)
 d0 = [T[0]] + [a * x + b for x in np.linspace(0, L, N + 1)[1:-1]] + [T[1]]
 
 apc1 = logic.APCont([1, 9], -1, lambda x: 9.0 * x)

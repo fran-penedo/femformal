@@ -22,4 +22,6 @@ xr = 9.0
 mds = [fem.max_diff(cs.system, cs.dt, cs.xpart, t0, tt, xl, xr, cs.T, cstrue)
        for cs in cslist]
 
+# Results
+# [5.2884818800547961, 1.4886301139418237, 0.675864781296589, 0.37390643814340763, 0.23786780480595837]
 print mds

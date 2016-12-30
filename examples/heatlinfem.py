@@ -42,7 +42,7 @@ def diag(n, m, i):
 def build_cs(N, L, T, dt, d0, cregions, cspec, pset=None, discretize_system=True, cstrue=None, eps=None):
     system, xpart, partition = heatlinfem(N, L, T)
     if discretize_system:
-        system = s.cont_to_disc(system, dt)
+        dsystem = s.cont_to_disc(system, dt)
 
     if cspec is not None:
         regions = {label: logic.ap_cont_to_disc(pred, xpart)
@@ -51,18 +51,20 @@ def build_cs(N, L, T, dt, d0, cregions, cspec, pset=None, discretize_system=True
         spec = sysmilp.stl_parser().parseString(dspec)[0]
         if discretize_system:
             sysmilp.scale_time(spec, dt)
+        t0, tt = spec.shorizon(), spec.horizon()
+        if cstrue is not None:
+            md = max_diff(dsystem, dt, xpart, t0, tt, T, cstrue)
+        elif eps is not None:
+            md = eps
+        else:
+            md = 0.0
+        sysmilp.perturb(spec, md)
     else:
         spec = None
         regions = None
 
-    t0, tt = spec.shorizon(), spec.horizon()
-    if cstrue is not None:
-        md = max_diff(system, dt, xpart, t0, tt, T, cstrue)
-    elif eps is not None:
-        md = eps
-    else:
-        md = 0.0
-    sysmilp.perturb(spec, md)
+    if discretize_system:
+        system = dsystem
 
     rh_N = 2
 
@@ -78,9 +80,11 @@ def max_diff(sys, dt, xpart, t0, tt, xl, xr, T, cstrue):
         b = np.random.rand() * abs(T[1] - T[0])
         x0 = [T[0]] + [min(max(a * x + b, T[0]), T[1]) for x in xpart[1:-1]] + [T[1]]
         y0 = [T[0]] + [min(max(a * x + b, T[0]), T[1]) for x in cstrue.xpart[1:-1]] + [T[1]]
-        mdiff = max(mdiff, s.sys_max_diff(
+        diff = s.sys_max_diff(
             sys, cstrue.system, dt, cstrue.dt, xpart, cstrue.xpart,
-            x0, y0, t0, tt, xl, xr))
+            x0, y0, t0, tt, xl, xr)
+        logger.debug(diff)
+        mdiff = max(mdiff, diff)
 
     logger.debug("mdiff = {}".format(mdiff))
     return mdiff
