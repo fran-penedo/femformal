@@ -3,19 +3,24 @@ from bisect import bisect_left, bisect_right
 from .util import state_label
 
 class APCont(object):
-    def __init__(self, A, r, p):
+    def __init__(self, A, r, p, dp = None):
         # A : [x_min, x_max] (np.array)
         self.A = A
         # r == 1: f < p, r == -1: f > p
         self.r = r
         self.p = p
+        if dp:
+            self.dp = dp
+        else:
+            self.dp = lambda x: 0
 
 class APDisc(object):
     def __init__(self, r, m, isnode):
         # r == 1: f < p, r == -1: f > p
         self.r = r
         self.isnode = isnode
-        # m : i -> p((x_i + x_{i+1})/2) if not isnode else i -> p(x_i)
+        # m : i -> (p((x_i + x_{i+1})/2) if not isnode else i -> p(x_i),
+        # dp(.....))
         self.m = m
 
 
@@ -26,12 +31,13 @@ def ap_cont_to_disc(apcont, xpart):
     N1 = len(xpart)
     if apcont.A[0] == apcont.A[1]:
         i = min(max(bisect_left(xpart, apcont.A[0]), 0), N1 - 1)
-        m = {i - 1: apcont.p(xpart[i])}
+        m = {i - 1: (apcont.p(xpart[i]), apcont.dp(xpart[i]))}
         isnode = True
     else:
         i_min = max(bisect_left(xpart, apcont.A[0]), 0)
         i_max = min(bisect_left(xpart, apcont.A[1]), N1 - 1)
-        m = {i : apcont.p((xpart[i] + xpart[i+1]) / 2)
+        m = {i : (apcont.p((xpart[i] + xpart[i+1]) / 2),
+                  apcont.dp((xpart[i] + xpart[i+1]) / 2))
              for i in range(i_min, i_max)}
         isnode = False
     return APDisc(r, m, isnode)
@@ -52,9 +58,9 @@ def project_apdisc(apdisc, indices, tpart):
 def subst_spec_labels_disc(spec, regions):
     res = spec
     for k, v in regions.items():
-        replaced = "(" + " & ".join(["({} {} {} {})".format(
+        replaced = "(" + " & ".join(["({} {} {} {} {})".format(
             "d" if v.isnode else "y", i,
-            "<" if v.r == 1 else ">", p) for (i, p) in v.m.items()]) + ")"
+            "<" if v.r == 1 else ">", p, dp) for (i, (p, dp)) in v.m.items()]) + ")"
         res = res.replace(k, replaced)
     return res
 

@@ -168,9 +168,37 @@ def sys_max_diff(xsys, ysys, dtx, dty, xpart, ypart, x0, y0, t0, T, xl, xr):
     return np.max(absdif)
 
 
-def draw_system_disc(sys, x0, dt, T, xpart, prefix=None, animate=True):
-    tx = np.linspace(0, T, int(T/dt))
+def sys_max_xdiff(sys, dt, xpart, x0, t0, T):
+    # print x0
+    t = np.linspace(0, T, int(T / dt))
+    x = cont_integrate(sys, x0[1:-1], t)
+    x = np.c_[x0[0] * np.ones(x.shape[0]), x, x0[-1] * np.ones(x.shape[0])]
+    x = x[int(t0/dt):]
+
+    # draw.draw_pde_trajectory(x, xpart, t)
+
+    dx = np.abs(np.diff(x))
+    mdx = np.max(dx, axis=0)
+
+    return mdx
+
+def sys_max_tdiff(sys, dt, xpart, x0, t0, T):
+    t = int(T / dt)
+    x = disc_integrate(sys, x0[1:-1], t)
+    x = np.c_[x0[0] * np.ones(x.shape[0]), x, x0[-1] * np.ones(x.shape[0])]
+    x = x[int(t0/dt):]
+
+    dtx = np.abs(np.diff(x, axis=0))
+    mdtx = np.max(dtx, axis=0)
+
+    return mdtx
+
+
+
+def draw_system_disc(sys, x0, dt, T, xpart, t0=0, prefix=None, animate=True, allonly=False, hold=False):
+    tx = np.linspace(t0, T, int((T - t0)/dt))
     x = disc_integrate(sys, x0[1:-1], int(T/dt))
     x = np.c_[x0[0] * np.ones(x.shape[0]), x, x0[-1] * np.ones(x.shape[0])]
-    draw.draw_pde_trajectory(x, xpart, tx, prefix=prefix, animate=animate)
+    x = x[int(t0/dt):]
+    draw.draw_pde_trajectory(x, xpart, tx, prefix=prefix, animate=animate, hold=hold, allonly=allonly)
 

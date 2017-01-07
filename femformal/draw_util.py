@@ -1,5 +1,6 @@
 import networkx as nx
 import numpy as np
+import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from matplotlib.widgets import Slider
@@ -46,18 +47,23 @@ def draw_ts_2D(ts, partition, prefix=None):
         plt.show()
 
 
-def draw_pde_trajectory(ds, xs, ts, animate=True, prefix=None, hold=False):
+def draw_pde_trajectory(ds, xs, ts, allonly=False, animate=True, prefix=None, hold=False):
     global _holds
 
     d_min, d_max = np.amin(ds), np.amax(ds)
 
+    matplotlib.rcParams.update({'font.size': 8})
+    matplotlib.rcParams.update({'figure.autolayout': True})
     fig = plt.figure()
 
-    ax = fig.add_subplot(121)
+    if not allonly:
+        ax = fig.add_subplot(121)
+    else:
+        ax = fig.add_subplot(111)
     ax.set_xlim(xs[0], xs[-1])
     ax.set_ylim(d_min, d_max)
     ax.set_xlabel('x')
-    ax.set_ylabel('u')
+    ax.set_ylabel('Temperature')
 
     l, = ax.plot([], [], 'b-')
     time_text = ax.text(.02, .95, '', transform=ax.transAxes)
@@ -81,12 +87,15 @@ def draw_pde_trajectory(ds, xs, ts, animate=True, prefix=None, hold=False):
         if prefix:
             savefun = lambda: line_ani.save(prefix + str(_figcounter) + '.mp4')
     else:
-        axall = fig.add_subplot(122, sharex=ax, sharey=ax)
-        fig.subplots_adjust(bottom=0.1)
-        axslider = plt.axes([0.0, 0.0, 1, .03])
-        slider = Slider(axslider, 'Time', ts[0], ts[-1], valinit=ts[0])
-        slider.on_changed(lambda val: update_line(bisect_left(ts, val)))
-        update_line(0)
+        if not allonly:
+            axall = fig.add_subplot(122, sharex=ax, sharey=ax)
+            fig.subplots_adjust(bottom=0.1)
+            axslider = plt.axes([0.0, 0.0, 1, .03])
+            slider = Slider(axslider, 'Time', ts[0], ts[-1], valinit=ts[0])
+            slider.on_changed(lambda val: update_line(bisect_left(ts, val)))
+            update_line(0)
+        else:
+            axall = ax
 
         for i in range(len(ts)):
             axall.plot(xs, ds[i], color=scalarmap.to_rgba(ts[i]))

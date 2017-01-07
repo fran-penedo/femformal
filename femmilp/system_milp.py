@@ -103,10 +103,11 @@ def _Build_f(p, op, isnode):
         return lambda vs: (.5 * vs[0] + .5 * vs[1] - p) * (-1 if op == stl.LE else 1)
 
 class SysSignal(stl.Signal):
-    def __init__(self, index=0, op=stl.LE, p=0, isnode=True):
+    def __init__(self, index, op, p, dp, isnode):
         self.index = index
         self.op = op
         self.p = p
+        self.dp = dp
         self.isnode = isnode
 
         if isnode:
@@ -117,13 +118,15 @@ class SysSignal(stl.Signal):
         self.f = _Build_f(p, op, isnode)
         self.bounds = [-1000, 1000] #FIXME
 
+    # eps :: index -> isnode -> d/dx mu -> pert
     def perturb(self, eps):
-        self.p = self.p + (eps if self.op == stl.LE else -eps)
+        pert = -eps(self.index, self.isnode, self.dp)
+        self.p = self.p + (pert if self.op == stl.LE else -pert)
         self.f = _Build_f(self.p, self.op, self.isnode)
 
     def __str__(self):
-        return "{} {} {} {}".format("d" if self.isnode else "y", self.index,
-                                    "<" if self.op == stl.LE else ">", self.p)
+        return "{} {} {} {} {}".format("d" if self.isnode else "y", self.index,
+                                    "<" if self.op == stl.LE else ">", self.p, self.dp)
 
     def __repr__(self):
         return self.__str__()
@@ -146,8 +149,8 @@ def expr_parser():
     integer = Word(nums).setParseAction(lambda t: int(t[0]))
     isnode = Word(alphas).setParseAction(lambda t: t == "d")
     relation = (T_LE | T_GR).setParseAction(lambda t: stl.LE if t[0] == "<" else stl.GT)
-    expr = isnode + integer + relation + num
-    expr.setParseAction(lambda t: SysSignal(t[1], t[2], t[3], t[0]))
+    expr = isnode + integer + relation + num + num
+    expr.setParseAction(lambda t: SysSignal(t[1], t[2], t[3], t[4], t[0]))
 
     return expr
 

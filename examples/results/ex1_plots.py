@@ -33,7 +33,10 @@ import matplotlib.pyplot as plt
 
 fsys.draw_system_disc(system, d0, dt, 10, cs.xpart, t0=1, animate=False, allonly=True, hold=True)
 fig, ax = plt.gcf(), plt.gca()
-ax.plot([8, 9], [28 * x - 192 for x in [8, 9]], 'b-', lw=3, label='$\mu$')
-plt.show()
+fig.set_size_inches(3,2)
+ax.plot([8, 9], [28 * x - 192 for x in [8, 9]], 'b-', lw=1, label='$\mu$')
+ax.legend(loc='upper left')
+# plt.show()
+fig.savefig('ex1_plots{}.png'.format(N))
 
 print "loaded cs"

@@ -39,10 +39,12 @@ def diag(n, m, i):
 
     return d
 
-def build_cs(N, L, T, dt, d0, cregions, cspec, pset=None, discretize_system=True, cstrue=None, eps=None):
+def build_cs(N, L, T, dt, d0, cregions, cspec, pset=None, discretize_system=True, cstrue=None, eps=None, eta=None, nu=None):
     system, xpart, partition = heatlinfem(N, L, T)
     if discretize_system:
         dsystem = s.cont_to_disc(system, dt)
+    else:
+        dsystem = None
 
     if cspec is not None:
         regions = {label: logic.ap_cont_to_disc(pred, xpart)
@@ -52,23 +54,31 @@ def build_cs(N, L, T, dt, d0, cregions, cspec, pset=None, discretize_system=True
         if discretize_system:
             sysmilp.scale_time(spec, dt)
         t0, tt = spec.shorizon(), spec.horizon()
+        md = 0.0
+        me = [0.0 for i in range(len(xpart) - 1)]
+        mn = [0.0 for i in range(len(xpart) - 1)]
         if cstrue is not None:
             md = max_diff(dsystem, dt, xpart, t0, tt, T, cstrue)
-        elif eps is not None:
-            md = eps
         else:
-            md = 0.0
-        sysmilp.perturb(spec, md)
+            if eps is not None:
+                md = eps
+            if eta is not None:
+                me = eta
+            if nu is not None:
+                mn = nu
+        kd = lambda i, isnode, dmu: md
+        ke = lambda i, isnode, dmu: (me[i] / 2.0) + dmu * (xpart[1] - xpart[0]) / 2.0
+        kn = lambda i, isnode, dmu: (mn[i] if isnode else ((mn[i] + mn[i+1]) / 2.0))
+        sysmilp.perturb(spec, kd)
+        sysmilp.perturb(spec, ke)
+        sysmilp.perturb(spec, kn)
     else:
         spec = None
         regions = None
 
-    if discretize_system:
-        system = dsystem
-
     rh_N = 2
 
-    return CaseStudy(system, xpart, T, dt, d0, pset, regions, spec, rh_N)
+    return CaseStudy(system, dsystem, xpart, T, dt, d0, pset, regions, spec, rh_N)
 
 def max_diff(sys, dt, xpart, t0, tt, xl, xr, T, cstrue):
     mdiff = 0.0
@@ -83,16 +93,43 @@ def max_diff(sys, dt, xpart, t0, tt, xl, xr, T, cstrue):
         diff = s.sys_max_diff(
             sys, cstrue.system, dt, cstrue.dt, xpart, cstrue.xpart,
             x0, y0, t0, tt, xl, xr)
-        logger.debug(diff)
+        # logger.debug(diff)
         mdiff = max(mdiff, diff)
 
     logger.debug("mdiff = {}".format(mdiff))
     return mdiff
 
+def max_xdiff(sys, dt, xpart, t0, tt, T, n=50):
+    print T
+    mdiff = np.zeros((len(xpart) - 1,))
+    logger.debug("Starting max_xdiff")
+    for i in range(n):
+        a = (np.random.rand() * 4 - 2) * abs(T[1] - T[0]) / xpart[-1]
+        b = np.random.rand() * abs(T[1] - T[0])
+        x0 = [T[0]] + [min(max(a * x + b, T[0]), T[1]) for x in xpart[1:-1]] + [T[1]]
+        print x0
+        dx = s.sys_max_xdiff(sys, dt, xpart, x0, t0, tt)
+        mdiff = np.max([mdiff, dx], axis=0)
+    logger.debug("mdiff = {}".format(mdiff))
+    return mdiff
+
+def max_tdiff(sys, dt, xpart, t0, tt, T, n=50):
+    mdiff = np.zeros((len(xpart),))
+    logger.debug("Starting max_tdiff")
+    for i in range(n):
+        a = (np.random.rand() * 4 - 2) * abs(T[1] - T[0]) / xpart[-1]
+        b = np.random.rand() * abs(T[1] - T[0])
+        x0 = [T[0]] + [min(max(a * x + b, T[0]), T[1]) for x in xpart[1:-1]] + [T[1]]
+        dx = s.sys_max_tdiff(sys, dt, xpart, x0, t0, tt)
+        mdiff = np.max([mdiff, dx], axis=0)
+    logger.debug("mdiff = {}".format(mdiff))
+    return mdiff
+
 class CaseStudy(object):
 
-    def __init__(self, system, xpart, T, dt, d0, pset, regions, spec, rh_N):
+    def __init__(self, system, dsystem, xpart, T, dt, d0, pset, regions, spec, rh_N):
         self.system = system
+        self.dsystem = dsystem
         self.xpart = xpart
         self.T = T
         self.dt = dt

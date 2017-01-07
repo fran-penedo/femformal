@@ -12,7 +12,8 @@ dt = .1
 # d0s = [[T[0]] + [min(max(a * x + b, T[0]), T[1])
 #                  for x in np.linspace(0, L, N + 1)[1:-1]] + [T[1]]
 #        for (a, b), N in zip(ablist, Ns)]
-a, b = (0, 20.0)
+# a, b = (8.5, 10.0)
+a, b = (5, 20.0)
 d0 = [T[0]] + [a * x + b for x in np.linspace(0, L, N + 1)[1:-1]] + [T[1]]
 
 apc1 = logic.APCont([1, 9], -1, lambda x: 9.0 * x)
@@ -33,7 +34,11 @@ import matplotlib.pyplot as plt
 
 fsys.draw_system_disc(system, d0, dt, 10, cs.xpart, t0=1, animate=False, allonly=True, hold=True)
 fig, ax = plt.gcf(), plt.gca()
-ax.plot([8, 9], [28 * x - 192 for x in [8, 9]], 'b-', lw=3, label='$\mu$')
-plt.show()
+fig.set_size_inches(3,2)
+ax.plot([1, 9], [9 * x for x in [1, 9]], 'b-', lw=1, label='$\mu_1$')
+ax.plot([6, 7], [9 * x + 15 for x in [6, 7]], 'g-', lw=1, label='$\mu_2$')
+ax.legend(loc='upper left')
+# plt.show()
+fig.savefig('ex2_plots{}.png'.format(1))
 
 print "loaded cs"
