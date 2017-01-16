@@ -1,13 +1,17 @@
 \documentclass{article}
 \usepackage{color}
 \usepackage{graphicx}
+\usepackage[caption=false]{subfig}
 \usepackage{amsmath}
 \usepackage{amsthm}
 \usepackage{amsfonts}
 \usepackage{mathtools}
+\usepackage{cleveref}
 \usepackage[utf8]{inputenc}
 \usepackage{algpseudocode}
 \usepackage{algorithm}
+
+\graphicspath{{figures/}}
 
 % Environments
 \newtheorem{theorem}{Theorem}
@@ -45,11 +49,84 @@
 
 \begin{document}
 
+\section{Introduction}
+\label{sec:introduction}
+
 \section{Preliminaries}
 \label{sec:preliminaries}
 
-\subsection{Signal Temporal Logic}
-\label{sub:signal_temporal_logic}
+\subsection{Heat Equation and Finite Element Analysis}
+\label{sub:heat_equation_and_finite_element_analysis}
+
+Let $\Omega = (0, L) \subset \R$ be an open interval representing the interior
+of a one-dimensional rod of length $L$; $\rho, c, \kappa > 0$ 
+constants denoting density, capacity and conductivity of the rod's material respectively;
+$g_0, g_L \in \R$ the boundary conditions at each end of the rod; and $u_0 :
+\Omega \rightarrow \R$ an initial value for the temperature on the rod. 
+The evolution of the temperature at
+each point in the rod can be described by a function $u : \bar \Omega \times [0,
+T] \rightarrow \R$, where $T > 0$ denotes the final time and can be infinity, 
+such that the following equations are satisfied:
+
+\begin{equation}\label{eq:pde}
+    \begin{aligned}
+        \rho c \frac{\partial u}{\partial t} - \kappa \frac{\partial^2
+        u}{\partial^2 x} &= 0, \text{on } \Omega \times (0, T) \\
+        u(0, t) &= g_0, \forall t \in (0, T) \\
+        u(L, t) &= g_L, \forall t \in (0, T) \\
+        u(x, 0) &= u_0(x), \forall x \in \Omega
+    \end{aligned}
+\end{equation}
+
+In the following we will call $\Sigma$ a system governed by \eqref{eq:pde},
+described by the parameters $L, \rho, c$ and $\kappa$, and with boundary
+conditions $g_0, g_L$.
+
+
+Let $\{x_i\}_{i = 0}^{n +
+1}$, where $x_0 = 0, x_{n+1} = L, x_i \in \Omega, i = 1,...,n$, be a partition of
+$\bar\Omega$. Let $d_i(t), i = 0,...,n+1$ represent the
+temperature of the rod at the point $x_i$, with $d_0(t) = g_0, d_{n+1} = g_L$ and let $d = (d_1, ..., d_n)' \in
+\R^n$. We define the following linear node shape function matrices for $i =
+0,...,n+1$:
+
+\begin{equation}
+    N_i(x) = \begin{cases}
+        \frac{x - x_{i - 1}}{x_i - x_{i - 1}} & i > 0, x \in [x_{i-1}, x_i] \\
+        \frac{x_{i+1} - x}{x_{i+1} - x_{i}} & i < n+1, x \in [x_{i}, x_{i+1}] 
+    \end{cases} 
+\end{equation}
+
+and the following linear interpolation of $d$:
+
+\begin{equation}
+    u^d(x, t) = \sum_{i=0}^{n+1} N_i(x) d_i(t)
+\end{equation}
+
+It can be shown\footnote{\fran{At some point I'll fill in the details of the
+construction of $A$ and $b$}} that $u^d(x, t)$ is a good approximation of 
+$u(x, t)$, where $u(x,t)$ is the trajectory of $\Sigma$ for an
+initial value $u_0$, and $d$ evolves
+according to the following linear system, $\Sigma_{FEM}$:
+
+\begin{equation}\label{eq:fem}
+    \begin{aligned}
+        \dot{d} &= A d + b
+    \end{aligned}
+\end{equation}
+
+with initial value $d_i(0) = u_0(x_i), i = 1,...,n$. In the above, $A$ is a
+banded matrix of bandwidth 3. We call $\Sigma_{FEM}$ the FEM system
+corresponding to system $\Sigma$.
+
+
+\section{Signal Temporal Logic for PDEs}
+\label{sec:signal_temporal_logic}
+
+In this section we define a bounded time linear temporal logic suitable to
+define specifications for solutions of partial differential equations. We start
+by defining standard Signal Temporal Logic (STL) and then defining a new set of
+predicates over both spatial- and time-varying signals.
 
 An STL formula $\phi$ is defined recursively in the following way:
 
@@ -105,89 +182,35 @@ using the real valued function $r(\phi, s, t)$, which satisfies the property $s[
 We call $r(\phi,s, t)$ the robustness degree of $s$ with respect to $\phi$ at
 time $t$.
 
+In order to define STL for PDEs, we introduce the following set of predicates:
+let $\Lambda = \{\lambda_i | i = 1,...,m\}$ be a set of predicates, where
+$\lambda_i$ is a predicate represented as a tuple $(Q_i, X_i, \mu_i)$, and informally represented using the syntax $``Q_i x \in X_i : u(x) - \mu_i(x) >
+0"$, where:
+
+\begin{itemize}
+    \item $Q_i \in \{\forall, \exists\}$ is the spatial quantifier,
+    \item $X_i \subseteq \bar\Omega$ is the spatial domain of the predicate and
+        we require it to be a closed set, and 
+    \item $\mu_i : X_i \to \R$ is a continuous and differentiable function 
+        representing the reference profile.
+\end{itemize}
+
+We will sometimes use $Q_\lambda, X_\lambda, \mu_\lambda$ to refer to the
+elements of the tuple representing $\lambda$. We consider STL formulas 
+with the previously defined syntax and semantics 
+over the set of predicates $\Lambda$, where the satisfaction of a
+predicate with respect to a continuous-time signal $u : \bar\Omega \times [0, T]
+\to \R$ at time $t \in \R$ is defined as $u[t] \models \lambda_i \iff 
+u(x, t) - \mu_i(x) > 0$ for all $x \in X_i$ if $Q_i = \forall$ or for some $x \in
+X_i$ otherwise. We define the quantitative semantics as before with
+$r(\lambda_i,u, t) = \min_{x \in X_i} u(x, t)$ if $Q_i = \forall$ and
+$r(\lambda_i,u, t) = \max_{x \in X_i} u(x, t)$ otherwise.
+
 \section{Problem Formulation}
 \label{sec:problem_formulation}
 
-Let $\Omega = (0, L) \subset \R$ be an open interval representing the interior
-of a one-dimensional rod of length $L$; $\rho, c, \kappa > 0$ 
-constants denoting density, capacity and conductivity of the rod's material respectively;
-$g_0, g_L \in \R$ the boundary conditions at each end of the rod; and $u_0 :
-\Omega \rightarrow \R$ an initial value for the temperature on the rod. 
-The evolution of the temperature at
-each point in the rod can be described by a function $u : \bar \Omega \times [0,
-T] \rightarrow \R$, where $T > 0$ denotes the final time and can be infinity, 
-such that the following equations are satisfied:
-
-\begin{equation}\label{eq:pde}
-    \begin{aligned}
-        \rho c \frac{\partial u}{\partial t} - \kappa \frac{\partial^2
-        u}{\partial^2 x} &= 0, \text{on } \Omega \times (0, T) \\
-        u(0, t) &= g_0, \forall t \in (0, T) \\
-        u(L, t) &= g_L, \forall t \in (0, T) \\
-        u(x, 0) &= u_0(x), \forall x \in \Omega
-    \end{aligned}
-\end{equation}
-
-In the following we will call $\Sigma$ a system governed by \eqref{eq:pde},
-described by the parameters $L, \rho, c$ and $\kappa$, and with boundary
-conditions $g_0, g_L$.
-
-
-Let $\{x_i\}_{i = 0}^{n +
-1}$, where $x_0 = 0, x_{n+1} = L, x_i \in \Omega, i = 1,...,n$, be a partition of
-$\bar\Omega$ such that it is proposition preserving with respect to the set of
-regions $\{X_i\}_{i = 1}^{m}$\footnote{This is well defined since the $X_i$ are
-closed and there are a finite number of them}. Let $d_i(t), i = 0,...,n+1$ represent the
-temperature of the rod at the point $x_i$, with $d_0(t) = g_0, d_{n+1} = g_L$ and let $d = (d_1, ..., d_n)' \in
-\R^n$. We define the following linear node shape function matrices for $i =
-0,...,n+1$:
-
-\begin{equation}
-    N_i(x) = \begin{cases}
-        \frac{x - x_{i - 1}}{x_i - x_{i - 1}} & i > 0, x \in [x_{i-1}, x_i] \\
-        \frac{x_{i+1} - x}{x_{i+1} - x_{i}} & i < n+1, x \in [x_{i}, x_{i+1}] 
-    \end{cases} 
-\end{equation}
-
-and the following linear interpolation of $d$:
-
-\begin{equation}
-    u^d(x, t) = \sum_{i=0}^{n+1} N_i(x) d_i(t)
-\end{equation}
-
-It can be shown\footnote{\fran{At some point I'll fill in the details of the
-construction of $A$ and $b$}} that $u^d(x, t)$ is a good approximation of 
-$u(x, t)$, where $u(x,t)$ is the trajectory of $\Sigma$ for an
-initial value $u_0$, and $d$ evolves
-according to the following linear system, $\Sigma_{FEM}$:
-
-\begin{equation}\label{eq:fem}
-    \begin{aligned}
-        \dot{d} &= A d + b
-    \end{aligned}
-\end{equation}
-
-with initial value $d_i(0) = u_0(x_i), i = 1,...,n$. In the above, $A$ is a
-banded matrix of bandwidth 3. We call $\Sigma_{FEM}$ the FEM system
-corresponding to system $\Sigma$.
-
-
-
-Let $\Lambda = \{\lambda_i | i = 1,...,m\}$ be a set of predicates, where
-$\lambda_i$ is a predicate represented as a tuple $(Q_i, X_i, \mu_i)$, with $Q_i
-\in \{\forall, \exists\}$, $X_i
-\subseteq \bar\Omega$ a closed set and $\mu_i : X_i \to \R$ a continuous function,
-and informally represented using the syntax $``Q_i x \in X_i : u(x) - \mu_i(x) >
-0"$. We will sometimes use $Q_\lambda, X_\lambda, \mu_\lambda$ to refer to the
-elements of the tuple representing $\lambda$. We consider STL formulas 
-defined with the usual syntax and recursive boolean
-semantics over the set of predicates $\Lambda$, where the satisfaction of a
-predicate with respect to a continuous-time signal $u : \bar\Omega \times [0, T]
-\to \R$ at time $t \in \R$ is defined as $u[t] \models \lambda_i \iff 
-  u(x, t) - \mu_i(x) > 0$ for all $x \in X_i$ if $Q_i = \forall$ or for some $x \in
-  X_i$ otherwise. We also define quantitative semantics as usual with
-  $r(\lambda_i,u, t) = \min_{x \in X_i} u(x, t)$ if $Q_i = \forall$ and
-  $r(\lambda_i,u, t) = \max_{x \in X_i} u(x, t)$ otherwise.
+We can formulate now the STL verification problem for trajectories of a heat
+equation:
 
 \begin{problem}
 \label{pr:stl}
@@ -196,6 +219,9 @@ predicate with respect to a continuous-time signal $u : \bar\Omega \times [0, T]
     satisfies $\psi$ at time 0.
 \end{problem}
 
+A more general problem can be formulated if we consider the initial state to be
+in a set:
+
 \begin{problem}
 \label{pr:stl_set}
     Given a system $\Sigma$, an STL formula $\psi$ and a set of initial states
@@ -203,10 +229,21 @@ predicate with respect to a continuous-time signal $u : \bar\Omega \times [0, T]
     for any initial state $u_0 \in U_0$.
 \end{problem}
 
-We want to reformulate the spec $\psi$ in such a way that we can verify instead the
+In order to solve both problems, we first reformulate the specification $\psi$
+in such a way that it allows us to solve the verification problems
+conservatively on a discrete time linear system instead.
+
+\section{Formally Correct Discretization of STL for PDEs}
+\label{sec:formally_correct_discretization_of_pdestl}
+
+We first reformulate the specification $\psi$ so that we can verify instead the
 approximation given by $\Sigma_{FEM}$. Recall that we denote as $u(x,t)$ the
 trajectory of $\Sigma$ and $u^d(x, t)$ the piecewise linear approximation
-obtained by interpolating the trajectory of $\Sigma_{FEM}$. Suppose we are given
+obtained by interpolating the trajectory of $\Sigma_{FEM}$. In the following, we
+assume the partition $\{x_i\}_{i=1}^m$ is proposition preserving with respect 
+to the set of
+regions $\{X_i\}_{i = 1}^{m}$\footnote{This is well defined since the $X_i$ are
+closed and there are a finite number of them}. Suppose we are given
 an a priori bound, $\epsilon(x, t)$, on the pointwise difference between them, i.e., 
 $|u(x, t) - u^d(x, t)| \leq \epsilon(x, t)$.
 
@@ -281,13 +318,14 @@ is defined in the following way
 \end{equation}
 
 where $y_e = \frac{d_e(t) + d_{e+1}(t)}{2}$. The robustness degree for these
-predicates is defined as in Sec.~\ref{sub:signal_temporal_logic}.
+predicates is defined as in Sec.~\ref{sec:signal_temporal_logic}.
 Note that this set of predicates includes the perturbations defined in
 Def.~\ref{def:delta_perturbation}. We define perturbations of predicates in
 $\Lambda^{\delta}_{FEM}$ by a real number $K$ in a manner analogous to
 Def.~\ref{def:m_perturbation}, and we denote it as $\alpha^K$.
 
-\begin{definition}
+\begin{definition} 
+\label{def:eta_approximation}
     The STL formula over $\Lambda^{\delta}_{FEM}$, $\psi^{\delta, \eta}_{FEM}$, corresponding to an STL
     formula in negation normal form, $\psi^\delta$, over $\Lambda^\delta$, with
     $\eta : \bar\Omega \to \R$, is a formula obtained by substituting every
@@ -302,29 +340,62 @@ Def.~\ref{def:m_perturbation}, and we denote it as $\alpha^K$.
         \item Otherwise, $\gamma_{\lambda, e} = \alpha_{\lambda, e}^{K_e}$.
     \end{itemize}
 
-    In both cases, \footnote{\fran{This might be too conservative for
-    verification}}
+    In both cases, 
 
     \begin{equation}
     \begin{aligned}
-        K_e = \frac{x_{e+1} - x_e}{2} & \left (\max_{c \in [x_e, x_{e+1}]} \mu'(c) +
-            \max_{c \in [x_e, x_{e+1}]} \eta(c) \right )
+        K_e = \frac{x_{e+1} - x_e}{2} & \left (\max_{c \in [x_e, x_{e+1}]}
+        |\mu'(c)| + \max_{c \in [x_e, x_{e+1}]} \eta(c) \right )
     \end{aligned}
     \end{equation}
+
+    We will abuse the notation and use $\psi^{\delta, 0}_{FEM}$ when referring
+    to the formula obtained without perturbing the predicates, i.e., both $\eta$
+    and $\mu'$ are considered 0.
 \end{definition}
 % \frac{\partial u}{\partial x}(c, t)
 
 \begin{theorem}
-    If $d \models \psi^{\delta, \eta}_{FEM}$, with $\eta(x) \geq |\max_t \frac{\partial
-    u^d}{\partial x}(x, t)|$\footnote{\fran{I think I have a bound for this}}, 
-    then $u^d \models \psi^\delta$.
+\label{th:eta_approximation}
+    If $d \models \psi^{\delta, \eta}_{FEM}$, with $\eta(x) \geq \max_t |\frac{\partial
+    u^d}{\partial x}(x, t)|$, then $u^d \models \psi^\delta$.
 \end{theorem}
 \begin{proof}
-    \fran{More Lipschitz stuff}
+    We only need to consider a predicate $\lambda$ and its negation. We assume
+    $Q_\lambda = \forall$, the other case is similar. Let $X_\lambda = [x_a,
+    x_b]$. First note that satisfying $\lambda$ is equivalent to satisfying all
+    predicates of the set $\{(Q_\lambda, [x_e, x_{e+1}], \mu_\lambda) | e \in
+    E_\lambda\}$. For any $e \in E_\lambda$, let $m = \frac{x_e + x_{e+1}}{2}, 
+    h = \frac{x_{e+1} - x_{e}}{2}$. 
+    For $x \in [x_e, x_{e+1}]$ we have:
+
+    \begin{equation}
+    \begin{aligned}
+        &|u^d(x, t) - \mu_\lambda(x) - u^d(m, t) + \mu_\lambda(m)| \leq \\
+        &h \max_{c \in [x_e, x_{e+1}]} 
+        |\mu'(c) + \frac{\partial u^d}{\partial x}(c, t)|
+        \leq \\
+        &h \left (  
+        \max_{c \in [x_e, x_{e+1}]} |\mu'(c)| +
+        \max_{c \in [x_e, x_{e+1}]} |\frac{\partial u^d}{\partial x}(c, t)|
+        \right ) \leq \\
+        &h \left (  
+        \max_{c \in [x_e, x_{e+1}]} |\mu'(c)| +
+        \max_{c \in [x_e, x_{e+1}]} \eta(c)
+        \right )  = K_e
+    \end{aligned}
+    \end{equation}
+
+    Then, $u^d(x, t) - \mu_\lambda(x) \geq u^d(m, t) - \mu_\lambda(m) - K_e =
+    y_e(t) - \mu_\lambda(m) - K_e$, so $d \models \alpha^{-K_e}_{\lambda, e}$
+    implies $u^d \models (Q_\lambda, [x_e, x_{e+1}], \mu_\lambda)$ and the
+    theorem holds for $\psi^\delta = \lambda$. To prove it for the negated
+    predicate, we can follow an argument similar to the one in the proof of
+    Th.~\ref{th:epsilon_approximation}.
 \end{proof}
 
 Finally, we reformulate the problem into a verification problem over the
-trajectory of a time discretization of $\Sigma_{FEM}$. Let $\Delta T \in \R$ be
+trajectory of a time discretization of $\Sigma_{FEM}$. Let $\Delta t \in \R$ be
 a positive time interval. The discretization of $\Sigma_{FEM}$ with time
 interval $\Delta t$, $\Sigma^{\Delta t}_{FEM}$, is a system that evolves
 according to the following difference equation:
@@ -338,184 +409,90 @@ according to the following difference equation:
 
 where $\tilde A = e^{A \Delta t}$ and $\tilde b = - e^{A \Delta t} A^{-1} \left
 ( e^{- A \Delta t} - I \right ) b$. Note that $d(k \Delta t) = \tilde d^k,
-\forall k \in \N$. We define satisfaction of an STL formula by a discrete time
-signal in a similar way to continuous time. However, we make a slight abuse of
-notation so that the time bounds for the temporal operators should be understood
-in the continuous sense, i.e, $\tilde d[k] \models \Always_{[a, b]} \psi \iff 
-\forall j \in [\frac{a}{\Delta t}, \frac{b}{\Delta t}] \cap \N, \tilde d^{k + j} \models
-\psi$ and similarly with the eventually operator.
+\forall k \in \N$. 
+% We define satisfaction of an STL formula by a discrete time
+% signal in a similar way to continuous time. However, we make a slight abuse of
+% notation so that the time bounds for the temporal operators should be understood
+% in the continuous sense, i.e, $\tilde d[k] \models \Always_{[a, b]} \psi \iff 
+% \forall j \in [\frac{a}{\Delta t}, \frac{b}{\Delta t}] \cap \N, \tilde d^{k + j} \models
+% \psi$ and similarly with the eventually operator.
 
 We define a conservative perturbation of $\psi^{\delta, \eta}_{FEM}$ by a real
-vector $\nu = (\nu^y, \nu^d)$, $\psi^{\delta, \eta, \nu}_{FEM}$ in a similar way to Def~\ref{},
-noting that the predicate $\gamma_{\lambda, e}$ is perturbed using the component
-$\nu^y_e$ and the predicate $\beta_{\lambda, j}$ is perturbed using the
-component $\nu^d_j$.
+vector $\nu = (\nu^y, \nu^d)$, $\psi^{\delta, \eta, \nu}_{FEM}$, in a similar
+way to Def~\ref{def:eta_approximation}, noting that the predicate $\gamma_{\lambda, e}$ is perturbed
+using the constant $L_e^y = \Delta t \nu^y_e$ and the predicate $\beta_{\lambda, j}$ is
+perturbed using the constant $L_j^d = \Delta t \nu^d_j$.
 
 \begin{theorem}
+    \label{th:nu_approximation}
     If $\tilde d \models \psi^{\delta, \eta, \nu}_{FEM}$, with
-    $\nu^y_e = \max_t \frac{\dot d_e(t) + \dot d_{e+1}(t)}{2}$ and $\nu^d_j = \max_t
-    \dot d_j(t)$, then $d \models \psi^{\delta, \eta}_{FEM}$.
+    $\nu^y_e = \max_t \frac{|\dot d_e(t)| + |\dot d_{e+1}(t)|}{2}$ and $\nu^d_j = \max_t
+    |\dot d_j(t)|$, then $d \models \psi^{\delta, \eta}_{FEM}$.
 \end{theorem}
-
-\iffalse
-\section{Approach}
-
-In the following, we assume we are given a system $\Sigma$ and an LTL formula
-$\phi$ over a suitable set $\Pi$, from which we have obtained the 
-FEM system $\Sigma_{FEM}$ and LTL formula $\phi_{FEM}$ over $\Pi_{FEM}$ for a
-given partition. We also assume there is a hyperrectangle $R = \{d \in \R^n |
-d_i \in (r_{min}, r_{max}), i = 1,...,n\}$ that is invariant for $\Sigma_{FEM}$.
-
-\fran{The above may not actually be needed at all}
-
-Let $T = \{ p_i(x_j) | i = 1,...,m, j \in J_i \} \cup \{r_{min}, r_{max}\} =
-\{t_i | i = 1,..., |T|\}$, with $t_i < t_{i+1}$, represent a partition of $[r_{min},
-r_{max}]$, which can be extended to a partition of $R$ into hyperrectangles. We
-denote each hyperrectangle in the following way:
-
-\begin{equation}
-    R_{(a_j)_{j=1}^n} = \{d \in \R^n | d_i \in (t_{a_i}, t_{a_i + 1})\},
-\end{equation}
-
-where $a_j \in \{1,...,n\}, j=1,...,n$. We can now define the quotient
-transition system associated with $\Sigma_{FEM}$ and partition $T$,
-$TS = (Q, Q_0, \rightarrow, O, o)$, where:
-
-\begin{itemize}
-    \item $Q = \{(a_j)_{j=1}^n | a_j \in \{1,...,|T|\}\}$ is the set of states.
-    \item $Q_0 \subseteq Q$ is the set of initial states.
-    \item $(q,q') \in \rightarrow$ if and only if there exists $d \in R_q$ such
-        that the trajectory of $\Sigma_{FEM}$ with initial value $d$ leaves
-        $R_q$ in finite time and enters $R_{q'}$ immediately
-        after\footnote{\fran{This is not formal enough}}.
-    \item $O = 2^{\Pi_{FEM}}$ is the set of observations.
-    \item $o(q) = \Theta$ if and only if $R_q \subseteq [[\Theta]]$.
-\end{itemize}
-
-We define the following set of equivalence relations in $Q$:
-
-\begin{equation}
-    ((a_j)_{j=1}^n,(b_j)_{j=1}^n) \in S_I \iff a_j = b_j, \forall j \in I
-\end{equation}
-
-And the corresponding quotient transition systems $TS/S_I = (Q/S_I, Q_0/S_I,
-\to/S_I, O/S_I, o/S_I)$. Here, $O/S_I$ is the power set of the set of atomic
-propositions related to state variable with index in $I$, i.e., the set
-$\{\pi_i^j \in \Pi_{FEM} | j \in I \}$. This ensures that $o/S_I$ has a unique
-value for each equivalence class in $Q/S_I$.
-
-Let $\psi$ be an LTL formula over $\Pi_{FEM}$. We
-denote by $\Gamma(\phi_{ij})$ the set of coordinate indices that appear in
-atomic propositions in $\phi_{ij}$, i.e.,
-
-\begin{equation}
-    \Gamma(\psi) = \{j \in \{1,...,n\}| \text{ some }\pi_i^j \in \Pi_{FEM} \text{ appears in } \psi\}
-\end{equation}
-
-
-\begin{theorem}
-
-Let $\phi = \bigvee \bigwedge \phi_{ij}$ be an LTL formula over $\Pi_{FEM}$. If
-there exists $i$ such that for all $j$, some overapproximation of the quotient transition system
-$TS/S_{\Gamma(\phi_{ij})}$ satisfies $\phi_{ij}$, then the transition system $TS$
-satisfies $\phi$.
-    
-\end{theorem}
-
 \begin{proof}
-
-Suppose by contradiction that $TS$ does not satisfy $\phi$, i.e., there exists a
-trajectory in $TS$, $\mathbf{q} = q_0 q_1...$ such that the corresponding observed
-word $\mathbf{o} = o(q_0) o(q_1)...$ does not satisfy $\phi$. Due to the structure
-of $\phi$, this implies that for all $i$ there exists $j$ such that $\mathbf{o}$ does
-not satisfy $\phi_{ij}$. Let $\mathbf{o^{ij}}$ be the word obtained from
-$\mathbf{o}$ by substituting every symbol not in $O/S_{\Gamma{\phi_{ij}}}$ by
-the last preceding symbol that was in the set. Then, $\mathbf{o^{ij}}$ is a word
-produced by $TS/S_{\Gamma(\phi_{ij})}$, which implies the latter transition system
-does not satisfy $\phi_{ij}$. This contradicts the hypothesis of the
-theorem.
-    
+    Similar to Th.~\ref{th:eta_approximation}.
 \end{proof}
 
-The previous theorem allows us to avoid the computation of the full transition
-system $TS$ when checking the satisfaction of a formula structured as a boolean
-combination of LTL formulas over atomic propositions referring to a small subset
-of the state variables. Instead, we only need overapproximations of the quotient
-transition systems, which can be computed without $TS$, as explained below. Also
-note that we can use any valid rule of inference in LTL in order to rewrite the
-formula so that the components $\phi_{ij}$ have a smaller $\Gamma$ set.
-
-Let $I \subseteq \{1,...,n\}$ be a set of indices. 
-
-\begin{definition}
-
-The subsystem of $\Sigma_{FEM}$ corresponding to $I$,
-$\Sigma_{FEM}^I$, is a linear system that evolves according to the following
-equation:
-
-\begin{equation}
-    \dot{d_I} = A_I d_I + b_I + \tilde{A_I}\tilde{d_I},
-\end{equation}
-
-where $d_I \in \R^{|I|}$, $A_I = (a_{ij})_{i, j \in I}$, $b_I = (b_i)_{i
-\in I}$, $\tilde{d_I} \in \R^{|\tilde{I}|} $, $\tilde{A_I} = (a_{ij})_{i \in I, j
-\in \tilde{I_i}}$, $\tilde{I_i} = \{j \in \{1,...,n\} \setminus I | a_{ij} \neq 0\}$, for $i
-\in I$ and $\tilde{I} = \bigcup_{i \in I} \tilde{I_i}$\footnote{\fran{All the
-$\tilde{I_i}$ mess is sort of unnecessary for this definition, since using all
-indices not in $I$ yields an equivalent system (everything extra is multiplied
-by 0). However, this definition makes explicit the fact that a subsystem
-corresponding to $I$ only cares about its own dimensions and the dimensions it's
-related with via $A$.}}.
-
-\end{definition}
-
-% \begin{definition}
-%
-% The projection of $\phi_{FEM}$ onto $I$ is an LTL
-% formula over $\Pi_{FEM}^I = \{\pi_i^j | i = 1,...,m, j \in J_i \cap I\}$,
-% $\phi_{FEM}^I$, obtained by removing every atomic proposition not in
-% $\Pi_{FEM}^I$ from $\phi_{FEM}$.
-%
-% \end{definition}
-%
-% \begin{problem}
-%
-% Solve Problem~\ref{pr:fem} for subsystem $\Sigma_{FEM}^I$ and formula
-% $\phi_{FEM}^I$, considering $\tilde{d_I}$ a disturbance whose components are
-% all contained in $(r_{min}, r_{max})$. \fran{Review this to state what
-% a disturbance is.}
-%     
-% \end{problem}
-%
+Using Theorem~\ref{th:nu_approximation} we can solve Problem~\ref{pr:stl}
+conservatively by solving a verification problem for regular STL and discrete
+time linear systems. Moreover, we can obtain a bound on the robustness of the
+original specification with respect to the trajectory of $\Sigma$ by making the
+following observation:
 
 \begin{theorem}
+    \label{th:robustness}
+    If $u, u^d, d$ and $\tilde{d}$ are trajectories of $\Sigma$, interpolation
+    of $\Sigma_{FEM}$, $\Sigma_{FEM}$ and $\Sigma_{FEM}^{\Delta t}$,
+    respectively, and $\psi$ is an STL formula over $\Lambda$, then the 
+    following inequality holds:
 
-The quotient transition system associated with $\Sigma_{FEM}^I$ and
-partition $T$, $TS^I$, is an overapproximation of $TS/S_I$.
-    
+    \begin{equation}
+        r(\psi, u, t) \geq r(\psi^{\delta}, u^d, t) \geq r(\psi^{\delta, \eta},
+        d, t) \geq r(\psi^{\delta, \eta, \nu}, \tilde{d}, t)
+    \end{equation}
 \end{theorem}
+\begin{proof}
+    It follows from the proofs of
+    \cref{th:epsilon_approximation,th:eta_approximation,th:nu_approximation}.
+\end{proof}
 
-\fi
+\section{Verification of Initial Sets}
+\label{sec:verification_of_initial_sets}
 
 \section{Examples}
 \label{sec:examples}
 
-Consider a rod with parameters given in Table~\ref{tab:ex_pars}. We want to
-verify the following specification:
+We consider first the verification of a single initial value using uniform
+meshes of different sizes. Consider a rod with parameters given in
+Table~\ref{tab:ex_pars}, initial value $u_0(x) = 20.0$
+for $x \in (0, L)$, $u_0(0) = g_0, u_0(L) = g_L$, and the following specification:
 
 \begin{equation}
-    \begin{aligned}
-        \phi &= \Always_{[1, 10]} ``\forall x \in [1, 9]: u(x) - 9x > 0" \\
-        &\wedge \Event_{[4, 6]} \lnot ``\exists x \in [6, 7]: u(x) - (9x + 15) > 0"
-\end{aligned}
+    \psi = \Always_{[1,10]} ``\forall x \in [8,9] : u(x) - (28x - 192) > 0"
 \end{equation}
 
-which reads in natural language: ``Always between 1 and 10 time units, at all
-points in the rod between lengths 1 and 9, the temperature profile is above the
-profile $\mu_1(x) = 9x$. Additionally, eventually between 4 and 6 time units,
-there does not exist a point in the rod between lengths 6 and 7 such that the
-temperature profile is above the profile $\mu_2(x) = 9x + 15$." Note that we used
-the informal syntax for predicates to improve the readability of the formula.
+which reads in natural language: ``Always between 1 and 10 time units, all
+points in the rod between lengths 8 and 9, the temperature profile is above the
+profile $\mu(x) = 28x - 192$." Note that we used the informal syntax for
+predicates to improve the readability of the formula. We show in
+Fig.~\ref{fig:ex1_evolution} the trajectory for two mesh sizes along with the
+profile in the specification.
+
+\begin{figure}[!t]
+    \centering 
+    \subfloat[$h = 1.0$]{\label{fig:ex1_a}
+        \includegraphics[width=0.49\textwidth]{ex1_plots10.png}}
+        \hfill
+    \subfloat[$ h = 0.2$]{\label{fig:ex1_b}
+        \includegraphics[width=0.49\textwidth]{ex1_plots50.png}}
+        \hfill
+    \caption{Trajectory $u^d(x, t)$ for two mesh sizes and the reference
+        temperature profile $\mu(x) = 28x - 192$. Note how the trajectory
+        obtained with a coarser mesh satisfies the specification, while the one
+        obtained with a finer mesh does not.}
+    \label{fig:ex1_evolution}
+\end{figure}
+
 
 \begin{table}
 \centering
@@ -535,45 +512,104 @@ section we will consider the true trajectory of the system for some initial
 value, $u^*(x, t)$, the solution of the associated FEM system with a uniform mesh of
 size $h = 0.01$.
 
-We consider first the verification of a single initial value, $u_0(x) = 20.0$
-for $x \in (0, L)$, $u_0(0) = g_0, u_0(L) = g_L$, using uniform meshes of
-different sizes. We computed the bound $\delta(x) = \delta$ as the maximum pointwise
+We computed the bound $\delta(x) = \delta$ as the maximum pointwise
 error between simulations of the true trajectory and the trajectory for the
 given mesh using random initial values of the form $u_0(x) = \min\{\max\{a x +
 b, g_0\}, g_L\}$ with $|a| < 2 |g_L - g_0| / L$ and $b \in (0, |g_L - g_0|)$.
-The results are shown in Table~\ref{tab:res_meshes}. As expected, finer meshes
+Likewise, we determined the bounds $\eta(x)$ and $\nu$ from those simulated
+trajectories. We show in Fig.~\ref{fig:bounds} the resulting bounds for two mesh
+sizes.
+
+\begin{figure}[!t]
+    \centering 
+    \subfloat[$h = 0.5$]{\label{fig:bounds_a}
+        \includegraphics[width=0.49\textwidth]{pert_plot_N20.png}}
+        \hfill
+    \subfloat[$ h = 0.2$]{\label{fig:bounds_b}
+        \includegraphics[width=0.49\textwidth]{pert_plot_N50.png}}
+        \hfill
+    \caption{Bounds used for $\delta$, $\eta$ and $\nu$ multiplied by their
+    respective coefficients in the perturbation terms. Note that we show $\nu^d_j$ at
+    $x_j$ and use $\nu_e^y = \frac{\nu^d_j + \nu^d_{j+1}}{2}$}
+    \label{fig:bounds}
+\end{figure}
+
+The robustness results are shown in Table~\ref{tab:res_meshes}. As expected, finer meshes
 yield robustness values closer to the true robustness.
 
 \begin{table}
 \centering
-\begin{tabular}{|c|c|c|c|c|}
+\begin{tabular}{|c|c|c|c|c|c|c|}
     \hline
-    $h$ & $\delta$ & $r(\phi_{FEM}^{0, 0, 0})$ & $r(\phi_{FEM}^{\delta, 0,
-0})$ & Time (s)  \\
+    $h$ & $\delta$ & $r(\psi_{FEM}^{0, 0, 0})$ & $r(\psi_{FEM}^{\delta, 0, 0})$ &
+    $r(\psi_{FEM}^{\delta, \eta, 0})$ & $r(\psi_{FEM}^{\delta, \eta,
+\nu})$ & Time (s)  \\
     \hline
-    1 & 5.29 & 1.66 & -3.63 & 0.5 \\
-    0.5 & 1.49 & -1.57 & -3.06 & 1.5 \\
-    0.33 & 0.68 & -2.29 & -2.96 & 3.6 \\
-    0.25 & 0.37 & -2.68 & -3.06 & 5.9 \\
-    0.2 & 0.24 & -2.74 & -2.98 & 9.9 \\
+    1 & 5.29 & 1.66 & -3.44 & -32.25 & -34.10 & 0.5 \\
+    0.5 & 1.49 & -1.57 & -2.93 & -18.61 & -20.61 & 1.5 \\
+    0.33 & 0.68 & -2.29 & -2.92 & -13.34 & -15.47 & 3.6 \\
+    0.25 & 0.37 & -2.68 & -3.03 & -10.55 & -12.72 & 5.9 \\
+    0.2 & 0.24 & -2.74 & -2.94 & -9.10 & -11.27 & 9.9 \\
     \hline
 \end{tabular}
 \caption{Verification of a single initial value. Robustness of the true
 trajectory is -2.7}
-\label{tab:res_sets}
+\label{tab:res_meshes}
 \end{table}
 
 We checked the validity of our approach as well as the degree of
 conservativeness that the perturbations add by verifying random initial values
-of the previous form. We used for this example a uniform mesh of size $h = 0.2$. We
-show in Fig~\ref{fig:res_diffs} the difference between the true robustness and
-the robustness for our mesh, both with and without the perturbation. Note that
-when we include the perturbation, we correctly verify as satisfying all examples
+of the previous form. We used for this example a uniform mesh of size $h = 0.2$
+and the following specification: 
+
+\begin{equation}
+    \begin{aligned}
+        \phi &= \Always_{[1, 10]} ``\forall x \in [1, 9]: u(x) - 9x > 0" \\
+        &\wedge \Event_{[4, 6]} \lnot ``\exists x \in [6, 7]: u(x) - (9x + 15) > 0"
+\end{aligned}
+\end{equation}
+
+which reads in natural language: ``Always between 1 and 10 time units, at all
+points in the rod between lengths 1 and 9, the temperature profile is above the
+profile $\mu_1(x) = 9x$. Additionally, eventually between 4 and 6 time units,
+there does not exist a point in the rod between lengths 6 and 7 such that the
+temperature profile is above the profile $\mu_2(x) = 9x + 15$." We depict the
+profiles in the specification in Fig.~\ref{fig:ex2_evolution}, along with two
+trajectories.
+
+\begin{figure}[!t]
+    \centering 
+    \subfloat[$a = 8.5, b = 10.0$]{\label{fig:ex2_a}
+        \includegraphics[width=0.49\textwidth]{ex2_plots0.png}}
+        \hfill
+    \subfloat[$a = 5.0, b = 20.0 $]{\label{fig:ex2_b}
+        \includegraphics[width=0.49\textwidth]{ex2_plots1.png}}
+        \hfill
+        \caption{Two sample trajectories of $u^d(x, t)$ using a mesh of size
+        $h=0.2$ and the reference profiles $\mu_1 = 9x$ and $\mu_2 = 9x + 15$}
+    \label{fig:ex2_evolution}
+\end{figure}
+
+
+We show in Fig~\ref{fig:res_diffs} the difference between the true robustness and
+the robustness for our mesh, both with and without the perturbations. Note that
+when we include all perturbations, the computed robustness is less than the true
+robustness, hence we correctly verify as satisfying all examples
 that are satisfying. Regarding the conservatism of the approach, we obtain a
-difference of about 1 degree in the robustness, which would allow us to verify a
-specification that is satisfied by at least 1 degree at all points in a system
-that ranges through 90 degrees. It took an average of 49.8 seconds with a
-standard deviation of 2.2 to verify the perturbed formula.
+difference of at most 5.5 degrees in the robustness, which would allow us to verify a
+specification that is satisfied by at least 5.5 degrees at all points in a system
+that ranges through 90 degrees. It took an average of 19.29 seconds with a
+standard deviation of 1.00 to verify the perturbed formula.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.8\linewidth]{figures/cs_ran_init_results.png}
+    \caption{Difference between true robustness and robustness of the
+        discretized specification with and without perturbations for
+        random initial values}
+    \label{fig:res_diffs}
+\end{figure}
+
 
 Finally, we verified the specification for sets of initial conditions of the
 form $u_0(x) = a x + b$ with $a$ and $b$ constrained as before. Again we use a
@@ -585,217 +621,20 @@ mesh of size $h = 0.2$. We summarize our results in Table~\ref{tab:res_sets}.
     \hline
     $a$ & $b$ & Minimum robustness & Result & Time (s)  \\
     \hline
-    9 & [5, 15] & 0.7 & Satisfies & 4291 \\
-    9 & [0, 10] & -1.0 & Undefined & 315 \\
+    9 & [5, 13] & 0.5 & Satisfies & 21 \\
+    9 & [5, 15] & -0.7 & Undefined & 22 \\
+    9 & [0, 10] & -2.8 & Undefined & 22 \\
+    $[8, 10]$ & [5, 13] & -5.0 & Undefined & 379 \\
+    $[8.5, 9.5]$ & [8, 10] & 0.5 & Satisfies & 326 \\
+    $[5, 12]$ & [0, 20] & -29.6 & Undefined & 82 \\
     \hline
 \end{tabular}
 \caption{Verification of sets of initial values}
 \label{tab:res_sets}
 \end{table}
 
-\iffalse
-\section{Examples [Outdated]}
-% \label{sec:examples}
+\section{Conclusion}
+\label{sec:conclusion}
 
-Consider a rod with parameters given in Table~\ref{tab:ex_pars}. We define
-the following atomic propositions: 
-\begin{equation}
-    \begin{aligned}
-        \pi_1 &= ([0, 500], <, 85) \\
-        \pi_2 &= ([500, 1000], <, 125) \\
-        \pi_3 &= ([0, 1000], <, 25) \\
-    \end{aligned}
-\end{equation}
-
-We want to check the satisfaction of the following specifications for the
-initial region $\{\pi_3\}$:
-
-\begin{equation}
-\label{eq:ex_specs}
-    \begin{aligned}
-        \phi &= \Always \pi_1 \wedge \Always \pi_2 \\ 
-    \end{aligned}
-\end{equation}
-
-We use as our FEM partition the set $\{k | k = 0,...,1000\}$, which results
-in a FEM system with the following matrices:
-
-\begin{equation}
-    A = - \frac{6} {5} \begin{pmatrix}
-        2 & -1  & 0 & \cdots \\ 
-        -1 & 2 & -1 & \ddots \\ 
-        0 & -1 & 2 & \ddots \\
-        \vdots & \ddots & \ddots & \ddots 
-    \end{pmatrix},
-    b = \frac{6} {5}\begin{pmatrix}
-        10 \\
-        0 \\
-        \vdots \\
-        0 \\
-        100
-    \end{pmatrix}
-\end{equation}
-
-The corresponding FEM formulas for the specifications given in
-\eqref{eq:ex_specs} are:
-
-\begin{equation}
-    \begin{aligned}
-        \phi_{FEM} = (\Always \bigwedge_{i = 1}^{500} d_i < 85) \wedge (\Always
-            \bigwedge_{i = 500}^{999} d_i < 125)
-    \end{aligned}
-\end{equation}
-
-Note that $\phi_{FEM}$ has the form $\phi_{FEM} = \phi^1_{FEM} \wedge
-\phi^2_{FEM}$, with $\Gamma(\phi^1_{FEM}) = \{1,...,500\}, \Gamma(\phi^1_{FEM})
-= \{500,...,999\}$. These $\Gamma$ sets are too big to compute the corresponding
-quotients in Th~\ref{th:partition}. However, we can manipulate $\phi_{FEM}$ to obtain the
-following formula:
-
-\begin{equation}
-    \phi_{FEM} = (\bigwedge_{i = 1}^{500} \Always (d_i < 85)) \wedge
-    (\bigwedge_{i = 500}^{999} \Always (d_i < 125))
-\end{equation}
-
-which has the form $\phi_{FEM} = \bigwedge_{i=1}^{1000} \bar{\phi}^i_{FEM}$ and
-each subformula $\bar{\phi}^i_{FEM}$ has a $\Gamma$ set of size 1. The problem
-is now reduced to check the satisfaction of $\bar{\phi}^i_{FEM}$ in the TS
-$TS/S_{\Gamma(\bar{\phi}^i{FEM})}$, for all $i=1,...,1000$. We use $T =
-\{10, 15, 25,...,105,110\}$ for the temperature partition. We show in
-Fig~\ref{fig:ex_ts} some of the resulting transition systems. The model-checking
-tool returned UNSAT for some instances, so we cannot conclude that $\phi_{FEM}$ is
-satisfied by $\Sigma_{FEM}$. To see why this is the case, notice the transition
-system in Fig~\ref{fig:ex_ts} contains all posible transitions, i.e., it does
-not give us any information about the subsystem it abstracts. Consequently, the
-corresponding formula $\phi_{FEM}^{xxxx} = \Always (d_{500} < 85)$ is not
-satisfied.
-
-\begin{figure}
-    \centering
-    \includegraphics[width=0.8\linewidth]{name.ext}
-    \caption{Name}
-    \label{fig:ex_ts}
-\end{figure}
-
-\fi
-
-\iffalse
-
-In order to fully reformulate Problem~\ref{pr:pde}, we need to modify $\phi$ so
-that it can be checked against trajectories of \eqref{eq:fem}. Let $\Pi_{FEM} =
-\{\pi_i^j | i =1,...,m, j \in J_i\}$, where $J_i = \{j | x_j \in X_i\}$ and
-$\pi_i^j$ denotes the following region in $\R^n$:
-
-\begin{equation}
-    \psat{\pi_i^j} = \{d \in \R^n | d_j \sim_i p_i(x_j)\}
-\end{equation}
-
-\begin{definition}\label{def:femformula}
-    The LTL formula over $\Pi_{FEM}$, $\phi_{FEM}$, corresponding to an LTL formula
-    $\phi$ over $\Pi$, is a formula obtained by substituting every atomic
-    proposition $\pi_i$ in $\phi$ by the formula $\bigwedge_{j \in J_i}
-    \pi_i^j$.
-\end{definition}
-
-We define the word corresponding to a trajectory of \eqref{eq:fem} and
-satisfaction of a formula $\phi_{FEM}$ by a trajectory in a similar way as in
-Def.~\ref{def:word} and \ref{def:sat}. An immediate consequence of
-Def.~\ref{def:femformula} is the following:
-
-\begin{theorem}\label{th:equiv}
-    Let $a : \bar\Omega \times [0, \infty) \rightarrow \R$ be a function
-    satisfying the LTL formula over $\Pi$, $\phi$. Then, the trajectory $d : [0,
-    \infty) \rightarrow \R^n$ given by $d_i(t) = a(x_i, t), t \geq 0, i =
-    1,...,n$, satisfies the corresponding LTL formula over $\Pi_{FEM}$, $\phi_{FEM}$.
-\end{theorem}
-
-We can now formulate a corresponding problem to Problem~\ref{pr:pde} in terms of 
-the corresponding FEM system and LTL formula over $\Pi_{FEM}$:
-
-\begin{problem}\label{pr:fem}
-    Given a system $\Sigma$, an LTL formula $\phi$ over $\Pi$ and an initial
-    region $\Theta \in 2^\Pi$, check whether the trajectories of the corresponding
-    FEM system, $\Sigma_{FEM}$, satisfies the corresponding LTL formula over
-    $\Pi_{FEM}$, $\phi_{FEM}$, for all initial values corresponding to the
-    initial values $u_0 \in \psat{\Theta}$ of $\Sigma$.
-\end{problem}
-
-\begin{theorem}
-    If the solution to Problem~\ref{pr:fem} is SAT, then the solution to
-    Problem~\ref{pr:pde} is SAT.
-\end{theorem}
-
-\fran{As of now, this theorem is clearly false: we need to account for the
-quality of the FEM approximation. I think this can be done if 
-we can compute error bounds for $\|d_i - u(x_i, \cdot)\|$ and we adjust the
-propositions in $\Pi_{FEM}$ so that the converse of Th.~\ref{th:equiv} is true.}
-
-\fi
-\iffalse
-
-\subsection{Linear Temporal Logic}
-\label{sub:linear_temporal_logic}
-
-Let $\Pi = \{\pi_i | i = 1, ..., m\}$ be a set of predicates, where each
-predicate $\pi_i$ is represented as a tuple $(X_i, \sim_i, p_i)$, with $X_i \subseteq
-\Omega$ a closed set (of $\Omega$ with the subset topology) and $p_i : X_i
-\rightarrow \R$ a continuous function, and denotes the following subset of
-continuous functions supported in $\bar\Omega$, $C^0(\bar\Omega)$:
-
-\begin{equation}
-    \psat{\pi_i} = \{ f \in C^0(\bar\Omega) | \left.f\right|_{X_i} \sim_i p_i \},
-\end{equation}
-
-where $\left.f\right|_{X_i}$ denotes the restriction of $f$ to $X_i$ and $\sim_i
-\in \{<, >\}$.
-
-Consider an LTL formula over $\Pi$, $\phi$, with the usual definition of
-propositional LTL over a set of atomic propositions and the usual semantics
-given by the satisfaction of $\phi$ at position $i \in \N$ of word $w$, denoted
-by $w(i) \models \phi$. We give a definition for the satisfaction of $\phi$ by a
-continuous function $a : \bar \Omega \times [0, \infty) \rightarrow
-\R$\footnote{\fran{This is mostly copied from Marius work with minor
-adaptations}}. For each $\Theta \in 2^\Pi$, let $\psat{\Theta}$ be the set of
-continuous functions supported in $\bar\Omega$ satisfying all and only
-propositions $\pi \in \Theta$:
-
-\begin{equation}
-    \psat{\Theta} = \bigcap_{\pi \in \Theta} \psat{\pi} \setminus 
-    \bigcup_{\pi \in \Pi \setminus \Theta} \psat{\pi}
-\end{equation}
-
-In the following we use the notation $a(t)$, with $t \in [0, \infty)$ to denote
-the function $a(\cdot , t) : \bar\Omega \rightarrow \R$.
-
-\begin{definition}\label{def:word}
-    The word corresponding to function $a$ is the sequence $w_a = w_a(1)
-    w_a(2)..., w_a(k) \in 2^\Pi, k \geq 1$, generated according to the following
-    rules, which must be satisfied for all $\tau \geq 0$ and $k \geq 1$:
-
-    \begin{itemize}
-        \item $a(0) \in \psat{w_a(1)}$;
-        \item if $a(\tau) \in \psat{w_a(k)}$ and $w_a(k) \neq w_a(k + 1)$, then
-            there exists $\tau' > \tau$ such that: a) $a(\tau') \in \psat{w_a(k
-            + 1)}$, b) $a(t) \notin \psat{\pi}, \forall t \in [\tau, \tau'], \forall \pi \in
-            \Pi \setminus (w_a(k) \cup w_a(k + 1))$, and c) \fran{[not sure how
-            to adapt this one; mostly technical]};
-        \item if $a(t) \in \psat{w_a(k)}$ and $w_a(k) = w_a(k + 1)$, then $a(t) \in
-        \psat{w_a(k)}, \forall t \geq \tau$.
-    \end{itemize}
-\end{definition}
-
-\begin{definition}\label{def:sat}
-    A function $a : \bar \Omega \times [0, \infty) \rightarrow \R$ satisfies an
-        LTL formula $\phi$, denoted as $a \models \phi$, if and only if $w_a
-        \models \phi$, where $w_a$ is the word corresponding to $a$.
-\end{definition}
-
-\begin{problem}\label{pr:pde}
-    Given a system $\Sigma$ as in \eqref{eq:pde}, an LTL formula $\phi$ and an
-    initial region represented as $\Theta \in 2^\Pi$, check whether the trajectories of $\Sigma$
-    satisfy $\phi$, for all $u_0 \in \psat{\Theta}$.
-\end{problem}
-
-\fi
 
 \end{document}

@@ -1,0 +1,338 @@
+
+\iffalse
+\section{Approach}
+
+In the following, we assume we are given a system $\Sigma$ and an LTL formula
+$\phi$ over a suitable set $\Pi$, from which we have obtained the 
+FEM system $\Sigma_{FEM}$ and LTL formula $\phi_{FEM}$ over $\Pi_{FEM}$ for a
+given partition. We also assume there is a hyperrectangle $R = \{d \in \R^n |
+d_i \in (r_{min}, r_{max}), i = 1,...,n\}$ that is invariant for $\Sigma_{FEM}$.
+
+\fran{The above may not actually be needed at all}
+
+Let $T = \{ p_i(x_j) | i = 1,...,m, j \in J_i \} \cup \{r_{min}, r_{max}\} =
+\{t_i | i = 1,..., |T|\}$, with $t_i < t_{i+1}$, represent a partition of $[r_{min},
+r_{max}]$, which can be extended to a partition of $R$ into hyperrectangles. We
+denote each hyperrectangle in the following way:
+
+\begin{equation}
+    R_{(a_j)_{j=1}^n} = \{d \in \R^n | d_i \in (t_{a_i}, t_{a_i + 1})\},
+\end{equation}
+
+where $a_j \in \{1,...,n\}, j=1,...,n$. We can now define the quotient
+transition system associated with $\Sigma_{FEM}$ and partition $T$,
+$TS = (Q, Q_0, \rightarrow, O, o)$, where:
+
+\begin{itemize}
+    \item $Q = \{(a_j)_{j=1}^n | a_j \in \{1,...,|T|\}\}$ is the set of states.
+    \item $Q_0 \subseteq Q$ is the set of initial states.
+    \item $(q,q') \in \rightarrow$ if and only if there exists $d \in R_q$ such
+        that the trajectory of $\Sigma_{FEM}$ with initial value $d$ leaves
+        $R_q$ in finite time and enters $R_{q'}$ immediately
+        after\footnote{\fran{This is not formal enough}}.
+    \item $O = 2^{\Pi_{FEM}}$ is the set of observations.
+    \item $o(q) = \Theta$ if and only if $R_q \subseteq [[\Theta]]$.
+\end{itemize}
+
+We define the following set of equivalence relations in $Q$:
+
+\begin{equation}
+    ((a_j)_{j=1}^n,(b_j)_{j=1}^n) \in S_I \iff a_j = b_j, \forall j \in I
+\end{equation}
+
+And the corresponding quotient transition systems $TS/S_I = (Q/S_I, Q_0/S_I,
+\to/S_I, O/S_I, o/S_I)$. Here, $O/S_I$ is the power set of the set of atomic
+propositions related to state variable with index in $I$, i.e., the set
+$\{\pi_i^j \in \Pi_{FEM} | j \in I \}$. This ensures that $o/S_I$ has a unique
+value for each equivalence class in $Q/S_I$.
+
+Let $\psi$ be an LTL formula over $\Pi_{FEM}$. We
+denote by $\Gamma(\phi_{ij})$ the set of coordinate indices that appear in
+atomic propositions in $\phi_{ij}$, i.e.,
+
+\begin{equation}
+    \Gamma(\psi) = \{j \in \{1,...,n\}| \text{ some }\pi_i^j \in \Pi_{FEM} \text{ appears in } \psi\}
+\end{equation}
+
+
+\begin{theorem}
+
+Let $\phi = \bigvee \bigwedge \phi_{ij}$ be an LTL formula over $\Pi_{FEM}$. If
+there exists $i$ such that for all $j$, some overapproximation of the quotient transition system
+$TS/S_{\Gamma(\phi_{ij})}$ satisfies $\phi_{ij}$, then the transition system $TS$
+satisfies $\phi$.
+    
+\end{theorem}
+
+\begin{proof}
+
+Suppose by contradiction that $TS$ does not satisfy $\phi$, i.e., there exists a
+trajectory in $TS$, $\mathbf{q} = q_0 q_1...$ such that the corresponding observed
+word $\mathbf{o} = o(q_0) o(q_1)...$ does not satisfy $\phi$. Due to the structure
+of $\phi$, this implies that for all $i$ there exists $j$ such that $\mathbf{o}$ does
+not satisfy $\phi_{ij}$. Let $\mathbf{o^{ij}}$ be the word obtained from
+$\mathbf{o}$ by substituting every symbol not in $O/S_{\Gamma{\phi_{ij}}}$ by
+the last preceding symbol that was in the set. Then, $\mathbf{o^{ij}}$ is a word
+produced by $TS/S_{\Gamma(\phi_{ij})}$, which implies the latter transition system
+does not satisfy $\phi_{ij}$. This contradicts the hypothesis of the
+theorem.
+    
+\end{proof}
+
+The previous theorem allows us to avoid the computation of the full transition
+system $TS$ when checking the satisfaction of a formula structured as a boolean
+combination of LTL formulas over atomic propositions referring to a small subset
+of the state variables. Instead, we only need overapproximations of the quotient
+transition systems, which can be computed without $TS$, as explained below. Also
+note that we can use any valid rule of inference in LTL in order to rewrite the
+formula so that the components $\phi_{ij}$ have a smaller $\Gamma$ set.
+
+Let $I \subseteq \{1,...,n\}$ be a set of indices. 
+
+\begin{definition}
+
+The subsystem of $\Sigma_{FEM}$ corresponding to $I$,
+$\Sigma_{FEM}^I$, is a linear system that evolves according to the following
+equation:
+
+\begin{equation}
+    \dot{d_I} = A_I d_I + b_I + \tilde{A_I}\tilde{d_I},
+\end{equation}
+
+where $d_I \in \R^{|I|}$, $A_I = (a_{ij})_{i, j \in I}$, $b_I = (b_i)_{i
+\in I}$, $\tilde{d_I} \in \R^{|\tilde{I}|} $, $\tilde{A_I} = (a_{ij})_{i \in I, j
+\in \tilde{I_i}}$, $\tilde{I_i} = \{j \in \{1,...,n\} \setminus I | a_{ij} \neq 0\}$, for $i
+\in I$ and $\tilde{I} = \bigcup_{i \in I} \tilde{I_i}$\footnote{\fran{All the
+$\tilde{I_i}$ mess is sort of unnecessary for this definition, since using all
+indices not in $I$ yields an equivalent system (everything extra is multiplied
+by 0). However, this definition makes explicit the fact that a subsystem
+corresponding to $I$ only cares about its own dimensions and the dimensions it's
+related with via $A$.}}.
+
+\end{definition}
+
+% \begin{definition}
+%
+% The projection of $\phi_{FEM}$ onto $I$ is an LTL
+% formula over $\Pi_{FEM}^I = \{\pi_i^j | i = 1,...,m, j \in J_i \cap I\}$,
+% $\phi_{FEM}^I$, obtained by removing every atomic proposition not in
+% $\Pi_{FEM}^I$ from $\phi_{FEM}$.
+%
+% \end{definition}
+%
+% \begin{problem}
+%
+% Solve Problem~\ref{pr:fem} for subsystem $\Sigma_{FEM}^I$ and formula
+% $\phi_{FEM}^I$, considering $\tilde{d_I}$ a disturbance whose components are
+% all contained in $(r_{min}, r_{max})$. \fran{Review this to state what
+% a disturbance is.}
+%     
+% \end{problem}
+%
+
+\begin{theorem}
+
+The quotient transition system associated with $\Sigma_{FEM}^I$ and
+partition $T$, $TS^I$, is an overapproximation of $TS/S_I$.
+    
+\end{theorem}
+
+\fi
+
+\iffalse
+\section{Examples [Outdated]}
+% \label{sec:examples}
+
+Consider a rod with parameters given in Table~\ref{tab:ex_pars}. We define
+the following atomic propositions: 
+\begin{equation}
+    \begin{aligned}
+        \pi_1 &= ([0, 500], <, 85) \\
+        \pi_2 &= ([500, 1000], <, 125) \\
+        \pi_3 &= ([0, 1000], <, 25) \\
+    \end{aligned}
+\end{equation}
+
+We want to check the satisfaction of the following specifications for the
+initial region $\{\pi_3\}$:
+
+\begin{equation}
+\label{eq:ex_specs}
+    \begin{aligned}
+        \phi &= \Always \pi_1 \wedge \Always \pi_2 \\ 
+    \end{aligned}
+\end{equation}
+
+We use as our FEM partition the set $\{k | k = 0,...,1000\}$, which results
+in a FEM system with the following matrices:
+
+\begin{equation}
+    A = - \frac{6} {5} \begin{pmatrix}
+        2 & -1  & 0 & \cdots \\ 
+        -1 & 2 & -1 & \ddots \\ 
+        0 & -1 & 2 & \ddots \\
+        \vdots & \ddots & \ddots & \ddots 
+    \end{pmatrix},
+    b = \frac{6} {5}\begin{pmatrix}
+        10 \\
+        0 \\
+        \vdots \\
+        0 \\
+        100
+    \end{pmatrix}
+\end{equation}
+
+The corresponding FEM formulas for the specifications given in
+\eqref{eq:ex_specs} are:
+
+\begin{equation}
+    \begin{aligned}
+        \phi_{FEM} = (\Always \bigwedge_{i = 1}^{500} d_i < 85) \wedge (\Always
+            \bigwedge_{i = 500}^{999} d_i < 125)
+    \end{aligned}
+\end{equation}
+
+Note that $\phi_{FEM}$ has the form $\phi_{FEM} = \phi^1_{FEM} \wedge
+\phi^2_{FEM}$, with $\Gamma(\phi^1_{FEM}) = \{1,...,500\}, \Gamma(\phi^1_{FEM})
+= \{500,...,999\}$. These $\Gamma$ sets are too big to compute the corresponding
+quotients in Th~\ref{th:partition}. However, we can manipulate $\phi_{FEM}$ to obtain the
+following formula:
+
+\begin{equation}
+    \phi_{FEM} = (\bigwedge_{i = 1}^{500} \Always (d_i < 85)) \wedge
+    (\bigwedge_{i = 500}^{999} \Always (d_i < 125))
+\end{equation}
+
+which has the form $\phi_{FEM} = \bigwedge_{i=1}^{1000} \bar{\phi}^i_{FEM}$ and
+each subformula $\bar{\phi}^i_{FEM}$ has a $\Gamma$ set of size 1. The problem
+is now reduced to check the satisfaction of $\bar{\phi}^i_{FEM}$ in the TS
+$TS/S_{\Gamma(\bar{\phi}^i{FEM})}$, for all $i=1,...,1000$. We use $T =
+\{10, 15, 25,...,105,110\}$ for the temperature partition. We show in
+Fig~\ref{fig:ex_ts} some of the resulting transition systems. The model-checking
+tool returned UNSAT for some instances, so we cannot conclude that $\phi_{FEM}$ is
+satisfied by $\Sigma_{FEM}$. To see why this is the case, notice the transition
+system in Fig~\ref{fig:ex_ts} contains all posible transitions, i.e., it does
+not give us any information about the subsystem it abstracts. Consequently, the
+corresponding formula $\phi_{FEM}^{xxxx} = \Always (d_{500} < 85)$ is not
+satisfied.
+\fi
+
+\iffalse
+
+In order to fully reformulate Problem~\ref{pr:pde}, we need to modify $\phi$ so
+that it can be checked against trajectories of \eqref{eq:fem}. Let $\Pi_{FEM} =
+\{\pi_i^j | i =1,...,m, j \in J_i\}$, where $J_i = \{j | x_j \in X_i\}$ and
+$\pi_i^j$ denotes the following region in $\R^n$:
+
+\begin{equation}
+    \psat{\pi_i^j} = \{d \in \R^n | d_j \sim_i p_i(x_j)\}
+\end{equation}
+
+\begin{definition}\label{def:femformula}
+    The LTL formula over $\Pi_{FEM}$, $\phi_{FEM}$, corresponding to an LTL formula
+    $\phi$ over $\Pi$, is a formula obtained by substituting every atomic
+    proposition $\pi_i$ in $\phi$ by the formula $\bigwedge_{j \in J_i}
+    \pi_i^j$.
+\end{definition}
+
+We define the word corresponding to a trajectory of \eqref{eq:fem} and
+satisfaction of a formula $\phi_{FEM}$ by a trajectory in a similar way as in
+Def.~\ref{def:word} and \ref{def:sat}. An immediate consequence of
+Def.~\ref{def:femformula} is the following:
+
+\begin{theorem}\label{th:equiv}
+    Let $a : \bar\Omega \times [0, \infty) \rightarrow \R$ be a function
+    satisfying the LTL formula over $\Pi$, $\phi$. Then, the trajectory $d : [0,
+    \infty) \rightarrow \R^n$ given by $d_i(t) = a(x_i, t), t \geq 0, i =
+    1,...,n$, satisfies the corresponding LTL formula over $\Pi_{FEM}$, $\phi_{FEM}$.
+\end{theorem}
+
+We can now formulate a corresponding problem to Problem~\ref{pr:pde} in terms of 
+the corresponding FEM system and LTL formula over $\Pi_{FEM}$:
+
+\begin{problem}\label{pr:fem}
+    Given a system $\Sigma$, an LTL formula $\phi$ over $\Pi$ and an initial
+    region $\Theta \in 2^\Pi$, check whether the trajectories of the corresponding
+    FEM system, $\Sigma_{FEM}$, satisfies the corresponding LTL formula over
+    $\Pi_{FEM}$, $\phi_{FEM}$, for all initial values corresponding to the
+    initial values $u_0 \in \psat{\Theta}$ of $\Sigma$.
+\end{problem}
+
+\begin{theorem}
+    If the solution to Problem~\ref{pr:fem} is SAT, then the solution to
+    Problem~\ref{pr:pde} is SAT.
+\end{theorem}
+
+\fran{As of now, this theorem is clearly false: we need to account for the
+quality of the FEM approximation. I think this can be done if 
+we can compute error bounds for $\|d_i - u(x_i, \cdot)\|$ and we adjust the
+propositions in $\Pi_{FEM}$ so that the converse of Th.~\ref{th:equiv} is true.}
+
+\fi
+\iffalse
+
+\subsection{Linear Temporal Logic}
+\label{sub:linear_temporal_logic}
+
+Let $\Pi = \{\pi_i | i = 1, ..., m\}$ be a set of predicates, where each
+predicate $\pi_i$ is represented as a tuple $(X_i, \sim_i, p_i)$, with $X_i \subseteq
+\Omega$ a closed set (of $\Omega$ with the subset topology) and $p_i : X_i
+\rightarrow \R$ a continuous function, and denotes the following subset of
+continuous functions supported in $\bar\Omega$, $C^0(\bar\Omega)$:
+
+\begin{equation}
+    \psat{\pi_i} = \{ f \in C^0(\bar\Omega) | \left.f\right|_{X_i} \sim_i p_i \},
+\end{equation}
+
+where $\left.f\right|_{X_i}$ denotes the restriction of $f$ to $X_i$ and $\sim_i
+\in \{<, >\}$.
+
+Consider an LTL formula over $\Pi$, $\phi$, with the usual definition of
+propositional LTL over a set of atomic propositions and the usual semantics
+given by the satisfaction of $\phi$ at position $i \in \N$ of word $w$, denoted
+by $w(i) \models \phi$. We give a definition for the satisfaction of $\phi$ by a
+continuous function $a : \bar \Omega \times [0, \infty) \rightarrow
+\R$\footnote{\fran{This is mostly copied from Marius work with minor
+adaptations}}. For each $\Theta \in 2^\Pi$, let $\psat{\Theta}$ be the set of
+continuous functions supported in $\bar\Omega$ satisfying all and only
+propositions $\pi \in \Theta$:
+
+\begin{equation}
+    \psat{\Theta} = \bigcap_{\pi \in \Theta} \psat{\pi} \setminus 
+    \bigcup_{\pi \in \Pi \setminus \Theta} \psat{\pi}
+\end{equation}
+
+In the following we use the notation $a(t)$, with $t \in [0, \infty)$ to denote
+the function $a(\cdot , t) : \bar\Omega \rightarrow \R$.
+
+\begin{definition}\label{def:word}
+    The word corresponding to function $a$ is the sequence $w_a = w_a(1)
+    w_a(2)..., w_a(k) \in 2^\Pi, k \geq 1$, generated according to the following
+    rules, which must be satisfied for all $\tau \geq 0$ and $k \geq 1$:
+
+    \begin{itemize}
+        \item $a(0) \in \psat{w_a(1)}$;
+        \item if $a(\tau) \in \psat{w_a(k)}$ and $w_a(k) \neq w_a(k + 1)$, then
+            there exists $\tau' > \tau$ such that: a) $a(\tau') \in \psat{w_a(k
+            + 1)}$, b) $a(t) \notin \psat{\pi}, \forall t \in [\tau, \tau'], \forall \pi \in
+            \Pi \setminus (w_a(k) \cup w_a(k + 1))$, and c) \fran{[not sure how
+            to adapt this one; mostly technical]};
+        \item if $a(t) \in \psat{w_a(k)}$ and $w_a(k) = w_a(k + 1)$, then $a(t) \in
+        \psat{w_a(k)}, \forall t \geq \tau$.
+    \end{itemize}
+\end{definition}
+
+\begin{definition}\label{def:sat}
+    A function $a : \bar \Omega \times [0, \infty) \rightarrow \R$ satisfies an
+        LTL formula $\phi$, denoted as $a \models \phi$, if and only if $w_a
+        \models \phi$, where $w_a$ is the word corresponding to $a$.
+\end{definition}
+
+\begin{problem}\label{pr:pde}
+    Given a system $\Sigma$ as in \eqref{eq:pde}, an LTL formula $\phi$ and an
+    initial region represented as $\Theta \in 2^\Pi$, check whether the trajectories of $\Sigma$
+    satisfy $\phi$, for all $u_0 \in \psat{\Theta}$.
+\end{problem}
+
+\fi
+
