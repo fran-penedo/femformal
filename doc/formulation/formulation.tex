@@ -1,12 +1,13 @@
-\documentclass{article}
+\documentclass[oribibl]{llncs/llncs}
 \usepackage{color}
 \usepackage{graphicx}
 \usepackage[caption=false]{subfig}
 \usepackage{amsmath}
-\usepackage{amsthm}
+% \usepackage{amsthm}
 \usepackage{amsfonts}
 \usepackage{mathtools}
-\usepackage{cleveref}
+\usepackage{hyperref}
+\usepackage[capitalize]{cleveref}
 \usepackage[utf8]{inputenc}
 \usepackage{algpseudocode}
 \usepackage{algorithm}
@@ -14,10 +15,15 @@
 \graphicspath{{figures/}}
 
 % Environments
-\newtheorem{theorem}{Theorem}
-\newtheorem{definition}{Definition}
-\newtheorem{problem}{Problem}
-\newtheorem{remark}{Remark}
+% \newtheorem{theorem}{Theorem}
+% \newtheorem{definition}{Definition}
+% \newtheorem{problem}{Problem}
+% \newtheorem{remark}{Remark}
+
+\crefname{problem}{Problem}{Problems}
+\crefname{section}{Sec.}{Secs.}
+\crefname{theorem}{Thm.}{Thms.}
+\crefname{definition}{Def.}{Defs.}
 
 % Aliases
 
@@ -45,18 +51,31 @@
 
 \title{Placeholder}
 
-\author{Francisco Penedo}
+% \author{Francisco Penedo\inst{1} \and Harold S. Park\inst{1} \and Calin Belta\inst{1}}
+
+% \institute{
+% Boston University, Boston, MA, U.S.A.\\
+% \email{\{franp, parkhs, cbelta\}@bu.edu}
+% }
 
 \begin{document}
+
+\maketitle
+
+\begin{abstract}
+    
+\end{abstract}
 
 \section{Introduction}
 \label{sec:introduction}
 
-\section{Preliminaries}
-\label{sec:preliminaries}
 
-\subsection{Heat Equation and Finite Element Analysis}
-\label{sub:heat_equation_and_finite_element_analysis}
+\section{Heat Equation and Finite Element Analysis}
+\label{sec:heat_equation_and_finite_element_analysis}
+
+We provide in this section a brief summary of the Finite Element Method (FEM) applied
+to a simplified heat equation. A more complete exposition can be found in any
+textbook on FEM, such as \cite{}.
 
 Let $\Omega = (0, L) \subset \R$ be an open interval representing the interior
 of a one-dimensional rod of length $L$; $\rho, c, \kappa > 0$ 
@@ -78,10 +97,30 @@ such that the following equations are satisfied:
     \end{aligned}
 \end{equation}
 
-In the following we will call $\Sigma$ a system governed by \eqref{eq:pde},
+In the following we will call $\Sigma$ a system governed by \cref{eq:pde},
 described by the parameters $L, \rho, c$ and $\kappa$, and with boundary
 conditions $g_0, g_L$.
 
+We can construct a weak formulation of \cref{eq:pde} with the same set of
+solutions in the following way: let $D$ be the set of sufficiently smooth 
+real-valued functions on $\bar{\Omega} \times (0, T)$ such that all 
+$u \in D$ satisfies $u(0, t) = g_0, u(L, t) = g_L, \forall t \in (0, T)$, 
+and $V$ a similar set of time
+independent functions such that all $w \in V$ satisfies $w(0) = w(L) = 0$. 
+Find $u \in D$ such that for all $w \in V$,
+
+\begin{equation}\label{eq:weak_pde}
+    \begin{aligned}
+        &\int_{\Omega} \frac{\partial w}{\partial x} \kappa \frac{\partial
+        u}{\partial x} d \Omega + 
+        \int_{\Omega} w \rho c \frac{\partial u}{\partial t} d \Omega = 0 \\
+        &\int_{\Omega} w \rho c u(\cdot, 0) d \Omega =
+        \int_{\Omega} w \rho c u^0 d \Omega \\
+    \end{aligned}
+\end{equation}
+
+We now obtain an approximate solution to the weak formulation by considering
+\cref{eq:weak_pde} with $u$ and $w$ in subspaces of $D$ and $V$.
 
 Let $\{x_i\}_{i = 0}^{n +
 1}$, where $x_0 = 0, x_{n+1} = L, x_i \in \Omega, i = 1,...,n$, be a partition of
@@ -103,28 +142,58 @@ and the following linear interpolation of $d$:
     u^d(x, t) = \sum_{i=0}^{n+1} N_i(x) d_i(t)
 \end{equation}
 
-It can be shown\footnote{\fran{At some point I'll fill in the details of the
-construction of $A$ and $b$}} that $u^d(x, t)$ is a good approximation of 
-$u(x, t)$, where $u(x,t)$ is the trajectory of $\Sigma$ for an
-initial value $u_0$, and $d$ evolves
+Consider the subspaces $D^h \subset D$ and $V^h \subset V$ of linear
+interpolations defined above and time-invariant interpolations respectively.
+It can be shown that $u^d(x, t)$ is a solution of the weak formulation over the
+sets $D^h$ and $V^h$, where $d$ evolves
 according to the following linear system, $\Sigma_{FEM}$:
 
 \begin{equation}\label{eq:fem}
     \begin{aligned}
-        \dot{d} &= A d + b
+        \dot{d} &= A d + b \\
+        d_i(0) &= u_0(x_i), i = 1,...,n
     \end{aligned}
 \end{equation}
 
-with initial value $d_i(0) = u_0(x_i), i = 1,...,n$. In the above, $A$ is a
-banded matrix of bandwidth 3. We call $\Sigma_{FEM}$ the FEM system
-corresponding to system $\Sigma$.
+In the above, $A = -M^{-1}K, b = M^{-1} F$ and $M, K$ and $F$ are the capacity,
+stiffness and external force matrices respectively, which are defined as
+follows:
+
+\begin{equation}
+    \begin{aligned}
+        M &= \frac{\rho c}{6} \begin{pmatrix}
+            \frac{2}{x_1 - x_0} + \frac{2}{x_2 - x_1} & \frac{1}{x_1 - x_0}  & 0 & \cdots \\ 
+            \frac{1}{x_1 - x_0} & \frac{2}{x_2 - x_1} + \frac{2}{x_3 - x_2} & \frac{1}{x_2 - x_1}  & \cdots \\ 
+            0 & \frac{1}{x_2 - x_1} & \frac{2}{x_3 - x_2} + \frac{2}{x_4 - x_3} &  \cdots \\ 
+            \vdots & \ddots & \ddots & \ddots 
+        \end{pmatrix}  \\
+        K &= \kappa \begin{pmatrix}
+            \frac{1}{x_1 - x_0} + \frac{1}{x_2 - x_1} & \frac{-1}{x_1 - x_0}  & 0 & \cdots \\ 
+            \frac{-1}{x_1 - x_0} & \frac{1}{x_2 - x_1} + \frac{1}{x_3 - x_2} & \frac{-1}{x_2 - x_1}  & \cdots \\ 
+            0 & \frac{-1}{x_2 - x_1} & \frac{1}{x_3 - x_2} + \frac{1}{x_4 - x_3} &  \cdots \\ 
+            \vdots & \ddots & \ddots & \ddots 
+        \end{pmatrix} \\
+        F &= \begin{pmatrix}
+            \frac{g_0}{x_1 - x_0} \\
+            0 \\
+            \vdots \\
+            0 \\
+            \frac{g_L}{x_{n+1} - x_{n}}
+        \end{pmatrix} 
+    \end{aligned}
+\end{equation}
+
+As a simplifying assumption, we consider the lumped version of $M$, which is
+defined as a diagonal matrix resulting from adding all elements in each row of
+$M$. Note that with this assumption, $A$ is a banded matrix of bandwidth 3. 
+We call $\Sigma_{FEM}$ the FEM system corresponding to system $\Sigma$.
 
 
 \section{Signal Temporal Logic for PDEs}
 \label{sec:signal_temporal_logic}
 
 In this section we define a bounded time linear temporal logic suitable to
-define specifications for solutions of partial differential equations. We start
+formulate specifications for solutions of partial differential equations. We start
 by defining standard Signal Temporal Logic (STL) and then defining a new set of
 predicates over both spatial- and time-varying signals.
 
@@ -139,7 +208,7 @@ $\phi_1$ and $\phi_2$ are STL formulas,
 $\lnot$ and $\land$ are the Boolean operators negation and conjunction, and
 $\luntil_{[a, b]}$ is the bounded temporal operator \emph{until}. The satisfaction
 of an STL formula at time $t$ for a signal $s :
-\mathbb{T} \to \R$, where $\mathbb{T}$ is a discrete or continuous time domain
+\mathbb{T} \to \R$, where $\mathbb{T}$ is a discrete- or continuous-time domain
 and $t \in \mathbb{T}$, is defined recursively as follows:
 
 \begin{equation}
@@ -163,7 +232,7 @@ and the temporal operators
 \luntil_{[a,b]} \phi$ and $\Always_{[a, b]} \phi \equiv \lnot \Event_{[a,b]}
 \lnot \phi$ respectively.
 
-We also define quantitative semantics for STL formula over a signal $s$
+We also define quantitative semantics for an STL formula over a signal $s$
 using the real valued function $r(\phi, s, t)$, which satisfies the property $s[t]
 \models \phi \iff r(\phi,s, t) > 0$ and is computed as follows:
 
@@ -214,9 +283,9 @@ equation:
 
 \begin{problem}
 \label{pr:stl}
-    Given a system $\Sigma$, an STL formula $\psi$ and initial state $u_0$,
-    check wether the trajectory of $\Sigma$ for the initial state $u_0$
-    satisfies $\psi$ at time 0.
+    Given a system $\Sigma$, an STL formula over $\Lambda$, $\psi$, and initial state $u_0$,
+    check whether the trajectory of $\Sigma$ for the initial state $u_0$
+    satisfies $\psi$.
 \end{problem}
 
 A more general problem can be formulated if we consider the initial state to be
@@ -224,17 +293,25 @@ in a set:
 
 \begin{problem}
 \label{pr:stl_set}
-    Given a system $\Sigma$, an STL formula $\psi$ and a set of initial states
-    $U_0$, check wether the trajectory of $\Sigma$ satisfies $\psi$ at time 0
+    Given a system $\Sigma$, an STL formula over $\Lambda$, $\psi$, and a set of initial states
+    $U_0$, check whether the trajectory of $\Sigma$ satisfies $\psi$ 
     for any initial state $u_0 \in U_0$.
 \end{problem}
 
 In order to solve both problems, we first reformulate the specification $\psi$
 in such a way that it allows us to solve the verification problems
-conservatively on a discrete time linear system instead.
+conservatively on a discrete-time linear system instead. This is done in three
+steps by considering the FEM approximation to the real solution, a spatial
+discretization and a temporal discretization. The solution of \cref{pr:stl_set}
+involves a reformulation into an optimization problem that can be encoded as a
+mixed-integer linear program.
 
 \section{Formally Correct Discretization of STL for PDEs}
 \label{sec:formally_correct_discretization_of_pdestl}
+
+In this section we define a series of reformulations of an STL formula over
+$\Lambda$ such that satisfaction of each successive reformulation guarantees the
+satisfaction of the previous one.
 
 We first reformulate the specification $\psi$ so that we can verify instead the
 approximation given by $\Sigma_{FEM}$. Recall that we denote as $u(x,t)$ the
@@ -250,9 +327,9 @@ $|u(x, t) - u^d(x, t)| \leq \epsilon(x, t)$.
 \begin{definition}
 \label{def:m_perturbation}
     Let $\lambda \in \Lambda$ be the predicate represented by the tuple $(Q, X,
-    \mu)$ and let $M : \bar\Omega \to \R$ be a continuous function. The perturbation of
-    $\lambda$ by $M$, $\lambda^M$, is the predicate given by the tuple $(Q, X,
-    \mu^M)$, where $\mu^M(x, u) = \mu(x, u) + M(x)$.
+    \mu)$ and let $f : \bar\Omega \to \R$ be a continuous function. The perturbation of
+    $\lambda$ by $f$, $\lambda^f$, is the predicate given by the tuple $(Q, X,
+    \mu^f)$, where $\mu^f(x, u) = \mu(x, u) + f(x)$.
 \end{definition}
 
 \begin{definition}
@@ -261,8 +338,7 @@ $|u(x, t) - u^d(x, t)| \leq \epsilon(x, t)$.
     and let $\delta : \bar\Omega \to \R$ be a continuous function. The
     conservative perturbation of $\psi$ by $\delta$, $\psi^\delta$, is an STL
     formula in negation normal form obtained by substituting every predicate
-    $\lambda$ that appears in $\psi$ and is represented by $(Q, X, \mu)$ in the
-    following way:
+    $\lambda$ that appears in $\psi$ in the following way:
 
     \begin{itemize}
         \item If $\lambda$ is not preceded by a negation operator, then it is
@@ -290,24 +366,24 @@ $|u(x, t) - u^d(x, t)| \leq \epsilon(x, t)$.
     \mu_\lambda(x) - \delta(x)$, which proves the result for $\psi = \lambda$. For $\psi
     = \lnot \lambda$, note that satisfaction is equivalent to $u(x, t) -
     \mu_\lambda(x) < 0$ for $x$ quantified opposite to $Q_\lambda$. Then, from
-    \eqref{eq:th_epsilon} we have $u(x, t) - \mu_\lambda(x) \leq u^d(x, t) +
+    \cref{eq:th_epsilon} we have $u(x, t) - \mu_\lambda(x) \leq u^d(x, t) +
     \mu_\lambda(x) - \delta(x)$, completing the proof.
 \end{proof}
 
-Theorem~\ref{th:epsilon_approximation} gives us a way to conservatively solve
-Problem~\ref{pr:stl} using the approximation obtained from $\Sigma_{FEM}$.
+\cref{th:epsilon_approximation} gives us a way to conservatively solve
+\cref{pr:stl} using the approximation obtained from $\Sigma_{FEM}$.
 However, we still need to deal with continuous functions in continuous time. Our
 next step will be to reformulate the problem into a verification problem over
 the trajectory of $\Sigma_{FEM}$, i.e., $d(t)$.
 
-Let $\Lambda^{\delta}_{FEM} = \{\alpha_{\lambda, j} | \lambda \in
+Let $\Lambda^{\delta}_{FEM} = \{\alpha_{\lambda, e} | \lambda \in
 \Lambda^{\delta}, e \in E_{\lambda}\} \cup \{\beta_{\lambda, j} | \lambda \in
 \Lambda^{\delta}, j \in J_{\lambda}\}$, where $E_{\lambda} = \{e | [x_e, x_{e+1}] \subseteq
 X_{\lambda}\}, J_{\lambda} = \{j | x_j \in X_\lambda, [x_{j-1}, x_j] \not\subseteq
 X_\lambda, [x_{j}, x_{j+1}] \not\subseteq X_\lambda \}$,
 and satisfaction of $\alpha_{\lambda, e}$ and $\beta_{\lambda, j}$ by 
-for a continuous-time signal $d : [0, T] \to \R^n$
-is defined in the following way  
+a continuous-time signal $d : [0, T] \to \R^n$
+is defined in the following way:
 
 \begin{equation}
     d[t] \models \alpha_{\lambda, e} \iff y_e(t) - 
@@ -318,11 +394,11 @@ is defined in the following way
 \end{equation}
 
 where $y_e = \frac{d_e(t) + d_{e+1}(t)}{2}$. The robustness degree for these
-predicates is defined as in Sec.~\ref{sec:signal_temporal_logic}.
+predicates is defined as in \cref{sec:signal_temporal_logic}.
 Note that this set of predicates includes the perturbations defined in
-Def.~\ref{def:delta_perturbation}. We define perturbations of predicates in
-$\Lambda^{\delta}_{FEM}$ by a real number $K$ in a manner analogous to
-Def.~\ref{def:m_perturbation}, and we denote it as $\alpha^K$.
+\cref{def:delta_perturbation}. We define perturbations of predicates in
+$\Lambda^{\delta}_{FEM}$ by a real number $k$ in a manner analogous to
+\cref{def:m_perturbation}, and we denote it as $\alpha^k$.
 
 \begin{definition} 
 \label{def:eta_approximation}
@@ -336,15 +412,15 @@ Def.~\ref{def:m_perturbation}, and we denote it as $\alpha^K$.
 
     \begin{itemize}
         \item If $\lambda$ is not preceded by a negation operator, then
-            $\gamma_{\lambda, e} = \alpha_{\lambda, e}^{-K_e}$.
-        \item Otherwise, $\gamma_{\lambda, e} = \alpha_{\lambda, e}^{K_e}$.
+            $\gamma_{\lambda, e} = \alpha_{\lambda, e}^{-k_e}$.
+        \item Otherwise, $\gamma_{\lambda, e} = \alpha_{\lambda, e}^{k_e}$.
     \end{itemize}
 
     In both cases, 
 
     \begin{equation}
     \begin{aligned}
-        K_e = \frac{x_{e+1} - x_e}{2} & \left (\max_{c \in [x_e, x_{e+1}]}
+        k_e = \frac{x_{e+1} - x_e}{2} & \left (\max_{c \in [x_e, x_{e+1}]}
         |\mu'(c)| + \max_{c \in [x_e, x_{e+1}]} \eta(c) \right )
     \end{aligned}
     \end{equation}
@@ -391,7 +467,7 @@ Def.~\ref{def:m_perturbation}, and we denote it as $\alpha^K$.
     implies $u^d \models (Q_\lambda, [x_e, x_{e+1}], \mu_\lambda)$ and the
     theorem holds for $\psi^\delta = \lambda$. To prove it for the negated
     predicate, we can follow an argument similar to the one in the proof of
-    Th.~\ref{th:epsilon_approximation}.
+    \cref{th:epsilon_approximation}.
 \end{proof}
 
 Finally, we reformulate the problem into a verification problem over the
@@ -401,6 +477,7 @@ interval $\Delta t$, $\Sigma^{\Delta t}_{FEM}$, is a system that evolves
 according to the following difference equation:
 
 \begin{equation}
+    \label{eq:disc_system}
     \begin{aligned}
         \tilde d^{k+1} &= \tilde A \tilde d^k + \tilde b \\
         \tilde d^0 &= d(0)
@@ -419,9 +496,9 @@ where $\tilde A = e^{A \Delta t}$ and $\tilde b = - e^{A \Delta t} A^{-1} \left
 
 We define a conservative perturbation of $\psi^{\delta, \eta}_{FEM}$ by a real
 vector $\nu = (\nu^y, \nu^d)$, $\psi^{\delta, \eta, \nu}_{FEM}$, in a similar
-way to Def~\ref{def:eta_approximation}, noting that the predicate $\gamma_{\lambda, e}$ is perturbed
-using the constant $L_e^y = \Delta t \nu^y_e$ and the predicate $\beta_{\lambda, j}$ is
-perturbed using the constant $L_j^d = \Delta t \nu^d_j$.
+way to \cref{def:eta_approximation}, noting that the predicate $\gamma_{\lambda, e}$ is perturbed
+using the constant $l_e^y = \Delta t \nu^y_e$ and the predicate $\beta_{\lambda, j}$ is
+perturbed using the constant $l_j^d = \Delta t \nu^d_j$.
 
 \begin{theorem}
     \label{th:nu_approximation}
@@ -430,12 +507,12 @@ perturbed using the constant $L_j^d = \Delta t \nu^d_j$.
     |\dot d_j(t)|$, then $d \models \psi^{\delta, \eta}_{FEM}$.
 \end{theorem}
 \begin{proof}
-    Similar to Th.~\ref{th:eta_approximation}.
+    Similar to \cref{th:eta_approximation}.
 \end{proof}
 
-Using Theorem~\ref{th:nu_approximation} we can solve Problem~\ref{pr:stl}
-conservatively by solving a verification problem for regular STL and discrete
-time linear systems. Moreover, we can obtain a bound on the robustness of the
+Using \cref{th:nu_approximation} we can solve \cref{pr:stl}
+conservatively by solving a verification problem for regular STL and discrete-time
+linear systems. Moreover, we can obtain a bound on the robustness of the
 original specification with respect to the trajectory of $\Sigma$ by making the
 following observation:
 
@@ -447,8 +524,8 @@ following observation:
     following inequality holds:
 
     \begin{equation}
-        r(\psi, u, t) \geq r(\psi^{\delta}, u^d, t) \geq r(\psi^{\delta, \eta},
-        d, t) \geq r(\psi^{\delta, \eta, \nu}, \tilde{d}, t)
+        r(\psi, u, t) \geq r(\psi^{\delta}, u^d, t) \geq r(\psi^{\delta,
+        \eta}_{FEM}, d, t) \geq r(\psi^{\delta, \eta, \nu}_{FEM}, \tilde{d}, t)
     \end{equation}
 \end{theorem}
 \begin{proof}
@@ -459,12 +536,58 @@ following observation:
 \section{Verification of Initial Sets}
 \label{sec:verification_of_initial_sets}
 
+In this section we formulate an optimization problem equivalent to
+\cref{pr:stl_set} which can be converted to a mixed-integer linear program
+(MILP). This program can then be solved using an off-the-shelf solver such 
+as Gurobi.
+
+We can reformulate \cref{pr:stl_set} as the following optimization problem:
+
+\begin{equation}
+    \label{eq:stl_set_opt}
+    \begin{aligned}
+        &r_m = &\min \quad &r(\psi^{\delta, \eta, \nu}_{FEM}, \tilde{d}, 0) \\
+        &  &\text{s.t. } &\cref{eq:disc_system} \\
+        &  & &u^{\tilde{d}}(\cdot, 0) \in U_0
+    \end{aligned}
+\end{equation}
+
+If $r_m > 0$, then $\psi$ is satisfied in the initial set $U_0$. This
+optimization problem is clearly non-convex, due to the $\max$ and $\min$
+operators present in the definition of robustness, and the objective function is
+non-differentiable. However, we can apply the technique described in \cite{} to
+represent robustness as mixed-integer linear constraints. On the other hand, the
+system dynamics are linear and we assume the initial set can be represented as
+linear constraints over $\tilde{d}^0$. Therefore, \cref{eq:stl_set_opt} is a
+MILP.
+
+The computational complexity of a MILP solver is dominated by terms dependent on
+the number of binary variables (\cite{}). In our encoding, we introduce one
+binary variable for each argument to a $\min$ or $\max$ function. Thus, the
+number of binary variables is proportional to the length of time intervals (in
+the discrete sense), the number of boolean connectives in the original formula
+$\psi$ and the length of the discretized predicates obtained in
+\cref{def:eta_approximation}. In terms of parameters of the problem and solution,
+the length of the discrete-time intervals is proportional to the length of the time
+intervals in $\psi$ and inversely proportional to $\Delta t$; regarding the
+spatial discretization of the predicates, its length is proportional to the size
+of the spatial domains and inversely proportional to the size of the partition
+(i.e., the distance between two nodes in the partition).
+
 \section{Examples}
 \label{sec:examples}
 
+In this section we solve some instances of \cref{pr:stl,pr:stl_set} and discuss
+the conservativeness of our approach as well as the computational performance.
+We implemented our framework using Python 2.7 and Gurobi 7.0 as our MILP solver.
+We ran our implementation in an Intel Core i7 at 2.4GHz and 8GB RAM. In order to
+better understand the cost of computing the STL reformulations and building the
+MILP model, we performed the robustness computations in single initial state
+problems by solving a similar MILP to \cref{eq:stl_set_opt}.
+
 We consider first the verification of a single initial value using uniform
-meshes of different sizes. Consider a rod with parameters given in
-Table~\ref{tab:ex_pars}, initial value $u_0(x) = 20.0$
+meshes of different sizes. Consider a rod with parameters $L = 10, \rho = 1, c =
+1, \kappa = 1, g_0 = 10, g_L = 100$, initial value $u_0(x) = 20.0$
 for $x \in (0, L)$, $u_0(0) = g_0, u_0(L) = g_L$, and the following specification:
 
 \begin{equation}
@@ -475,7 +598,7 @@ which reads in natural language: ``Always between 1 and 10 time units, all
 points in the rod between lengths 8 and 9, the temperature profile is above the
 profile $\mu(x) = 28x - 192$." Note that we used the informal syntax for
 predicates to improve the readability of the formula. We show in
-Fig.~\ref{fig:ex1_evolution} the trajectory for two mesh sizes along with the
+\cref{fig:ex1_evolution} the trajectory for two mesh sizes along with the
 profile in the specification.
 
 \begin{figure}[!t]
@@ -494,30 +617,17 @@ profile in the specification.
 \end{figure}
 
 
-\begin{table}
-\centering
-\begin{tabular}{|c|c|c|c|c|c|c|}
-    \hline
-    & $L$ & $\rho$ & $c$ & $\kappa$ & $g_0$ & $g_L$ \\
-    \hline
-    Rod 1 & 10 & 1 & 1 & 1 & 10 & 100 \\
-    \hline
-\end{tabular}
-\caption{Rod parameters}
-\label{tab:ex_pars}
-\end{table}
-
 Throughout this
 section we will consider the true trajectory of the system for some initial
 value, $u^*(x, t)$, the solution of the associated FEM system with a uniform mesh of
-size $h = 0.01$.
+size $h = 0.01$. We also set $\Delta t = 0.1$ for all time discretizations.
 
 We computed the bound $\delta(x) = \delta$ as the maximum pointwise
 error between simulations of the true trajectory and the trajectory for the
 given mesh using random initial values of the form $u_0(x) = \min\{\max\{a x +
 b, g_0\}, g_L\}$ with $|a| < 2 |g_L - g_0| / L$ and $b \in (0, |g_L - g_0|)$.
 Likewise, we determined the bounds $\eta(x)$ and $\nu$ from those simulated
-trajectories. We show in Fig.~\ref{fig:bounds} the resulting bounds for two mesh
+trajectories. We show in \cref{fig:bounds} the resulting bounds for two mesh
 sizes.
 
 \begin{figure}[!t]
@@ -534,7 +644,7 @@ sizes.
     \label{fig:bounds}
 \end{figure}
 
-The robustness results are shown in Table~\ref{tab:res_meshes}. As expected, finer meshes
+The robustness results are shown in \cref{tab:res_meshes}. As expected, finer meshes
 yield robustness values closer to the true robustness.
 
 \begin{table}
@@ -574,7 +684,7 @@ points in the rod between lengths 1 and 9, the temperature profile is above the
 profile $\mu_1(x) = 9x$. Additionally, eventually between 4 and 6 time units,
 there does not exist a point in the rod between lengths 6 and 7 such that the
 temperature profile is above the profile $\mu_2(x) = 9x + 15$." We depict the
-profiles in the specification in Fig.~\ref{fig:ex2_evolution}, along with two
+profiles in the specification in \cref{fig:ex2_evolution}, along with two
 trajectories.
 
 \begin{figure}[!t]
@@ -591,7 +701,7 @@ trajectories.
 \end{figure}
 
 
-We show in Fig~\ref{fig:res_diffs} the difference between the true robustness and
+We show in \cref{fig:res_diffs} the difference between the true robustness and
 the robustness for our mesh, both with and without the perturbations. Note that
 when we include all perturbations, the computed robustness is less than the true
 robustness, hence we correctly verify as satisfying all examples
@@ -613,7 +723,7 @@ standard deviation of 1.00 to verify the perturbed formula.
 
 Finally, we verified the specification for sets of initial conditions of the
 form $u_0(x) = a x + b$ with $a$ and $b$ constrained as before. Again we use a
-mesh of size $h = 0.2$. We summarize our results in Table~\ref{tab:res_sets}.
+mesh of size $h = 0.2$. We summarize our results in \cref{tab:res_sets}.
 
 \begin{table}
 \centering
