@@ -69,6 +69,38 @@
 \section{Introduction}
 \label{sec:introduction}
 
+One possible problem one might want to solve during the analysis of a system is
+that of verifying whether it satisfies a complex property. These properties are
+commonly stated in a formal language that ensures the specification has a
+non-ambiguous meaning while being expressive enough to capture many different
+behaviours of the system. Among these, temporal logics have enjoyed some
+popularity in the fields of robotics, synthetic biology or traffic networks,
+besides their original use for digital circuits and computer programs. The
+appeal of these formalisms comes from their ability to specify time-related
+properties, the availability of verification algorithms, and their resemblance
+to natural language.
+
+Many different temporal logics have been proposed tailored to
+different kinds of verification problems and systems. Linear Temporal Logic
+(LTL) and Computational Tree Logic (CTL) have been widely used to verify
+linear- and branching-time properties over infinite time horizons. Probabilistic
+versions have been defined and used when verification is considered in a
+probabilistic way. For those applications that require explicit time
+constraints, such as scheduling or motion planning, we may express properties
+using Bounded Linear Temporal Logic (BLTL), Metric Temporal Logic (MTL), 
+or Time-Window Temporal Logic (TWTL). We may additionally be interested in more
+than a binary answer to the verification problem, such as how robustly our
+system satisfies the specification. In this case, Signal Temporal Logic (STL)
+admits quantitative semantics that corresponds to the distance of the system's
+trajectory to the boundary of satisfaction.
+
+In order to formulate a verification problem using a temporal logic, a suitable
+model of the system is required. In the case of LTL and CTL, a finite model is
+obtained either directly (e.g., for electrical circuits) or through
+an abstraction process (e.g., when dealing with dynamical systems described with
+differential equations). For the bounded time logics, a full trajectory is
+needed, which can present a problem when we attempt to verify the behaviour of a
+system for a set of initial conditions. 
 
 \section{Heat Equation and Finite Element Analysis}
 \label{sec:heat_equation_and_finite_element_analysis}
