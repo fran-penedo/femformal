@@ -6,11 +6,12 @@
 % \usepackage{amsthm}
 \usepackage{amsfonts}
 \usepackage{mathtools}
-\usepackage{hyperref}
+\usepackage[bookmarks]{hyperref}
 \usepackage[capitalize]{cleveref}
 \usepackage[utf8]{inputenc}
 \usepackage{algpseudocode}
 \usepackage{algorithm}
+
 
 \graphicspath{{figures/}}
 
@@ -69,11 +70,13 @@
 \section{Introduction}
 \label{sec:introduction}
 
-One possible problem one might want to solve during the analysis of a system is
-that of verifying whether it satisfies a complex property. These properties are
-commonly stated in a formal language that ensures the specification has a
+An important problem in the analysis of a system is
+that of verifying whether it satisfies some interesting property, such as whether
+it is stable or reaches a desirable state in finite time. When the complexity
+and diversity of these properties increase, it is useful to state them in
+formal languages  that ensures the specification has a
 non-ambiguous meaning while being expressive enough to capture many different
-behaviours of the system. Among these, temporal logics have enjoyed some
+behaviors of the system. Among these, temporal logics have enjoyed some
 popularity in the fields of robotics, synthetic biology or traffic networks,
 besides their original use for digital circuits and computer programs. The
 appeal of these formalisms comes from their ability to specify time-related
@@ -91,7 +94,7 @@ using Bounded Linear Temporal Logic (BLTL), Metric Temporal Logic (MTL),
 or Time-Window Temporal Logic (TWTL). We may additionally be interested in more
 than a binary answer to the verification problem, such as how robustly our
 system satisfies the specification. In this case, Signal Temporal Logic (STL)
-admits quantitative semantics that corresponds to the distance of the system's
+admits quantitative semantics that corresponds to the distance of the system
 trajectory to the boundary of satisfaction.
 
 In order to formulate a verification problem using a temporal logic, a suitable
@@ -99,14 +102,42 @@ model of the system is required. In the case of LTL and CTL, a finite model is
 obtained either directly (e.g., for electrical circuits) or through
 an abstraction process (e.g., when dealing with dynamical systems described with
 differential equations). For the bounded time logics, a full trajectory is
-needed, which can present a problem when we attempt to verify the behaviour of a
-system for a set of initial conditions. 
+needed, which can present a problem when we attempt to verify the behavior of a
+system for a set of initial conditions. One can overcome this issue by using 
+a mixed-integer linear encoding of the specification plus the system dynamics in
+the case of linear systems.
 
-\section{Heat Equation and Finite Element Analysis}
+The temporal logics discussed so far have only been applied to systems with a
+finite-dimensional state space. However, the state space of many interesting systems
+is instead a function over some domain, and its time evolution
+follows a Partial Differential Equation (PDE). In this work, we extend STL to allow
+specifications over the solutions of PDEs and formulate and solve the problem 
+of verifying a property in our extension to STL. We consider both verification
+by a single initial condition or by a set of initial conditions.
+Even though there exists a theory on the often related problem of optimal
+control for PDEs (see \cite{}), to the best of our knowledge, the verification 
+of complex properties in systems governed by a PDE has not been explored before.
+
+The approach we take makes use of the Finite Element Method (FEM) to
+approximate the trajectory of the PDE by an interpolation of the solution of a
+system of Ordinary Differential Equations (ODEs). FEM has been widely used in
+engineering analysis as a simulation tool in problems with complicated
+geometries where exact solutions cannot be found. It consists in the subdivision
+of the domain into small parts (called finite elements) with simpler equations
+that are then assembled into a larger system. In the process of approximating
+the PDE trajectory and then discretizing it both in space (considering a
+finite-dimensional state space for each finite element) and time, we define a
+conservative reformulation that follows the same approximation and
+discretization steps. In order to account for the approximation and
+discretization errors, the predicates in the formula are perturbed in such a way
+that all trajectories satisfying the perturbed predicates also satisfy the
+original ones.
+
+\section{Heat Equation and Finite Element Method}
 \label{sec:heat_equation_and_finite_element_analysis}
 
 We provide in this section a brief summary of the Finite Element Method (FEM) applied
-to a simplified heat equation. A more complete exposition can be found in any
+to a simplified heat equation. A more detailed exposition can be found in any
 textbook on FEM, such as \cite{}.
 
 Let $\Omega = (0, L) \subset \R$ be an open interval representing the interior
