@@ -3,6 +3,7 @@
 \usepackage{graphicx}
 \usepackage[caption=false]{subfig}
 \usepackage{amsmath}
+\allowdisplaybreaks
 % \usepackage{amsthm}
 \usepackage{amsfonts}
 \usepackage{mathtools}
@@ -11,7 +12,6 @@
 \usepackage[utf8]{inputenc}
 \usepackage{algpseudocode}
 \usepackage{algorithm}
-
 
 \graphicspath{{figures/}}
 
@@ -90,10 +90,12 @@ linear- and branching-time properties over infinite time horizons. Probabilistic
 versions have been defined and used when verification is considered in a
 probabilistic way. For those applications that require explicit time
 constraints, such as scheduling or motion planning, we may express properties
-using Bounded Linear Temporal Logic (BLTL), Metric Temporal Logic (MTL), 
-or Time-Window Temporal Logic (TWTL). We may additionally be interested in more
+using Bounded Linear Temporal Logic (BLTL) \cite{jha_bayesian_2009}, Metric
+Temporal Logic (MTL) \cite{luo_using_2016}, 
+or Time-Window Temporal Logic (TWTL) \cite{AkVaBe-ICRA-2016}. We may additionally be interested in more
 than a binary answer to the verification problem, such as how robustly our
 system satisfies the specification. In this case, Signal Temporal Logic (STL)
+\cite{donze_robust_2010}
 admits quantitative semantics that corresponds to the distance of the system
 trajectory to the boundary of satisfaction.
 
@@ -105,7 +107,7 @@ differential equations). For the bounded time logics, a full trajectory is
 needed, which can present a problem when we attempt to verify the behavior of a
 system for a set of initial conditions. One can overcome this issue by using 
 a mixed-integer linear encoding of the specification plus the system dynamics in
-the case of linear systems.
+the case of linear systems \cite{sadraddini_robust_2015}.
 
 The temporal logics discussed so far have only been applied to systems with a
 finite-dimensional state space. However, the state space of many interesting systems
@@ -115,7 +117,7 @@ specifications over the solutions of PDEs and formulate and solve the problem
 of verifying a property in our extension to STL. We consider both verification
 by a single initial condition or by a set of initial conditions.
 Even though there exists a theory on the often related problem of optimal
-control for PDEs (see \cite{}), to the best of our knowledge, the verification 
+control for PDEs (see \cite{lions_optimal_1971}), to the best of our knowledge, the verification 
 of complex properties in systems governed by a PDE has not been explored before.
 
 The approach we take makes use of the Finite Element Method (FEM) to
@@ -138,7 +140,7 @@ original ones.
 
 We provide in this section a brief summary of the Finite Element Method (FEM) applied
 to a simplified heat equation. A more detailed exposition can be found in any
-textbook on FEM, such as \cite{}.
+textbook on FEM, such as \cite{hughes_finite_2012}.
 
 Let $\Omega = (0, L) \subset \R$ be an open interval representing the interior
 of a one-dimensional rod of length $L$; $\rho, c, \kappa > 0$ 
@@ -222,8 +224,8 @@ In the above, $A = -M^{-1}K, b = M^{-1} F$ and $M, K$ and $F$ are the capacity,
 stiffness and external force matrices respectively, which are defined as
 follows:
 
-\begin{equation}
-    \begin{aligned}
+% \begin{equation}
+    \begin{align}
         M &= \frac{\rho c}{6} \begin{pmatrix}
             \frac{2}{x_1 - x_0} + \frac{2}{x_2 - x_1} & \frac{1}{x_1 - x_0}  & 0 & \cdots \\ 
             \frac{1}{x_1 - x_0} & \frac{2}{x_2 - x_1} + \frac{2}{x_3 - x_2} & \frac{1}{x_2 - x_1}  & \cdots \\ 
@@ -243,8 +245,8 @@ follows:
             0 \\
             \frac{g_L}{x_{n+1} - x_{n}}
         \end{pmatrix} 
-    \end{aligned}
-\end{equation}
+    \end{align}
+% \end{equation}
 
 As a simplifying assumption, we consider the lumped version of $M$, which is
 defined as a diagonal matrix resulting from adding all elements in each row of
@@ -618,14 +620,15 @@ We can reformulate \cref{pr:stl_set} as the following optimization problem:
 If $r_m > 0$, then $\psi$ is satisfied in the initial set $U_0$. This
 optimization problem is clearly non-convex, due to the $\max$ and $\min$
 operators present in the definition of robustness, and the objective function is
-non-differentiable. However, we can apply the technique described in \cite{} to
+non-differentiable. However, we can apply the technique described in
+\cite{sadraddini_robust_2015} to
 represent robustness as mixed-integer linear constraints. On the other hand, the
 system dynamics are linear and we assume the initial set can be represented as
 linear constraints over $\tilde{d}^0$. Therefore, \cref{eq:stl_set_opt} is a
 MILP.
 
-The computational complexity of a MILP solver is dominated by terms dependent on
-the number of binary variables (\cite{}). In our encoding, we introduce one
+The computational time needed to solve a MILP grows exponentially with 
+the number of binary variables. In our encoding, we introduce one
 binary variable for each argument to a $\min$ or $\max$ function. Thus, the
 number of binary variables is proportional to the length of time intervals (in
 the discrete sense), the number of boolean connectives in the original formula
@@ -808,6 +811,29 @@ mesh of size $h = 0.2$. We summarize our results in \cref{tab:res_sets}.
 
 \section{Conclusion}
 \label{sec:conclusion}
+
+In this paper, we formulated and solved a verification problem for systems governed by a
+PDE with specifications given in a novel extension to STL. Our solution relies
+on the approximation of the PDE using the Finite Element Method, which reduces
+the problem to the verification of a standard STL formula for a discrete time
+linear system. The reformulation requires perturbing the predicates in the
+formula using the FEM approximation errors as well as the derivatives of the
+approximated solution and the predicate functions. Finally, the final
+verification problem is encoded as a MILP.
+
+We implemented our method in Python and used Gurobi to solve the MILP. Our
+results on a simple heat equation show an acceptable level of conservatism that
+would allow us to verify a specification satisfied by around 6\% of the range of
+the system. We were able to solve verification problems for sets of initial conditions in a
+few minutes.
+
+As future work, we want to find the bounds $\delta, \eta$ and $\nu$ in a
+systematic way, either analytically or using a correct statistical method. We
+also plan to formulate and solve control problems for PDEs under STL constraints
+using a similar approach.
+
+\bibliographystyle{llncs/splncs03}
+\bibliography{bibliography}
 
 
 \end{document}
