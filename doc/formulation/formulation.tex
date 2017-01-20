@@ -64,7 +64,20 @@
 \maketitle
 
 \begin{abstract}
-    
+
+
+    In this paper, we introduce a new verification problem with temporal
+    specifications for partial differential equations. We leverage the finite
+    element method (FEM) to reduce the problem to a verification problem for
+    discrete-time linear systems. The specifications are formalized using a
+    novel extension of signal temporal logic (STL) that also admits quantitative
+    semantics. A conservative procedure to reformulate the specification into a
+    regular STL formula as part of the FEM reduction is also presented. A
+    mixed-integer linear encoding is then used to solve the verification problem
+    for a set of initial conditions.
+    We showcase the conservatism and computational cost of the algorithm on a
+    one-dimensional heat equation.
+
 \end{abstract}
 
 \section{Introduction}
@@ -74,7 +87,7 @@ An important problem in the analysis of a system is
 that of verifying whether it satisfies some interesting property, such as whether
 it is stable or reaches a desirable state in finite time. When the complexity
 and diversity of these properties increase, it is useful to state them in
-formal languages  that ensures the specification has a
+formal languages  that ensure the specification has a
 non-ambiguous meaning while being expressive enough to capture many different
 behaviors of the system. Among these, temporal logics have enjoyed some
 popularity in the fields of robotics, synthetic biology or traffic networks,
@@ -115,10 +128,10 @@ is instead a function over some domain, and its time evolution
 follows a Partial Differential Equation (PDE). In this work, we extend STL to allow
 specifications over the solutions of PDEs and formulate and solve the problem 
 of verifying a property in our extension to STL. We consider both verification
-by a single initial condition or by a set of initial conditions.
+with a single initial condition or with a set of initial conditions.
 Even though there exists a theory on the often related problem of optimal
 control for PDEs (see \cite{lions_optimal_1971}), to the best of our knowledge, the verification 
-of complex properties in systems governed by a PDE has not been explored before.
+of temporal properties in systems governed by a PDE has not been explored before.
 
 The approach we take makes use of the Finite Element Method (FEM) to
 approximate the trajectory of the PDE by an interpolation of the solution of a
@@ -133,7 +146,8 @@ conservative reformulation that follows the same approximation and
 discretization steps. In order to account for the approximation and
 discretization errors, the predicates in the formula are perturbed in such a way
 that all trajectories satisfying the perturbed predicates also satisfy the
-original ones.
+original ones. Finally, we encode the resulting problem into a mixed-integer
+linear program (MILP) following previously established methods.
 
 \section{Heat Equation and Finite Element Method}
 \label{sec:heat_equation_and_finite_element_analysis}
@@ -815,7 +829,7 @@ mesh of size $h = 0.2$. We summarize our results in \cref{tab:res_sets}.
 In this paper, we formulated and solved a verification problem for systems governed by a
 PDE with specifications given in a novel extension to STL. Our solution relies
 on the approximation of the PDE using the Finite Element Method, which reduces
-the problem to the verification of a standard STL formula for a discrete time
+the problem to the verification of a standard STL formula for a discrete-time
 linear system. The reformulation requires perturbing the predicates in the
 formula using the FEM approximation errors as well as the derivatives of the
 approximated solution and the predicate functions. Finally, the final
@@ -823,12 +837,12 @@ verification problem is encoded as a MILP.
 
 We implemented our method in Python and used Gurobi to solve the MILP. Our
 results on a simple heat equation show an acceptable level of conservatism that
-would allow us to verify a specification satisfied by around 6\% of the range of
+would allow us to verify a specification satisfied more robustly than a 6\% of the range of
 the system. We were able to solve verification problems for sets of initial conditions in a
-few minutes.
+few minutes on consumer hardware.
 
 As future work, we want to find the bounds $\delta, \eta$ and $\nu$ in a
-systematic way, either analytically or using a correct statistical method. We
+systematic way, either analytically or using a robust statistical method. We
 also plan to formulate and solve control problems for PDEs under STL constraints
 using a similar approach.
 
