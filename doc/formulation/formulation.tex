@@ -98,7 +98,8 @@ to natural language.
 
 Many different temporal logics have been proposed tailored to
 different kinds of verification problems and systems. Linear Temporal Logic
-(LTL) and Computational Tree Logic (CTL) have been widely used to verify
+(LTL) \cite{gerth_simple_1996} and Computational Tree Logic (CTL)
+\cite{clarke_automatic_1986} have been widely used to verify
 linear- and branching-time properties over infinite time horizons. Probabilistic
 versions have been defined and used when verification is considered in a
 probabilistic way. For those applications that require explicit time
@@ -142,7 +143,7 @@ of the domain into small parts (called finite elements) with simpler equations
 that are then assembled into a larger system. In the process of approximating
 the PDE trajectory and then discretizing it both in space (considering a
 finite-dimensional state space for each finite element) and time, we define a
-conservative reformulation that follows the same approximation and
+conservative reformulation of the specification that follows the same approximation and
 discretization steps. In order to account for the approximation and
 discretization errors, the predicates in the formula are perturbed in such a way
 that all trajectories satisfying the perturbed predicates also satisfy the
@@ -376,6 +377,11 @@ in a set:
     $U_0$, check whether the trajectory of $\Sigma$ satisfies $\psi$ 
     for any initial state $u_0 \in U_0$.
 \end{problem}
+
+Note that the problem formulation is not tied to a 1D heat equation. One can
+easily adapt our STL extension to any PDE, although we require in what follows
+that the FEM method can be applied to the system and the resulting system of
+ODEs is linear.
 
 In order to solve both problems, we first reformulate the specification $\psi$
 in such a way that it allows us to solve the verification problems
@@ -618,7 +624,7 @@ following observation:
 In this section we formulate an optimization problem equivalent to
 \cref{pr:stl_set} which can be converted to a mixed-integer linear program
 (MILP). This program can then be solved using an off-the-shelf solver such 
-as Gurobi.
+as Gurobi \cite{gurobi}.
 
 We can reformulate \cref{pr:stl_set} as the following optimization problem:
 
@@ -803,7 +809,9 @@ standard deviation of 1.00 to verify the perturbed formula.
 
 Finally, we verified the specification for sets of initial conditions of the
 form $u_0(x) = a x + b$ with $a$ and $b$ constrained as before. Again we use a
-mesh of size $h = 0.2$. We summarize our results in \cref{tab:res_sets}.
+mesh of size $h = 0.2$. We summarize our results in \cref{tab:res_sets}. We
+marked as undefined satisfaction the cases in which the minimum robustness is
+negative, since we cannot guarantee their non-satisfaction.
 
 \begin{table}
 \centering
