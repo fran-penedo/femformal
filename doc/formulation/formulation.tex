@@ -376,7 +376,7 @@ $r(\lambda_i,u, t) = \max_{x \in X_i} u(x, t)$ otherwise.
 \begin{example}
     \label{ex:stl}
 
-    Consider the following formula in STL for PDEs with a single predicate
+    Consider the following formula in STL for a heat equation with a single predicate
     $\lambda = (Q = \forall, X = [8, 9], \mu(x) = -(28x - 192))$, which we 
     represent using the informal syntax:
 
@@ -519,7 +519,8 @@ $|u(x, t) - u^d(x, t)| \leq \epsilon(x, t)$.
 \begin{example}
     \label{ex:eps_approx}
 
-    Assume we obtain a bound $\delta(x) = 1$ for some system $\Sigma$ and its
+    Assume we obtain a bound $\delta(x) = 1$ for a heat conduction system $\Sigma$ with
+    $\Omega = (0, 10)$ and its
     FEM approximation. Consider the same specification $\psi$ defined in \cref{ex:stl}.
     The perturbed specification, $\psi^\delta$ is then:
     
@@ -637,7 +638,7 @@ $\Lambda^{\delta}_{FEM}$ by a real number $k$ in a manner analogous to
     \label{ex:eta_approx}
 
     Continuing with \cref{ex:eps_approx}, assume we obtained the FEM
-    approximation using the mesh $\{0.5 i | i \in 0,...,20\}$ and we found the
+    approximation using the partition $\{0.5 i | i \in 0,...,20\}$ and we found the
     bound $\eta(x) = 4$. Note that $|\mu'(x)| = 28$ for all $x$. The perturbed STL
     specification corresponding to $\psi^\delta$ is
 
