@@ -67,7 +67,7 @@
 
 
     In this paper, we introduce a new verification problem with temporal
-    specifications for a wide range of partial differential equations. 
+    specifications for a wide range of linear partial differential equations. 
     We leverage the finite
     element method (FEM) to reduce the problem to a verification problem for
     discrete-time linear systems. The specifications are formalized using a
@@ -151,6 +151,12 @@ that all trajectories satisfying the perturbed predicates also satisfy the
 original ones. Finally, we encode the resulting problem into a mixed-integer
 linear program (MILP) following previously established methods.
 
+Our method requires the PDE to be linear and the FEM applicable to it. The
+latter assumption is not overly restrictive, as FEM can be applied to most PDEs 
+arising from physical systems. The linear assumption usually constrains the
+physical system to certain materials, which are still widely studied and used in
+practical applications \cite{}.
+
 \section{Preliminaries}
 \label{sec:preliminaries}
 
@@ -159,7 +165,7 @@ linear program (MILP) following previously established methods.
 
 We provide in this section a brief summary of the Finite Element Method (FEM).
 We present the method applied
-to a simplified heat equation, although the techniques are general for other
+to a simplified heat equation, although the same technique can be applied to other
 PDEs. A more detailed exposition can be found in any
 textbook on FEM, such as \cite{hughes_finite_2012-1}.
 
@@ -170,8 +176,8 @@ $g_0, g_L \in \R$ the boundary conditions at each end of the rod; and $u_0 :
 \Omega \rightarrow \R$ an initial value for the temperature on the rod. 
 The evolution of the temperature at
 each point in the rod can be described by a function $u : \bar \Omega \times [0,
-T] \rightarrow \R$, where $T > 0$ denotes the final time and can be infinity, 
-such that the following equations are satisfied:
+T] \rightarrow \R$, where $T > 0$ denotes the final time and can be infinity and
+$\bar \Omega$ is the spatial domain, such that the following equations are satisfied:
 
 \begin{equation}\label{eq:pde}
     \Sigma(u_0) \quad \left \{
@@ -339,10 +345,12 @@ time $t$.
 \section{Signal Temporal Logic for PDEs}
 \label{sec:signal_temporal_logic_for_pdes}
 
-In order to define STL for PDEs, we introduce the following set of predicates:
-let $\Lambda = \{\lambda_i | i = 1,...,m\}$ be a set of predicates, where
-$\lambda_i$ is a predicate represented as a tuple $(Q_i, X_i, \mu_i)$, and informally represented using the syntax $``Q_i x \in X_i : u(x) - \mu_i(x) >
-0"$, where:
+In order to define specifications over the trajectories of PDEs, we extend
+regular STL using the following set of predicates:
+let $\Lambda = \{\lambda_i | i = 1,...,m\}$ be a set of predicates over
+a set $\bar\Omega$, where $\lambda_i$ is a predicate represented as a tuple $(Q_i, X_i, \mu_i)$, 
+informally represented using the syntax $``Q_i x \in X_i : u(x) - \mu_i(x) >
+0"$, and:
 
 \begin{itemize}
     \item $Q_i \in \{\forall, \exists\}$ is the spatial quantifier,
@@ -353,7 +361,9 @@ $\lambda_i$ is a predicate represented as a tuple $(Q_i, X_i, \mu_i)$, and infor
 \end{itemize}
 
 We will sometimes use $Q_\lambda, X_\lambda, \mu_\lambda$ to refer to the
-elements of the tuple representing $\lambda$. We consider STL formulas 
+elements of the tuple representing $\lambda$. The set of predicates $\Lambda$ is
+said to be compatible with a PDE system $\Sigma$ if $\bar\Omega$ is the spatial
+domain of the trajectories of $\Sigma$. We consider STL formulas 
 with the previously defined syntax and semantics 
 over the set of predicates $\Lambda$, where the satisfaction of a
 predicate with respect to a continuous-time signal $u : \bar\Omega \times [0, T]
@@ -363,6 +373,23 @@ X_i$ otherwise. We define the quantitative semantics as before with
 $r(\lambda_i,u, t) = \min_{x \in X_i} u(x, t)$ if $Q_i = \forall$ and
 $r(\lambda_i,u, t) = \max_{x \in X_i} u(x, t)$ otherwise.
 
+\begin{example}
+    \label{ex:stl}
+
+    Consider the following formula in STL for PDEs with a single predicate
+    $\lambda = (Q = \forall, X = [8, 9], \mu(x) = -(28x - 192))$, which we 
+    represent using the informal syntax:
+
+    \begin{equation}
+        \psi = \Always_{[1,10]} ``\forall x \in [8,9] : u(x) - (28x - 192) > 0"
+    \end{equation}
+
+    The specification reads in natural language: ``Always between 1 and 10 time
+    units, at all points in a rod between lengths 8 and 9, the temperature
+    profile is above the profile $\mu(x) = 28x - 192$."
+
+\end{example}
+
 Throughout this paper, we will use the notation $S(s_0) \models \psi$ to denote
 that the trajectory of system $S$ (such as $\Sigma$ or $\Sigma_{FEM}$) with
 initial condition $s_0$ satisfies formula $\psi$ (either in regular STL or in
@@ -371,12 +398,13 @@ STL for PDEs).
 \section{Problem Formulation}
 \label{sec:problem_formulation}
 
-We can formulate now the STL verification problem for trajectories of a heat
-equation:
+We can formulate now the STL verification problem for a system governed by a
+PDE:
 
 \begin{problem}
 \label{pr:stl}
-    Given a system $\Sigma$, an STL formula over $\Lambda$, $\psi$, and initial state $u_0$,
+    Given a system $\Sigma$, an STL formula $\psi$ over a set of predicates
+    compatible with the system, $\Lambda$, and initial state $u_0$,
     check whether the trajectory of $\Sigma$ for the initial state $u_0$
     satisfies $\psi$.
 \end{problem}
@@ -391,8 +419,7 @@ in a set:
     for any initial state $u_0 \in U_0$.
 \end{problem}
 
-Note that the problem formulation is general and not tied to a 1D heat equation,
-since our STL extension fits any PDE. However, in what follows we make two
+Even though the formulation is general for any PDE, in what follows we make two
 assumptions on the PDEs that we allow: (1) we can apply FEM to the PDE, and (2)
 the system of ODEs obtained is linear. The first assumption imposes no practical
 restriction, as FEM is applicable to most PDEs describing physical systems,
@@ -417,9 +444,19 @@ mixed-integer linear program.
 
 In this section we define a series of reformulations of an STL formula over
 $\Lambda$ such that satisfaction of each successive reformulation guarantees the
-satisfaction of the previous one. The theory developed in this section is stated
+satisfaction of the previous one. A diagram showing the hierarchy of the
+reformulations is shown in \cref{fig:diagram}. The theory developed in this section is stated
 for a general 1D PDE for ease of notation, alghough it applies to higher dimesional PDEs
 with minimal changes.
+
+\begin{figure}[!t]
+    \centering 
+        \includegraphics[width=0.99\textwidth]{diagram.png}
+    \caption{Summary of our approach to solve the verification problem for a
+    PDE.}
+    \label{fig:diagram}
+\end{figure}
+
 
 We first reformulate the specification $\psi$ so that we can verify instead the
 approximation given by $\Sigma_{FEM}$. Recall that we denote as $u(x,t)$ the
@@ -478,6 +515,23 @@ $|u(x, t) - u^d(x, t)| \leq \epsilon(x, t)$.
     \cref{eq:th_epsilon} we have $u(x, t) - \mu_\lambda(x) \leq u^d(x, t) +
     \mu_\lambda(x) - \delta(x)$, completing the proof.
 \end{proof}
+
+\begin{example}
+    \label{ex:eps_approx}
+
+    Assume we obtain a bound $\delta(x) = 1$ for some system $\Sigma$ and its
+    FEM approximation. Consider the same specification $\psi$ defined in \cref{ex:stl}.
+    The perturbed specification, $\psi^\delta$ is then:
+    
+    \begin{equation}
+        \psi^\delta = \Always_{[1,10]} ``\forall x \in [8,9] : u(x) - (28x -
+        192) - 1 > 0"
+    \end{equation}
+
+    If the FEM approximation to $\Sigma$ satisfies $\psi^\delta$, we can
+    conclude $\Sigma$ satisfies $\psi$.
+    
+\end{example}
 
 \cref{th:epsilon_approximation} gives us a way to conservatively solve
 \cref{pr:stl} using the approximation obtained from $\Sigma_{FEM}$.
@@ -579,6 +633,26 @@ $\Lambda^{\delta}_{FEM}$ by a real number $k$ in a manner analogous to
     \cref{th:epsilon_approximation}.
 \end{proof}
 
+\begin{example}
+    \label{ex:eta_approx}
+
+    Continuing with \cref{ex:eps_approx}, assume we obtained the FEM
+    approximation using the mesh $\{0.5 i | i \in 0,...,20\}$ and we found the
+    bound $\eta(x) = 4$. Note that $|\mu'(x)| = 28$ for all $x$. The perturbed STL
+    specification corresponding to $\psi^\delta$ is
+
+    \begin{equation}
+        \psi^{\delta, \eta}_{FEM} = \Always_{[1,10]} \bigl(
+            (y_{16} - 39 - 1 - k > 0) \land (y_{17} - 53 - 1 - k > 0)
+        \bigr)
+    \end{equation}
+
+    with $k = \frac{0.5 (28 + 4)}{2} = 8$. If we prove satisfaction of $\psi^{\delta,
+    \eta}_{FEM}$ by $\Sigma_{FEM}$, we can conclude the interpolation satisfies
+    $\psi^\delta$.
+    
+\end{example}
+
 Finally, we reformulate the problem into a verification problem over the
 trajectory of a time discretization of $\Sigma_{FEM}$. Let $\Delta t \in \R$ be
 a positive time interval. The discretization of $\Sigma_{FEM}$ with time
@@ -623,6 +697,26 @@ signal $\tilde{d}$. In particular, $\tilde{d}[t] \models \mu \iff
 \begin{proof}
     Similar to \cref{th:eta_approximation}.
 \end{proof}
+
+\begin{example}
+    \label{ex:nu_approx}
+
+    Continuing with \cref{ex:eta_approx}, assume we discretize $\Sigma_{FEM}$ using
+    the timestep $\Delta t = 0.1$ and let $\nu = (5, 5, ...)$. The final
+    perturbed specification is
+
+    \begin{equation}
+        \psi^{\delta, \eta, \nu}_{FEM} = \Always_{[1,10]} \bigl(
+            (y_{16} - 39 - 1 - k - \frac{5}{10} > 0) \land (y_{17} - 53 - 1 - k
+            - \frac{5}{10} > 0)
+        \bigr)
+    \end{equation}
+
+    As before, we can guarantee the satisfaction of $\psi^{\delta,
+    \eta}_{FEM}$ by $\Sigma_{FEM}$ if $\Sigma_{FEM}^{\Delta t}$ satisfies
+    $\psi^{\delta, \eta, \nu}_{FEM}$.
+    
+\end{example}
 
 The main result in this work is a corollary of the previous theorems, which
 allows us to solve \cref{pr:stl}
@@ -712,17 +806,14 @@ problems by solving a similar MILP to \cref{eq:stl_set_opt}.
 We consider first the verification of a single initial value using uniform
 meshes of different sizes. Consider a rod with parameters $L = 10, \rho = 1, c =
 1, \kappa = 1, g_0 = 10, g_L = 100$, initial value $u_0(x) = 20.0$
-for $x \in (0, L)$, $u_0(0) = g_0, u_0(L) = g_L$, and the following specification:
+for $x \in (0, L)$, $u_0(0) = g_0, u_0(L) = g_L$, and the specification from
+\cref{ex:stl}, which we restate here:
 
 \begin{equation}
     \psi = \Always_{[1,10]} ``\forall x \in [8,9] : u(x) - (28x - 192) > 0"
 \end{equation}
 
-which reads in natural language: ``Always between 1 and 10 time units, all
-points in the rod between lengths 8 and 9, the temperature profile is above the
-profile $\mu(x) = 28x - 192$." Note that we used the informal syntax for
-predicates to improve the readability of the formula. We show in
-\cref{fig:ex1_evolution} the trajectory for two mesh sizes along with the
+We show in \cref{fig:ex1_evolution} the trajectory for two mesh sizes along with the
 profile in the specification.
 
 \begin{figure}[!t]
