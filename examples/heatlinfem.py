@@ -78,7 +78,18 @@ def build_cs(N, L, T, dt, d0, cregions, cspec, pset=None, discretize_system=True
 
     rh_N = 2
 
-    return CaseStudy(system, dsystem, xpart, T, dt, d0, pset, regions, spec, rh_N)
+    return CaseStudy({
+        'system': system,
+        'dsystem': dsystem,
+        'xpart': xpart,
+        'T': T,
+        'dt': dt,
+        'd0': d0,
+        'pset': pset,
+        'regions': regions,
+        'spec': spec,
+        'rh_N': rh_N
+    })
 
 def max_diff(sys, dt, xpart, t0, tt, xl, xr, T, cstrue):
     mdiff = 0.0
@@ -125,17 +136,20 @@ def max_tdiff(sys, dt, xpart, t0, tt, T, n=50):
     logger.debug("mdiff = {}".format(mdiff))
     return mdiff
 
+
 class CaseStudy(object):
+    def __init__(self, dic):
+        copy = dic.copy()
+        self.system = copy.pop('system', None)
+        self.dsystem = copy.pop('dsystem', None)
+        self.xpart = copy.pop('xpart', None)
+        self.T = copy.pop('T', 0)
+        self.dt = copy.pop('dt', 0)
+        self.d0 = copy.pop('d0', None)
+        self.pset = copy.pop('pset', None)
+        self.regions = copy.pop('regions', None)
+        self.spec = copy.pop('spec', None)
+        self.rh_N = copy.pop('rh_N', None)
 
-    def __init__(self, system, dsystem, xpart, T, dt, d0, pset, regions, spec, rh_N):
-        self.system = system
-        self.dsystem = dsystem
-        self.xpart = xpart
-        self.T = T
-        self.dt = dt
-        self.d0 = d0
-        self.pset = pset
-        self.regions = regions
-        self.spec = spec
-        self.rh_N = rh_N
-
+        if len(copy) > 0:
+            raise Exception('Undefined parameters in CaseStudy: {}'.format(copy))
