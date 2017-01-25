@@ -254,28 +254,28 @@ follows:
 % \begin{equation}
     \begin{align}
         M &= \frac{\rho c}{6} \begin{pmatrix}
-            \frac{2}{x_1 - x_0} + \frac{2}{x_2 - x_1} & \frac{1}{x_1 - x_0}  & 0 & \cdots \\ 
-            \frac{1}{x_1 - x_0} & \frac{2}{x_2 - x_1} + \frac{2}{x_3 - x_2} & \frac{1}{x_2 - x_1}  & \cdots \\ 
-            0 & \frac{1}{x_2 - x_1} & \frac{2}{x_3 - x_2} + \frac{2}{x_4 - x_3} &  \cdots \\ 
+            2 l_0 + 2 l_1 & l_1  & 0 & \cdots \\ 
+            l_1 & 2 l_1 + 2 l_2 & l_2  & \cdots \\ 
+            0 & l_2 & 2 l_2 + 2 l_3 &  \cdots \\ 
             \vdots & \ddots & \ddots & \ddots 
         \end{pmatrix}  \\
         K &= \kappa \begin{pmatrix}
-            \frac{1}{x_1 - x_0} + \frac{1}{x_2 - x_1} & \frac{-1}{x_1 - x_0}  & 0 & \cdots \\ 
-            \frac{-1}{x_1 - x_0} & \frac{1}{x_2 - x_1} + \frac{1}{x_3 - x_2} & \frac{-1}{x_2 - x_1}  & \cdots \\ 
-            0 & \frac{-1}{x_2 - x_1} & \frac{1}{x_3 - x_2} + \frac{1}{x_4 - x_3} &  \cdots \\ 
+            \frac{1}{l_0} + \frac{1}{l_1} & -\frac{1}{l_1}  & 0 & \cdots \\ 
+            -\frac{1}{l_1} & \frac{1}{l_1} + \frac{1}{l_2} & -\frac{1}{l_2}  & \cdots \\ 
+            0 & -\frac{1}{l_2} & \frac{1}{l_2} + \frac{1}{l_3} &  \cdots \\ 
             \vdots & \ddots & \ddots & \ddots 
         \end{pmatrix} \\
         F &= \begin{pmatrix}
-            \frac{g_0}{x_1 - x_0} \\
+            \frac{g_0}{l_0} \\
             0 \\
             \vdots \\
             0 \\
-            \frac{g_L}{x_{n+1} - x_{n}}
+            \frac{g_L}{l_n}
         \end{pmatrix} 
     \end{align}
 % \end{equation}
 
-As a simplifying assumption, we consider the lumped version of $M$, which is
+where $l_e = x_{e+1} - x_e$. As a simplifying assumption, we consider the lumped version of $M$, which is
 defined as a diagonal matrix resulting from adding all elements in each row of
 $M$. Note that with this assumption, $A$ is a banded matrix of bandwidth 3. 
 We call $\Sigma_{FEM}$ the FEM system corresponding to system $\Sigma$.
