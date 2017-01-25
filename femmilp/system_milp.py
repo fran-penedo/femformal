@@ -41,6 +41,7 @@ def rh_system_sat(system, d0, N, spec):
         #         print v
 
         if m.status != milp.GRB.status.OPTIMAL:
+            logger.warning("MILP returned status: {}".format(m.status))
             return False
         else:
             d_opt = m.getAttr("x", d)
@@ -74,6 +75,7 @@ def rh_system_sat_set(system, pset, xpart, N, spec):
     #         print v
 
     if m.status != milp.GRB.status.OPTIMAL:
+        logger.warning("MILP returned status: {}".format(m.status))
         return False
     else:
         return fvar.getAttr("x")

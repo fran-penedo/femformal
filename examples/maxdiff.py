@@ -1,6 +1,6 @@
-import examples.heatlinfem as fem
-import femformal.util as u
-import femformal.logic as logic
+from fem.heatlinfem import heatlinfem
+import fem.fem_util as fem
+import femformal.system as s
 import numpy as np
 
 
@@ -10,20 +10,20 @@ L = 10.0
 T = [10.0, 100.0]
 dt = .1
 
-cstrue = fem.build_cs(
-    1000, L, T, 0.01,
-    None, None, None, discretize_system=False)
-
-cslist = [fem.build_cs(N, L, T, dt, None, None, None) for N in Ns]
+systrue, xparttrue, _ = heatlinfem(1000, L, T)
+systems, xparts, _ = zip(*[heatlinfem(N, L, T) for N in Ns])
+dsystems = [s.cont_to_disc(system, dt) for system in systems]
 
 t0, tt = 1, 10
 xl = 1.0
 xr = 9.0
-# mds = [fem.max_diff(cs.system, cs.dt, cs.xpart, t0, tt, xl, xr, cs.T, cstrue)
-#        for cs in cslist]
+mds = [fem.max_diff(system, dt, xpart, t0, tt, xl, xr, T, systrue, 0.01, xparttrue)
+       for system, xpart in zip(systems, xparts)]
 
-mdxs = [fem.max_xdiff(cs.system, cs.dt, cs.xpart, t0, tt, cs.T) for cs in cslist]
-mdtxs = [fem.max_tdiff(cs.dsystem, cs.dt, cs.xpart, t0, tt, cs.T) for cs in cslist]
+mdxs = [fem.max_xdiff(system, dt, xpart, t0, tt, T)
+        for system, xpart in zip(systems, xparts)]
+mdtxs = [fem.max_tdiff(system, dt, xpart, t0, tt, T)
+        for system, xpart in zip(dsystems, xparts)]
 
 # print mds
 print mdxs

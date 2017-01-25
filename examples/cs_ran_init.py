@@ -1,4 +1,5 @@
-import examples.heatlinfem as fem
+from fem.heatlinfem import heatlinfem
+import fem.fem_util as fem
 import femformal.util as u
 import femformal.logic as logic
 import numpy as np
@@ -99,14 +100,16 @@ nu = [[ 0.        ,  0.39831978,  0.77791517,  1.1143266 ,  1.39081859,
        1.99745554,  2.12749926,  2.20076555,  2.20284961,  2.12249738,
        1.9532474 ,  1.69474305,  1.35348209,  0.94283173,  0.48223689,  0.        ] for n in Ns]
 
+systems = [heatlinfem(N, L, T) for N in Ns]
+systemtrue, xparttrue, _ = heatlinfem(1000, L, T)
 
 cstrues = [fem.build_cs(
-    1000, L, T, 0.01, [T[0]] + [min(max(a * x + b, T[0]), T[1])
+    systemtrue, xparttrue, 0.01, [T[0]] + [min(max(a * x + b, T[0]), T[1])
                  for x in np.linspace(0, L, 1000 + 1)[1:-1]] + [T[1]],
-    cregions, cspec, discretize_system=False) for (a, b), N in zip(ablist, Ns)]
+    T, cregions, cspec, discretize_system=False) for (a, b), N in zip(ablist, Ns)]
 
-cslist = [fem.build_cs(N, L, T, dt, d0, cregions, cspec, eps=ep, eta=et, nu=None)
-          for N, d0, ep, et, n in zip(Ns, d0s, eps, eta, nu)]
+cslist = [fem.build_cs(system, xpart, dt, d0, T, cregions, cspec, eps=ep, eta=et, nu=n)
+          for (system, xpart, _), d0, ep, et, n in zip(systems, d0s, eps, eta, nu)]
 
 print "loaded cs"
 

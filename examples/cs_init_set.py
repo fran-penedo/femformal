@@ -1,4 +1,5 @@
-import examples.heatlinfem as fem
+from fem.heatlinfem import heatlinfem
+import fem.fem_util as fem
 import femformal.util as u
 import femformal.logic as logic
 import numpy as np
@@ -42,9 +43,11 @@ nu = [ 0.        ,  0.39831978,  0.77791517,  1.1143266 ,  1.39081859,
 
 
 # pset = np.array([[1, 0, 9], [-1, 0, -9], [0, 1, 13.0], [0, -1, -5.0]])
-pset = np.array([[1, 0, 12], [-1, 0, -5], [0, 1, 20.0], [0, -1, -0.0]])
+pset = np.array([[1, 0, 9], [-1, 0, -9], [0, 1, 13.0], [0, -1, -5.0]])
 
-cs = fem.build_cs(N, L, T, dt, None, cregions, cspec, eps=eps, eta=eta, nu=nu, pset=pset)
+system, xpart, _ = heatlinfem(N, L, T)
+
+cs = fem.build_cs(system, xpart, dt, None, T, cregions, cspec, eps=eps, eta=eta, nu=nu, pset=pset)
 
 print "loaded cs"
 
