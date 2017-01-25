@@ -7,21 +7,32 @@ import femmilp.system_milp as sysmilp
 import logging
 logger = logging.getLogger('FEMFORMAL')
 
-def mechlinfem(N, xpart, rho, E, T):
-    n = N
+def mechlinfem(xpart, rho, E, g):
+    # Number of equations
+    n = xpart.shape[0] - 2
 
-    M = np.diag([5.0] + [6.0 for i in range(n - 3)] + [5.0]) * l / 6
-    K = (np.diag([2.0 for i in range(n - 1)]) +
-        np.diag([-1.0 for i in range(n - 2)], 1) +
-        np.diag([-1.0 for i in range(n - 2)], -1)) / l
-    F = np.r_[T[0], [0 for i in range(n - 3)], T[1]] / l
-    F.shape = (n - 1, 1)
+    ls = np.diff(xpart)
 
-    A = np.linalg.solve(M, -K)
-    b = np.linalg.solve(M, F)
+    M = np.diag([2 * ls[0] + 2 * ls[1] + l[0]] + \
+                [l[i - 1] + 2 * l[i] + 2 * l[i + 1] + l[i]
+                 for i in range(1, n - 2)] + \
+                [2 * ls[n - 1] + 2 * ls[n] + l[n - 1]]) * rho / 6.0
+    offd = [-1.0 / ls[i] for i in range(1, n)]
+    K = (np.diag([1.0 / ls[i - 1] + 1.0 / ls[i] for i in range(1, n + 1)]) +
+        np.diag(offd, 1) +
+        np.diag(offd, -1)) * E
+    F = np.r_[g[0] / ls[0], [0 for i in range(n - 2)], g[1] / ls[n]]
+    F.shape = (n, 1)
+
+    zeros = np.zeros((n, n))
+    ident = np.identity((n,n))
+    Maug = np.asarray(np.bmat([[ident, zeros],[zeros, M]]))
+    Kaug = np.asarray(np.bmat([[zeros, ident],[K, zeros]]))
+    Faug = np.vstack([np.zeros((n, 1)), F])
+
+    A = np.linalg.solve(Maug, -Kaug)
+    b = np.linalg.solve(Maug, Faug)
     C = np.empty(shape=(0,0))
     system = s.System(A, b, C)
-    tpart = [np.arange(5, 115, 10.0).tolist() for i in range(n-1)]
-    xpart = np.linspace(0, L, N + 1)
 
-    return system, xpart, tpart
+    return system
