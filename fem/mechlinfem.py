@@ -32,8 +32,9 @@ def mechlinfem(xpart, rho, E, g, f_nodal):
     b = np.linalg.solve(Maug, Faug)
     C = np.empty(shape=(0,0))
     system = s.System(A, b, C)
+    sosys = s.SOSystem(M, K, F)
 
-    return system
+    return system, sosys
 
-def init_state(d0, dd0, xpart, g):
-    return [g[0]] + [d0[x] for x in xpart[1:-1]] + [g[1]] + [dd0 for x in xpart]
+def aug_state(u, du, xpart, g):
+    return [g[0]] + [u(x) for x in xpart[1:-1]] + [g[1]] + [du(x) for x in xpart]

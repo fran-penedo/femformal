@@ -59,6 +59,35 @@ class System(object):
         return "A:\n{0}\nb:\n{1}\nc:\n{2}".format(self.A, self.b, self.C)
 
 
+class SOSystem(object):
+
+    def __init__(self, M, K, F):
+        self.M = M
+        self.K = K
+        self.F = F
+
+    def to_fosystem(self):
+        n = self.n
+        zeros = np.zeros((n, n))
+        ident = np.identity(n)
+        Maug = np.asarray(np.bmat([[ident, zeros],[zeros, self.M]]))
+        Kaug = np.asarray(np.bmat([[zeros, -ident],[self.K, zeros]]))
+        Faug = np.hstack([np.zeros(n), self.F])
+
+        A = np.linalg.solve(Maug, -Kaug)
+        b = np.linalg.solve(Maug, Faug)
+        C = np.empty(shape=(0,0))
+        system = System(A, b, C)
+
+        return system
+
+    @property
+    def n(self):
+        return len(self.M)
+
+    def __str__(self):
+        return "M:\n{0}\nK:\n{1}\nF:\n{2}".format(self.M, self.K, self.F)
+
 def is_region_invariant(system, region, dist_bounds):
     for facet, normal, dim in facets(region):
         if not is_facet_separating(system, facet, normal, dim, dist_bounds):
@@ -117,6 +146,23 @@ def disc_integrate(system, x0, t):
         x = (system.A.dot(x) + system.b.T).flatten()
         xs.append(x)
     return np.array(xs)
+
+def newm_integrate(sosys, d0, v0, T, dt=.1):
+    its = int(T / dt)
+    d = np.array(d0)
+    v = np.array(v0)
+    a = np.linalg.solve(sosys.M, sosys.F - sosys.K.dot(d))
+    ds = [d]
+    vs = [v]
+    for i in range(its):
+        tv = v + .5 * dt * a
+        # tv[0] = tv[-1] = 0.0
+        d = d + dt * tv
+        a = np.linalg.solve(sosys.M, sosys.F - sosys.K.dot(d))
+        v = tv + .5 * dt * a
+        ds.append(d)
+        vs.append(v)
+    return np.array(ds), np.array(vs)
 
 
 def linterx(d, xpart):

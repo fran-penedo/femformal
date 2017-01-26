@@ -13,7 +13,7 @@ def heatlinfem(N, L, T):
         np.diag([-1.0 for i in range(n - 2)], 1) +
         np.diag([-1.0 for i in range(n - 2)], -1)) / l
     F = np.r_[T[0], [0 for i in range(n - 3)], T[1]] / l
-    F.shape = (n - 1, 1)
+    # F.shape = (n - 1, 1)
 
     A = np.linalg.solve(M, -K)
     b = np.linalg.solve(M, F)

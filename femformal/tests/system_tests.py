@@ -107,5 +107,28 @@ def cont_disc_test():
     x_d = s.disc_integrate(system_d, x0, t_disc)
     np.testing.assert_array_almost_equal(x_c[-1], x_d[-1], decimal=1)
 
+def sosys_test():
+    M = np.array([[2, 1], [1, 2]])
+    K = np.array([[1, -1], [-1, 1]])
+    F = np.array([1, 2])
+
+    sosys = s.SOSystem(M, K, F)
+    fosys = sosys.to_fosystem()
+    dt = .1
+    T = 10
+    t_cont = np.linspace(0, T, int(T/dt) + 1)
+
+    d0 = [0.0 for i in range(sosys.n)]
+    v0 = [0.0 for i in range(sosys.n)]
+
+    d_so, v_so = s.newm_integrate(sosys, d0, v0, T, dt)
+    y_fo = s.cont_integrate(fosys, d0 + v0, t_cont)
+
+    print sosys
+    print fosys
+    # print d_so
+    # print y_fo
+
+    np.testing.assert_array_almost_equal(d_so[-1], y_fo[-1,0:sosys.n], decimal=2)
 
 
