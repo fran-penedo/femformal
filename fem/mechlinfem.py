@@ -4,7 +4,7 @@ import femformal.system as s
 import logging
 logger = logging.getLogger('FEMFORMAL')
 
-def mechlinfem(xpart, rho, E, g):
+def mechlinfem(xpart, rho, E, g, f_nodal):
     # Number of equations
     n = xpart.shape[0] - 2
 
@@ -20,6 +20,7 @@ def mechlinfem(xpart, rho, E, g):
         np.diag(offd, -1)) * E
     F = np.r_[g[0] / ls[0], [0 for i in range(n - 2)], g[1] / ls[n]]
     F.shape = (n, 1)
+    F = F + f_nodal
 
     zeros = np.zeros((n, n))
     ident = np.identity((n,n))
@@ -33,3 +34,6 @@ def mechlinfem(xpart, rho, E, g):
     system = s.System(A, b, C)
 
     return system
+
+def init_state(d0, dd0, xpart, g):
+    return [g[0]] + [d0[x] for x in xpart[1:-1]] + [g[1]] + [dd0 for x in xpart]
