@@ -148,17 +148,23 @@ def disc_integrate(system, x0, t):
     return np.array(xs)
 
 def newm_integrate(sosys, d0, v0, T, dt=.1):
+    n_e = np.nonzero(~np.all(sosys.M == 0, axis=1))[0]
+    M = sosys.M[np.ix_(n_e, n_e)]
+    K = sosys.K[np.ix_(n_e, n_e)]
+    F = sosys.F[n_e]
+
     its = int(T / dt)
     d = np.array(d0)
     v = np.array(v0)
-    a = np.linalg.solve(sosys.M, sosys.F - sosys.K.dot(d))
+    a = np.zeros(d.shape[0])
+    a[n_e] = np.linalg.solve(M, F - K.dot(d[n_e]))
     ds = [d]
     vs = [v]
     for i in range(its):
         tv = v + .5 * dt * a
         # tv[0] = tv[-1] = 0.0
         d = d + dt * tv
-        a = np.linalg.solve(sosys.M, sosys.F - sosys.K.dot(d))
+        a[n_e] = np.linalg.solve(M, F - K.dot(d[n_e]))
         v = tv + .5 * dt * a
         ds.append(d)
         vs.append(v)
@@ -250,10 +256,13 @@ def draw_system_disc(sys, x0, dt, T, xpart, t0=0,
     draw.draw_pde_trajectory(x, xpart, tx, prefix=prefix,
                              animate=animate, hold=hold, allonly=allonly)
 
-def draw_sosys(sosys, d0, v0, T, xpart, dt=0.1, t0=0,
+def draw_sosys(sosys, d0, v0, g, T, xpart, dt=0.1, t0=0,
                prefix=None, animate=True, allonly=False, hold=False):
     tx = np.linspace(t0, T, int((T - t0)/dt))
     d, v = newm_integrate(sosys, d0, v0, T, dt)
+    d = d[int(t0/dt):]
+    draw.draw_pde_trajectory(d, xpart, tx, prefix=prefix,
+                             animate=animate, hold=hold, allonly=allonly)
 
 
 

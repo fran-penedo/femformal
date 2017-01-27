@@ -12,36 +12,41 @@ def mechlinfem(xpart, rho, E, g, f_nodal):
 
     ls = np.diff(xpart)
 
-    Mdiag = [ls[i] + ls[i + 1] for i in range(n)]
+    Mdiag = [ls[0] if g[0] is None else 0.0] + \
+        [ls[i] + ls[i + 1] for i in range(n)] + \
+        [ls[-1] if g[1] is None else 0.0]
 
-    Koffd = [-1.0 / ls[i] for i in
-            range(1 - (1 if g[0] is None else 0), n + (1 if g[1] is None else 0))]
-    Kdiag = [1.0 / ls[i - 1] + 1.0 / ls[i] for i in range(1, n + 1)]
-
-    F = np.r_[gg[0] / ls[0], [0 for i in range(n - 2)], gg[1] / ls[n]]
-    if g[0] is None:
-        Mdiag = [ls[0]] + Mdiag
-        Kdiag = [1.0 / ls[0]] + Kdiag
-        F = np.r_[0.0, F]
-    if g[1] is None:
-        Mdiag = Mdiag + [ls[-1]]
-        Kdiag = Kdiag + [1.0 / ls[-1]]
-        F = np.r_[F, 0.0]
+    Koffd = [-1.0 / ls[0] if g[0] is None else 0.0] + \
+        [-1.0 / ls[i] for i in range(1, n)] + \
+        [-1.0/ ls[-1] if g[1] is None else 0.0]
+    Kdiag = [1.0 / ls[0] if g[0] is None else 1.0 / E] + \
+        [1.0 / ls[i - 1] + 1.0 / ls[i] for i in range(1, n + 1)] + \
+        [1.0 / ls[-1] if g[1] is None else 1.0 / E]
+    F = np.r_[0.0 if g[0] is None else g[0],
+              E * gg[0] / ls[0], [0 for i in range(n - 2)], E * gg[1] / ls[n],
+              0.0 if g[-1] is None else g[-1]]
 
     M = np.diag(Mdiag) * rho / 2.0
     K = (np.diag(Kdiag) +
         np.diag(Koffd, 1) +
         np.diag(Koffd, -1)) * E
-    F = F + f_nodal[(0 if g[0] is None else 1):(len(f_nodal) if g[1] is None else -1)]
+    F = F + f_nodal
 
     print M.shape
     print K.shape
     print F.shape
     sosys = s.SOSystem(M, K, F)
-    system = sosys.to_fosystem()
+    # system = sosys.to_fosystem()
 
-    return system, sosys
+    return sosys
 
-def aug_state(u, du, xpart, g):
-    gg = [x if x is not None else 0.0 for x in g]
-    return [gg[0]] + [u(x) for x in xpart[1:-1]] + [gg[1]] + [du(x) for x in xpart]
+def state(u, du, xpart, g):
+    d0 = [u(x) for x in xpart]
+    v0 = [du(x) for x in xpart]
+    if g[0] is not None:
+        d0[0] = g[0]
+        v0[0] = 0.0
+    if g[1] is not None:
+        d0[-1] = g[1]
+        v0[-1] = 0.0
+    return d0, v0
