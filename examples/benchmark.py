@@ -24,9 +24,13 @@ def run_cs_draw(m, args):
     print 'Time {}'.format(finish - start)
 
 def run_cs_milp(m, args):
-    logger.debug(m.system)
+    # logger.debug(m.system)
     start = timer()
-    res = rh_system_sat(m.dsystem, m.d0, m.rh_N, m.spec)
+    if hasattr(m, 'thunk'):
+        thunk = m.thunk
+    else:
+        thunk = None
+    res = rh_system_sat(m.dsystem, m.d0, m.rh_N, m.spec, thunk)
     finish = timer()
     print 'Res: {}'.format(res)
     print 'Time {}'.format(finish - start)

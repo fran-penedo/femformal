@@ -25,8 +25,15 @@ sosys = mechlinfem.mechlinfem(xpart, rho, E, g, f_nodal)
 d0, v0 = mechlinfem.state(u0, du0, xpart, g)
 cs = fem.build_cs(sosys, xpart, dt, [d0, v0], g, cregions, cspec, discretize_system=False)
 
-print sosys
-print d0
-print v0
-
 sys.draw_sosys(sosys, d0, v0, g, 10, xpart, animate=False)
+
+dsystem = cs.system
+d0 = cs.d0
+spec = cs.spec
+rh_N = cs.rh_N
+thunk = {'dt': cs.dt}
+
+# print sosys
+# print d0
+# print v0
+

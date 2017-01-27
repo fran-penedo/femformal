@@ -15,7 +15,7 @@ logger.propagate = False
 
 logger.setLevel(logging.DEBUG)
 
-def rh_system_sat(system, d0, N, spec):
+def rh_system_sat(system, d0, N, spec, thunk=None):
     # print spec
     hd = max(0, spec.horizon())
     H = hd
@@ -25,7 +25,16 @@ def rh_system_sat(system, d0, N, spec):
     for j in range(N - 1):
         m = milp.create_milp("rhc_system")
         logger.debug("Adding affine system constraints")
-        d = milp.add_affsys_constr_x0(m, "d", system.A, system.b, dcur, H, None)
+        if isinstance(system, sys.System):
+            d = milp.add_affsys_constr_x0(
+                m, "d", system.A, system.b, dcur, H, None)
+        elif isinstance(system, sys.SOSystem):
+            d = milp.add_newmark_constr_x0(
+                m, "d", system.M, system.K, system.F, dcur, thunk['dt'], H, None)
+        else:
+            raise Exception(
+                "Not implemented for this class of system: {}".format(
+                    system.__class__.__name__))
         logger.debug("Adding STL constraints")
         fvar, vbds = milp.add_stl_constr(m, "spec", spec)
         # m.addConstr(fvar >= 0)
@@ -45,7 +54,10 @@ def rh_system_sat(system, d0, N, spec):
             return False
         else:
             d_opt = m.getAttr("x", d)
-            dcur = [d_opt[milp.label("d", i, 1)] for i in range(system.n + 2)]
+            if isinstance(system, sys.System):
+                dcur = [d_opt[milp.label("d", i, 1)] for i in range(system.n + 2)]
+            elif isinstance(system, sys.SOSystem):
+                dcur = [d_opt[milp.label("d", i, 1)] for i in range(system.n)]
             # dhist.append(dcur)
             # if j > hd:
             #     dhist.popleft()
