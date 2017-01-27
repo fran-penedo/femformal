@@ -61,6 +61,7 @@ def rh_system_sat(system, d0, N, spec, thunk=None):
             # dhist.append(dcur)
             # if j > hd:
             #     dhist.popleft()
+        # print [d_opt[milp.label("d", i, H - 1)] for i in range(system.n)]
 
     return fvar.getAttr("x")
 
@@ -130,7 +131,7 @@ class SysSignal(stl.Signal):
             self.labels = [(lambda t, i=i: milp.label("d", self.index + i, t)) for i in range(2)]
 
         self.f = _Build_f(p, op, isnode)
-        self.bounds = [-1000, 1000] #FIXME
+        self.bounds = [-10000, 10000] #FIXME
 
     # eps :: index -> isnode -> d/dx mu -> pert
     def perturb(self, eps):

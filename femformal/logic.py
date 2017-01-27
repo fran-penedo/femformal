@@ -36,8 +36,8 @@ def ap_cont_to_disc(apcont, xpart):
     else:
         i_min = max(bisect_left(xpart, apcont.A[0]), 0)
         i_max = min(bisect_left(xpart, apcont.A[1]), N1 - 1)
-        m = {i : (apcont.p((xpart[i] + xpart[i+1]) / 2),
-                  apcont.dp((xpart[i] + xpart[i+1]) / 2))
+        m = {i : (apcont.p((xpart[i] + xpart[i+1]) / 2.0),
+                  apcont.dp((xpart[i] + xpart[i+1]) / 2.0))
              for i in range(i_min, i_max)}
         isnode = False
     return APDisc(r, m, isnode)

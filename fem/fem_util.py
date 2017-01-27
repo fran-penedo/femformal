@@ -19,8 +19,8 @@ def build_cs(system, xpart, dt, d0, g, cregions, cspec,
                 for label, pred in cregions.items()}
         dspec = logic.subst_spec_labels_disc(cspec, regions)
         spec = sysmilp.stl_parser().parseString(dspec)[0]
-        if discretize_system:
-            sysmilp.scale_time(spec, dt)
+        # if discretize_system:
+        sysmilp.scale_time(spec, dt)
         md = 0.0
         me = [0.0 for i in range(len(xpart) - 1)]
         mn = [0.0 for i in range(len(xpart) - 1)]
