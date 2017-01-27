@@ -241,10 +241,19 @@ def sys_max_tdiff(sys, dt, xpart, x0, t0, T):
 
 
 
-def draw_system_disc(sys, x0, dt, T, xpart, t0=0, prefix=None, animate=True, allonly=False, hold=False):
+def draw_system_disc(sys, x0, dt, T, xpart, t0=0,
+                     prefix=None, animate=True, allonly=False, hold=False):
     tx = np.linspace(t0, T, int((T - t0)/dt))
     x = disc_integrate(sys, x0[1:-1], int(T/dt))
     x = np.c_[x0[0] * np.ones(x.shape[0]), x, x0[-1] * np.ones(x.shape[0])]
     x = x[int(t0/dt):]
-    draw.draw_pde_trajectory(x, xpart, tx, prefix=prefix, animate=animate, hold=hold, allonly=allonly)
+    draw.draw_pde_trajectory(x, xpart, tx, prefix=prefix,
+                             animate=animate, hold=hold, allonly=allonly)
+
+def draw_sosys(sosys, d0, v0, T, xpart, dt=0.1, t0=0,
+               prefix=None, animate=True, allonly=False, hold=False):
+    tx = np.linspace(t0, T, int((T - t0)/dt))
+    d, v = newm_integrate(sosys, d0, v0, T, dt)
+
+
 
