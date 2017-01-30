@@ -13,8 +13,8 @@ g = [0.0, None]
 f_nodal = np.zeros(N + 1)
 f_nodal[-1] = 50
 dt = .1
-u0 = lambda x: 0.0
-du0 = lambda x: 0.0
+u0 = lambda x: 50.0
+du0 = lambda x: 10.0
 
 apc1 = logic.APCont([2, 8], -1, lambda x: 300.0 / 6.0 * (x - 2.0), lambda x: 300.0 / 6.0)
 apc2 = logic.APCont([2, 8], 1, lambda x: 100 + 500.0 / 6.0 * (x - 2.0), lambda x: 0.0)

@@ -38,7 +38,7 @@ def run_cs_milp(m, args):
 def run_cs_milp_set(m, args):
     cs = m.cs
     start = timer()
-    res = rh_system_sat_set(cs.dsystem, cs.pset, cs.xpart, cs.rh_N, cs.spec)
+    res = rh_system_sat_set(cs.dsystem, cs.pset, cs.f, cs.xpart, cs.rh_N, cs.spec, cs.thunk)
     finish = timer()
     print 'Res: {}'.format(res)
     print 'Time {}'.format(finish - start)

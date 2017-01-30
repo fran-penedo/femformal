@@ -65,14 +65,23 @@ def rh_system_sat(system, d0, N, spec, thunk=None):
 
     return fvar.getAttr("x")
 
-def rh_system_sat_set(system, pset, xpart, N, spec):
+def rh_system_sat_set(system, pset, f, xpart, N, spec, thunk=None):
     # print spec
     hd = max(0, spec.horizon())
     H = hd
 
     m = milp.create_milp("rhc_system")
     logger.debug("Adding affine system constraints")
-    d = milp.add_affsys_constr_x0_set(m, "d", system.A, system.b, H, xpart, pset)
+    if isinstance(system, sys.System):
+        d = milp.add_affsys_constr_x0_set(
+            m, "d", system.A, system.b, H, xpart, pset, f)
+    elif isinstance(system, sys.SOSystem):
+        d = milp.add_newmark_constr_x0_set(
+            m, "d", system.M, system.K, system.F, xpart, pset, f, thunk['dt'], H)
+    else:
+        raise Exception(
+            "Not implemented for this class of system: {}".format(
+                system.__class__.__name__))
     logger.debug("Adding STL constraints")
     fvar, vbds = milp.add_stl_constr(m, "spec", spec)
     fvar.setAttr("obj", 1.0)

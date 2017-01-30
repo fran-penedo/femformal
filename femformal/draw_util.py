@@ -96,6 +96,7 @@ def draw_pde_trajectory(ds, xs, ts,
             slider = Slider(axslider, 'Time', ts[0], ts[-1], valinit=ts[0])
             slider.on_changed(lambda val: update_line(bisect_left(ts, val)))
             update_line(0)
+            fig.__slider = slider
         else:
             axall = ax
 
@@ -120,6 +121,7 @@ def _render(fig, savefun, hold):
             plt.show()
         _holds = []
 
+    _holds.append(fig)
     _figcounter += 1
 
 

@@ -7,7 +7,7 @@ import logging
 logger = logging.getLogger('FEMFORMAL')
 
 def build_cs(system, xpart, dt, d0, g, cregions, cspec,
-             pset=None, discretize_system=True, cstrue=None,
+             pset=None, f=None, discretize_system=True, cstrue=None,
              eps=None, eta=None, nu=None):
     if discretize_system:
         dsystem = s.cont_to_disc(system, dt)
@@ -50,6 +50,7 @@ def build_cs(system, xpart, dt, d0, g, cregions, cspec,
         'dt': dt,
         'd0': d0,
         'pset': pset,
+        'f': f,
         'regions': regions,
         'spec': spec,
         'rh_N': rh_N
@@ -127,9 +128,11 @@ class CaseStudy(object):
         self.dt = copy.pop('dt', 0)
         self.d0 = copy.pop('d0', None)
         self.pset = copy.pop('pset', None)
+        self.f = copy.pop('f', None)
         self.regions = copy.pop('regions', None)
         self.spec = copy.pop('spec', None)
         self.rh_N = copy.pop('rh_N', None)
+        self.thunk = copy.pop('thunk', None)
 
         if len(copy) > 0:
             raise Exception('Undefined parameters in CaseStudy: {}'.format(copy))
