@@ -84,9 +84,10 @@
 \section{Introduction}
 \label{sec:introduction}
 
-An important problem in the analysis of a system is
-that of verifying whether it satisfies some interesting property, such as whether
-it is stable or reaches a desirable state in finite time. When the complexity
+In the analysis of many engineering problems, it is important to determine
+whether, subject to a range of initial and boundary conditions, the system of
+interest satisfies certain constraints, or operates within desirable performance
+bounds. When the complexity
 and diversity of these properties increase, it is useful to state them in
 formal languages  that ensure the specification has a
 non-ambiguous meaning while being expressive enough to capture many different
@@ -137,25 +138,39 @@ of temporal properties in systems governed by a PDE has not been explored before
 
 The approach we take makes use of the Finite Element Method (FEM) to
 approximate the trajectory of the PDE by an interpolation of the solution of a
-system of Ordinary Differential Equations (ODEs). FEM has been widely used in
-engineering analysis as a simulation tool in problems with complicated
-geometries where exact solutions cannot be found. It consists in the subdivision
-of the domain into small parts (called finite elements) with simpler equations
-that are then assembled into a larger system. In the process of approximating
-the PDE trajectory and then discretizing it both in space (considering a
-finite-dimensional state space for each finite element) and time, we define a
-conservative reformulation of the specification that follows the same approximation and
+system of Ordinary Differential Equations (ODEs). The FEM is a well-established
+numerical method to obtain approximate numerical solutions to PDEs, and is particularly
+well-suited to problems with complicated
+geometries where exact solutions cannot be found. It works by subdividing, or
+discretizing, the domain into small parts (called finite elements), which
+imposes an approximation, typically in the form of a low-order polynomial, in
+the spatial variation of the field variable of interest. The vertices of the
+elements (called the nodes) represent the discrete locations where the unknown
+field variables of interest are to be determined; this ocurs through the
+assembly of all the unknown nodal degrees of freedom into a global system.
+Importantly, the error introduced in moving from a continuous PDE to a discrete
+FEM model can be systematically improved by using more elements to discretize
+the domain of interest.
+
+In the process of approximating the PDE trajectory by the FEM model and then
+discretizing it both in space (considering the finite-dimensional state space
+given by the field values at the nodes) and time, we define a conservative
+reformulation of the specification that follows the same approximation and
 discretization steps. In order to account for the approximation and
 discretization errors, the predicates in the formula are perturbed in such a way
 that all trajectories satisfying the perturbed predicates also satisfy the
 original ones. Finally, we encode the resulting problem into a mixed-integer
 linear program (MILP) following previously established methods.
 
-Our method requires the PDE to be linear and the FEM applicable to it. The
-latter assumption is not overly restrictive, as FEM can be applied to most PDEs 
-arising from physical systems. The linear assumption usually constrains the
-physical system to certain materials, which are still widely studied and used in
-practical applications \cite{}.
+Our method requires the PDE to be linear and also that a FEM approximation to
+the PDE can be made. The
+latter assumption is not overly restrictive, as the FEM can be applied to all PDEs 
+of engineering interest, i.e., Maxwell equations for electromagnetics,
+Navier-Stokes equations for fluid dynamics, momentum equation for mechanics,
+diffusion and heat equations, and so on. The linear assumption usually constrains the
+physical system to linear material behavior, although this assumption is also
+not overly restrictive as most engineering systems are designed to operate
+within the linear material response regime \cite{}.
 
 \section{Preliminaries}
 \label{sec:preliminaries}
@@ -177,10 +192,11 @@ $g_0, g_L \in \R$ the boundary conditions at each end of the rod; and $u_0 :
 The evolution of the temperature at
 each point in the rod can be described by a function $u : \bar \Omega \times [0,
 T] \rightarrow \R$, where $T > 0$ denotes the final time and can be infinity and
-$\bar \Omega$ is the spatial domain, such that the following equations are satisfied:
+$\bar \Omega$ is the spatial domain, such that the following initial boundary
+value problem (IBVP) is satisfied:
 
 \begin{equation}\label{eq:pde}
-    \Sigma(u_0) \quad \left \{
+    \Sigma^{H}(u_0) \quad \left \{
     \begin{aligned}
         \rho c \frac{\partial u}{\partial t} - \kappa \frac{\partial^2
         u}{\partial^2 x} &= 0, \text{on } \Omega \times (0, T) \\
@@ -191,7 +207,11 @@ $\bar \Omega$ is the spatial domain, such that the following equations are satis
     \right.
 \end{equation}
 
-We can construct a weak formulation of \cref{eq:pde} with the same set of
+An important aspect of the FEM is the creation of a weak formulation of the
+governing PDEs in \cref{eq:pde}. The purpose in deriving a weak form is to
+reduce the second order spatial derivative of $u$ in \cref{eq:pde} to first
+derivatives so that low order (in this case, linear) polynomials can be used to
+approximate the field value $u$. We can construct a weak formulation of \cref{eq:pde} with the same set of
 solutions in the following way: let $D$ be the set of sufficiently smooth 
 real-valued functions on $\bar{\Omega} \times (0, T)$ such that all 
 $u \in D$ satisfies $u(0, t) = g_0, u(L, t) = g_L, \forall t \in (0, T)$, 
@@ -215,7 +235,7 @@ We now obtain an approximate solution to the weak formulation by considering
 Let $\{x_i\}_{i = 0}^{n +
 1}$, where $x_0 = 0, x_{n+1} = L, x_i \in \Omega, i = 1,...,n$, be a partition of
 $\bar\Omega$. Let $d_i(t), i = 0,...,n+1$ represent the
-temperature of the rod at the point $x_i$, with $d_0(t) = g_0, d_{n+1} = g_L$ and let $d = (d_1, ..., d_n)' \in
+temperature of the rod at node $x_i$, with $d_0(t) = g_0, d_{n+1} = g_L$ and let $d = (d_1, ..., d_n)' \in
 \R^n$. We define the following linear node shape function matrices for $i =
 0,...,n+1$:
 
@@ -226,7 +246,8 @@ temperature of the rod at the point $x_i$, with $d_0(t) = g_0, d_{n+1} = g_L$ an
     \end{cases} 
 \end{equation}
 
-and the following linear interpolation of $d$:
+which results in the following linear interpolation of the field variable $u$ in
+terms of its nodal values $d$:
 
 \begin{equation}
     u^d(x, t) = \sum_{i=0}^{n+1} N_i(x) d_i(t)
@@ -236,10 +257,10 @@ Consider the subspaces $D^h \subset D$ and $V^h \subset V$ of linear
 interpolations defined above and time-invariant interpolations respectively.
 It can be shown that $u^d(x, t)$ is a solution of the weak formulation over the
 sets $D^h$ and $V^h$, where $d$ evolves
-according to the following linear system, $\Sigma_{FEM}$:
+according to the following linear system:
 
 \begin{equation}\label{eq:fem}
-    \Sigma_{FEM}(u_0) \quad \left \{
+    \Sigma^H_{FEM}(u_0) \quad \left \{
     \begin{aligned}
         \dot{d} &= A d + b \\
         d_i(0) &= u_0(x_i), i = 1,...,n
@@ -258,28 +279,28 @@ follows:
             l_1 & 2 l_1 + 2 l_2 & l_2  & \cdots \\ 
             0 & l_2 & 2 l_2 + 2 l_3 &  \cdots \\ 
             \vdots & \ddots & \ddots & \ddots 
-        \end{pmatrix}  \\
+        \end{pmatrix} \label{eq:matrices_M} \\
         K &= \kappa \begin{pmatrix}
             \frac{1}{l_0} + \frac{1}{l_1} & -\frac{1}{l_1}  & 0 & \cdots \\ 
             -\frac{1}{l_1} & \frac{1}{l_1} + \frac{1}{l_2} & -\frac{1}{l_2}  & \cdots \\ 
             0 & -\frac{1}{l_2} & \frac{1}{l_2} + \frac{1}{l_3} &  \cdots \\ 
             \vdots & \ddots & \ddots & \ddots 
-        \end{pmatrix} \\
+        \end{pmatrix} \label{eq:matrices_K}\\
         F &= \kappa \begin{pmatrix}
             \frac{g_0}{l_0} \\
             0 \\
             \vdots \\
             0 \\
             \frac{g_L}{l_n}
-        \end{pmatrix} 
+        \end{pmatrix} \label{eq:matrices_F}
     \end{align}
 % \end{equation}
 
 where $l_e = x_{e+1} - x_e$. As a simplifying assumption, we consider the lumped version of $M$, which is
 defined as a diagonal matrix resulting from adding all elements in each row of
 $M$. Note that with this assumption, $A$ is a banded matrix of bandwidth 3. 
-We call $\Sigma_{FEM}$ the FEM system corresponding to system $\Sigma$.
-
+In the following, we will call $\Sigma_{FEM}$ the FEM system corresponding to a
+PDE system $\Sigma$.
 
 \subsection{Signal Temporal Logic}
 \label{sec:signal_temporal_logic}
@@ -391,8 +412,8 @@ $r(\lambda_i,u, t) = \max_{x \in X_i} u(x, t)$ otherwise.
 \end{example}
 
 Throughout this paper, we will use the notation $S(s_0) \models \psi$ to denote
-that the trajectory of system $S$ (such as $\Sigma$ or $\Sigma_{FEM}$) with
-initial condition $s_0$ satisfies formula $\psi$ (either in regular STL or in
+that the trajectory of system $S$ (either a PDE system or its corresponding FEM
+system) with initial condition $s_0$ satisfies formula $\psi$ (either in regular STL or in
 STL for PDEs).
 
 \section{Problem Formulation}
@@ -403,7 +424,7 @@ PDE:
 
 \begin{problem}
 \label{pr:stl}
-    Given a system $\Sigma$, an STL formula $\psi$ over a set of predicates
+    Given a PDE system $\Sigma$, an STL formula $\psi$ over a set of predicates
     compatible with the system, $\Lambda$, and initial state $u_0$,
     check whether the trajectory of $\Sigma$ for the initial state $u_0$
     satisfies $\psi$.
@@ -414,7 +435,7 @@ in a set:
 
 \begin{problem}
 \label{pr:stl_set}
-    Given a system $\Sigma$, an STL formula over $\Lambda$, $\psi$, and a set of initial states
+    Given a PDE system $\Sigma$, an STL formula over $\Lambda$, $\psi$, and a set of initial states
     $U_0$, check whether the trajectory of $\Sigma$ satisfies $\psi$ 
     for any initial state $u_0 \in U_0$.
 \end{problem}
@@ -519,8 +540,8 @@ $|u(x, t) - u^d(x, t)| \leq \epsilon(x, t)$.
 \begin{example}
     \label{ex:eps_approx}
 
-    Assume we obtain a bound $\delta(x) = 1$ for a heat conduction system $\Sigma$ with
-    $\Omega = (0, 10)$ and its
+    Assume we obtain a bound $\delta(x) = 1$ for a heat conduction system
+    $\Sigma^H$ with $\Omega = (0, 10)$ and its
     FEM approximation. Consider the same specification $\psi$ defined in \cref{ex:stl}.
     The perturbed specification, $\psi^\delta$ is then:
     
@@ -529,8 +550,8 @@ $|u(x, t) - u^d(x, t)| \leq \epsilon(x, t)$.
         192) - 1 > 0"
     \end{equation}
 
-    If the FEM approximation to $\Sigma$ satisfies $\psi^\delta$, we can
-    conclude $\Sigma$ satisfies $\psi$.
+    If the FEM approximation to $\Sigma^H$ satisfies $\psi^\delta$, we can
+    conclude $\Sigma^H$ satisfies $\psi$.
     
 \end{example}
 
@@ -649,16 +670,17 @@ $\Lambda^{\delta}_{FEM}$ by a real number $k$ in a manner analogous to
     \end{equation}
 
     with $k = \frac{0.5 (28 + 4)}{2} = 8$. If we prove satisfaction of $\psi^{\delta,
-    \eta}_{FEM}$ by $\Sigma_{FEM}$, we can conclude the interpolation satisfies
+    \eta}_{FEM}$ by $\Sigma^H_{FEM}$, we can conclude the interpolation satisfies
     $\psi^\delta$.
     
 \end{example}
 
 Finally, we reformulate the problem into a verification problem over the
-trajectory of a time discretization of $\Sigma_{FEM}$. Let $\Delta t \in \R$ be
-a positive time interval. The discretization of $\Sigma_{FEM}$ with time
-interval $\Delta t$, $\Sigma^{\Delta t}_{FEM}$, is a system that evolves
-according to the following difference equation:
+trajectory of a time discretization of $\Sigma_{FEM}$ with time interval $\Delta
+t \in \R$. There are several options at this point: the simplest one is to
+consider $\Sigma_{FEM}$ as a first order linear system (augmenting the state
+space if needed) and define the time discretization as the following difference
+equation:
 
 \begin{equation}
     \label{eq:disc_system}
@@ -671,8 +693,16 @@ according to the following difference equation:
 \end{equation}
 
 where $\tilde A = e^{A \Delta t}$ and $\tilde b = - e^{A \Delta t} A^{-1} \left
-( e^{- A \Delta t} - I \right ) b$. Note that $d(k \Delta t) = \tilde d^k,
-\forall k \in \N$. 
+( e^{- A \Delta t} - I \right ) b$. Note that, in theory, $d(k \Delta t) = \tilde d^k,
+\forall k \in \N$. However, in practice one needs to numerically compute the
+exponential matrices in $\tilde A$ and $\tilde b$, which introduces an
+approximation error difficult to control. As an alternative, we can use any
+numerical integration algorithm with fixed time step appropriate to the specific
+PDE system under study, several of which have been
+thoroughly analyzed in the FEM literature, such as the Newmark family. Similar
+to the FEM approximation, assume we have a bound on the approximation error of
+the integration algorithm, $\max_k |d_j(k \Delta t) - \tilde d^k_j| \leq
+\epsilon^d_j, i=1,2,...$.
 % We define satisfaction of an STL formula by a discrete time
 % signal in a similar way to continuous time. However, we make a slight abuse of
 % notation so that the time bounds for the temporal operators should be understood
@@ -692,8 +722,9 @@ signal $\tilde{d}$. In particular, $\tilde{d}[t] \models \mu \iff
 \begin{theorem}
     \label{th:nu_approximation}
     If $\tilde d \models \psi^{\delta, \eta, \nu}_{FEM}$, with
-    $\nu^y_e = \max_t \frac{|\dot d_e(t)| + |\dot d_{e+1}(t)|}{2}$ and $\nu^d_j = \max_t
-    |\dot d_j(t)|$, then $d \models \psi^{\delta, \eta}_{FEM}$.
+    $\nu^y_e = \max_t \frac{|\dot d_e(t)| + |\dot d_{e+1}(t)|}{2} +
+    \frac{\epsilon^d_e + \epsilon^d_{e+1}}{2}$ and $\nu^d_j = \max_t
+    |\dot d_j(t)| + \epsilon^d_j$, then $d \models \psi^{\delta, \eta}_{FEM}$.
 \end{theorem}
 \begin{proof}
     Similar to \cref{th:eta_approximation}.
@@ -714,7 +745,7 @@ signal $\tilde{d}$. In particular, $\tilde{d}[t] \models \mu \iff
     \end{equation}
 
     As before, we can guarantee the satisfaction of $\psi^{\delta,
-    \eta}_{FEM}$ by $\Sigma_{FEM}$ if $\Sigma_{FEM}^{\Delta t}$ satisfies
+    \eta}_{FEM}$ by $\Sigma^H_{FEM}$ if $\Sigma_{FEM}^{H, \Delta t}$ satisfies
     $\psi^{\delta, \eta, \nu}_{FEM}$.
     
 \end{example}
@@ -803,6 +834,9 @@ We ran our implementation in an Intel Core i7 at 2.4GHz and 8GB RAM. In order to
 better understand the cost of computing the STL reformulations and building the
 MILP model, we performed the robustness computations in single initial state
 problems by solving a similar MILP to \cref{eq:stl_set_opt}.
+
+\subsection{Heat Equation}
+\label{sub:heat_equation}
 
 We consider first the verification of a single initial value using uniform
 meshes of different sizes. Consider a rod with parameters $L = 10, \rho = 1, c =
@@ -960,6 +994,44 @@ negative, since we cannot guarantee their non-satisfaction.
 \caption{Verification of sets of initial values}
 \label{tab:res_sets}
 \end{table}
+
+\subsection{Linear Elasticity}
+\label{sub:linear_elasticity}
+
+\begin{equation}\label{eq:pde_mech}
+    \Sigma^{M}(u_0) \quad \left \{
+    \begin{aligned}
+        \rho \frac{\partial^2 u}{\partial^2 t} - E \frac{\partial^2
+        u}{\partial^2 x} &= 0, \text{on } \Omega \times (0, T) \\
+        u(0, t) &= g_0, \forall t \in (0, T) \\
+        u(L, t) &= g_L, \forall t \in (0, T) \\
+        u(x, 0) &= u_0(x), \forall x \in \Omega \\
+        \frac{\partial u}{\partial t}(x, 0) &= v_0(x), \forall x \in \Omega
+    \end{aligned}
+    \right.
+\end{equation}
+
+The corresponding FEM system for linear elements is given by:
+
+\begin{equation}\label{eq:fem_mech}
+    \Sigma^H_{FEM}(u_0) \quad \left \{
+    \begin{aligned}
+        M\ddot{d} + K d &= F \\
+        d_i(0) &= u_0(x_i), i = 1,...,n \\
+        \dot{d}_i(0) &= v_0(x_i), i = 1,...,n
+    \end{aligned}
+    \right.
+\end{equation}
+
+where $M, K, F$ are the mass, stiffness and force matrices, respectively, and
+they have the same expressions as in
+\cref{eq:matrices_M,eq:matrices_K,eq:matrices_F}, with $c = 1, \kappa = E$.
+For this example, we use the central differences algorithm to obtain a time
+discretization with time interval $\Delta t$. The resulting difference equations
+are the following:
+
+\begin{equation}
+\end{equation}
 
 \section{Conclusion}
 \label{sec:conclusion}
