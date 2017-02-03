@@ -57,60 +57,82 @@ def build_cs(system, xpart, dt, d0, g, cregions, cspec,
     })
 
 
-def lin_sample(g, xpart_x, xpart_y=None):
-    a = (np.random.rand() * 4 - 2) * abs(g[1] - g[0]) / xpart_x[-1]
-    b = np.random.rand() * abs(g[1] - g[0])
-    x0 = [g[0]] + [min(max(a * x + b, g[0]), g[1]) for x in xpart_x[1:-1]] + [g[1]]
+def lin_sample(bounds, g, xpart_x, xpart_y=None):
+    a = (np.random.rand() * 4 - 2) * abs(bounds[1] - bounds[0]) / xpart_x[-1]
+    b = np.random.rand() * abs(bounds[1] - bounds[0])
+    x0 = [g[0]] + [min(max(a * x + b, bounds[0]), bounds[1])
+                   for x in xpart_x[1:-1]] + [g[1]]
     if xpart_y is not None:
-        y0 = [g[0]] + [min(max(a * x + b, g[0]), g[1]) for x in xpart_y[1:-1]] + [g[1]]
+        y0 = [g[0]] + [min(max(a * x + b, bounds[0]), bounds[1])
+                       for x in xpart_y[1:-1]] + [g[1]]
         return x0, y0
     else:
         return x0
 
+def so_lin_sample(bounds, g, xpart_x, xpart_y=None):
+    a = (np.random.rand()) * abs(bounds[1] - bounds[0]) / xpart_x[-1]
+    x0 = [a*x for x in xpart_x]
+    vx0 = [0.0 for x in xpart_x]
+    if g[0] is not None:
+        x0[0] = g[0]
+    if g[-1] is not None:
+        x0[-1] = g[-1]
+
+    if xpart_y is not None:
+        y0 = [a*x for x in xpart_y]
+        vy0 = [0.0 for x in xpart_y]
+        if g[0]:
+            y0[0] = g[0]
+        if g[-1]:
+            y0[-1] = g[-1]
+        return [x0, vx0], [y0, vy0]
+    else:
+        return [x0, vx0]
 
 
-def max_diff(sys, dt, xpart, t0, tt, xl, xr, g, sys_true, dt_true, xpart_true,
-             samplef=lin_sample, n=50, log=True):
+
+def max_diff(sys, dt, xpart, g, tlims, xlims, sys_true, dt_true, xpart_true,
+             bounds, samplef=lin_sample, n=50, log=True):
     mdiff = 0.0
     if log:
         logger.debug("Starting max_diff")
     for i in range(n):
         if log and i % 10 == 0:
             logger.debug("Iteration: {}, mdiff = {}".format(i, mdiff))
-        x0, y0 = samplef(g, xpart, xpart_true)
+        x0, y0 = samplef(bounds, g, xpart, xpart_true)
         diff = s.sys_max_diff(
             sys, sys_true, dt, dt_true, xpart, xpart_true,
-            x0, y0, t0, tt, xl, xr)
+            x0, y0, tlims, xlims)
         mdiff = max(mdiff, diff)
 
     if log:
         logger.debug("mdiff = {}".format(mdiff))
     return mdiff
 
-def max_xdiff(sys, dt, xpart, t0, tt, g, samplef=lin_sample, n=50, log=True):
+def max_xdiff(sys, dt, xpart, g, tlims, bounds, samplef=lin_sample, n=50, log=True):
     mdiff = np.zeros((len(xpart) - 1,))
     if log:
         logger.debug("Starting max_xdiff")
     for i in range(n):
         if log and i % 10 == 0:
             logger.debug("Iteration: {}, mdiff = {}".format(i, mdiff))
-        x0 = samplef(g, xpart)
-        dx = s.sys_max_xdiff(sys, dt, xpart, x0, t0, tt)
+        x0 = samplef(bounds, g, xpart)
+        dx = s.sys_max_xdiff(sys, dt, xpart, x0, tlims)
         mdiff = np.max([mdiff, dx], axis=0)
 
     if log:
         logger.debug("mdiff = {}".format(mdiff))
     return mdiff
 
-def max_tdiff(sys, dt, xpart, t0, tt, g, samplef=lin_sample, n=50, log=True):
+def max_tdiff(sys, dt, xpart, g, tlims, bounds, samplef=lin_sample, n=50, log=True):
     mdiff = np.zeros((len(xpart),))
     if log:
         logger.debug("Starting max_tdiff")
     for i in range(n):
         if log and i % 10 == 0:
             logger.debug("Iteration: {}, mdiff = {}".format(i, mdiff))
-        x0 = samplef(g, xpart)
-        dx = s.sys_max_tdiff(sys, dt, xpart, x0, t0, tt)
+        x0 = samplef(bounds, g, xpart)
+        dx = s.sys_max_tdiff(sys, dt, xpart, x0, tlims)
         mdiff = np.max([mdiff, dx], axis=0)
 
     if log:
