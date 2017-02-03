@@ -7,6 +7,7 @@
 % \usepackage{amsthm}
 \usepackage{amsfonts}
 \usepackage{mathtools}
+\usepackage{siunitx}
 \usepackage[bookmarks]{hyperref}
 \usepackage[capitalize]{cleveref}
 \usepackage[utf8]{inputenc}
@@ -369,9 +370,9 @@ time $t$.
 In order to define specifications over the trajectories of PDEs, we extend
 regular STL using the following set of predicates:
 let $\Lambda = \{\lambda_i | i = 1,...,m\}$ be a set of predicates over
-a set $\bar\Omega$, where $\lambda_i$ is a predicate represented as a tuple $(Q_i, X_i, \mu_i)$, 
-informally represented using the syntax $``Q_i x \in X_i : u(x) - \mu_i(x) >
-0"$, and:
+a set $\bar\Omega$, where $\lambda_i$ is a predicate defined as a tuple $(Q_i, X_i, \mu_i)$, 
+and represented using the syntax $Q_i x \in X_i : u(x) - \mu_i(x) >
+0$, and:
 
 \begin{itemize}
     \item $Q_i \in \{\forall, \exists\}$ is the spatial quantifier,
@@ -399,10 +400,10 @@ $r(\lambda_i,u, t) = \max_{x \in X_i} u(x, t)$ otherwise.
 
     Consider the following formula in STL for a heat equation with a single predicate
     $\lambda = (Q = \forall, X = [8, 9], \mu(x) = -(28x - 192))$, which we 
-    represent using the informal syntax:
+    represent using the syntax:
 
     \begin{equation}
-        \psi = \Always_{[1,10]} ``\forall x \in [8,9] : u(x) - (28x - 192) > 0"
+        \psi = \Always_{[1,10]} \forall x \in [8,9] : u(x) - (28x - 192) > 0
     \end{equation}
 
     The specification reads in natural language: ``Always between 1 and 10 time
@@ -546,8 +547,8 @@ $|u(x, t) - u^d(x, t)| \leq \epsilon(x, t)$.
     The perturbed specification, $\psi^\delta$ is then:
     
     \begin{equation}
-        \psi^\delta = \Always_{[1,10]} ``\forall x \in [8,9] : u(x) - (28x -
-        192) - 1 > 0"
+        \psi^\delta = \Always_{[1,10]} \forall x \in [8,9] : u(x) - (28x -
+        192) - 1 > 0
     \end{equation}
 
     If the FEM approximation to $\Sigma^H$ satisfies $\psi^\delta$, we can
@@ -845,7 +846,7 @@ for $x \in (0, L)$, $u_0(0) = g_0, u_0(L) = g_L$, and the specification from
 \cref{ex:stl}, which we restate here:
 
 \begin{equation}
-    \psi = \Always_{[1,10]} ``\forall x \in [8,9] : u(x) - (28x - 192) > 0"
+    \psi = \Always_{[1,10]} \forall x \in [8,9] : u(x) - (28x - 192) > 0
 \end{equation}
 
 We show in \cref{fig:ex1_evolution} the trajectory for two mesh sizes along with the
@@ -924,8 +925,8 @@ and the following specification:
 
 \begin{equation}
     \begin{aligned}
-        \phi &= \Always_{[1, 10]} ``\forall x \in [1, 9]: u(x) - 9x > 0" \\
-        &\wedge \Event_{[4, 6]} \lnot ``\exists x \in [6, 7]: u(x) - (9x + 15) > 0"
+        \phi &= \Always_{[1, 10]} \forall x \in [1, 9]: u(x) - 9x > 0 \\
+        &\wedge \Event_{[4, 6]} \lnot \exists x \in [6, 7]: u(x) - (9x + 15) > 0
 \end{aligned}
 \end{equation}
 
@@ -998,23 +999,29 @@ negative, since we cannot guarantee their non-satisfaction.
 \subsection{Linear Elasticity}
 \label{sub:linear_elasticity}
 
+Consider a steel rod of length $L = \SI{100}{}$, density $\rho = \SI{7.24e-4}{}$ and Young's
+modulus $E = \SI{30e6}{}$ with one end fixed and a force of $h_L = \SI{1000}{}$ applied to the
+other end. The displacement $u(x, t)$ of the rod follows the following IBVP:
+
 \begin{equation}\label{eq:pde_mech}
-    \Sigma^{M}(u_0) \quad \left \{
+    \Sigma^{M}(u_0, v_0) \quad \left \{
     \begin{aligned}
         \rho \frac{\partial^2 u}{\partial^2 t} - E \frac{\partial^2
         u}{\partial^2 x} &= 0, \text{on } \Omega \times (0, T) \\
-        u(0, t) &= g_0, \forall t \in (0, T) \\
-        u(L, t) &= g_L, \forall t \in (0, T) \\
+        u(0, t) &= 0, \forall t \in (0, T) \\
+        \rho \frac{\partial^2 u}{\partial^2 t}(L, t) &= h_L, \forall t \in (0, T) \\
+        % u(L, t) &= g_L, \forall t \in (0, T) \\
         u(x, 0) &= u_0(x), \forall x \in \Omega \\
         \frac{\partial u}{\partial t}(x, 0) &= v_0(x), \forall x \in \Omega
     \end{aligned}
     \right.
 \end{equation}
 
+where $u_0, v_0$ are the initial displacements and velocities.
 The corresponding FEM system for linear elements is given by:
 
 \begin{equation}\label{eq:fem_mech}
-    \Sigma^H_{FEM}(u_0) \quad \left \{
+    \Sigma^H_{FEM}(u_0, v_0) \quad \left \{
     \begin{aligned}
         M\ddot{d} + K d &= F \\
         d_i(0) &= u_0(x_i), i = 1,...,n \\
@@ -1031,7 +1038,33 @@ discretization with time interval $\Delta t$. The resulting difference equations
 are the following:
 
 \begin{equation}
+    \Sigma^{M, \Delta t}_{FEM}(d^0, v^0) \quad \left \{
+    \begin{aligned}
+        \tilde v^{n+1} &= v^n + \frac{1}{2} \Delta t a^n \\
+        \tilde d^{n+1} &= \tilde d^{n} + \Delta t \tilde v^{n+1} \\
+        M a^{n+1} &= F - K \tilde d^{n+1} \\
+        v^{n+1} &= \tilde v^{n+1} + \frac{1}{2} \Delta t a^{n+1} \\
+        M a^0 &= F - K d^0 \\
+    \end{aligned}
+    \right.
 \end{equation}
+
+We are interested in verifying the following specification:
+
+\begin{equation}
+\begin{aligned}
+    \phi &= \Always_{[0.001, 0.005]} \bigl( \Event_{[0, 0.002]} \forall x \in [20,
+    80]: u(x) - 3 \cdot 10^{-5} x > 0 \\
+    &\land \Event_{[0, 0.002]} \lnot \exists x
+    \in [20, 80]: u(x) - (7 \cdot 10^{-5}x - 0.5 \cdot 10^{-3}) > 0\bigr)
+\end{aligned}
+\end{equation}
+
+which reads in natural language: ``For \SI{0.004}{\second} since
+\SI{0.001}{\second}, within intervals of \SI{0.002}{\second} the displacements
+at every point between lengths \SI{20}{} and \SI{80}{} are above the profile
+$\mu_1(x) = 3 \cdot 10^{-5} x$ and below the profile $\mu_2(x) = 7 \cdot 10^{-5} x
+- 0.5 \cdot 10^{-3}$."
 
 \section{Conclusion}
 \label{sec:conclusion}
