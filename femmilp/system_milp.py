@@ -45,9 +45,9 @@ def rh_system_sat(system, d0, N, spec, thunk=None):
         logger.debug("Optimizing")
         m.optimize()
         logger.debug("Finished optimizing")
-        # if j == 0:
-        #     for v in m.getVars():
-        #         print v
+        if j == 0:
+            for v in m.getVars():
+                print v
 
         if m.status != milp.GRB.status.OPTIMAL:
             logger.warning("MILP returned status: {}".format(m.status))
@@ -140,7 +140,7 @@ class SysSignal(stl.Signal):
             self.labels = [(lambda t, i=i: milp.label("d", self.index + i, t)) for i in range(2)]
 
         self.f = _Build_f(p, op, isnode)
-        self.bounds = [-10000, 10000] #FIXME
+        self.bounds = [-10, 10] #FIXME bounds
 
     # eps :: index -> isnode -> d/dx mu -> pert
     def perturb(self, eps):
@@ -179,5 +179,5 @@ def expr_parser():
     return expr
 
 def stl_parser():
-    stl_parser = MatchFirst(stl.stl_parser(expr_parser(), False))
+    stl_parser = MatchFirst(stl.stl_parser(expr_parser(), True))
     return stl_parser
