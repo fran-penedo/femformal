@@ -1,0 +1,589 @@
+\documentclass{article}
+\usepackage{color}
+\usepackage{graphicx}
+\usepackage[caption=false]{subfig}
+\usepackage{amsmath}
+\allowdisplaybreaks
+% \usepackage{amsthm}
+\usepackage{amsfonts}
+\usepackage{mathtools}
+\usepackage{siunitx}
+\usepackage[bookmarks]{hyperref}
+\usepackage[capitalize]{cleveref}
+\usepackage[utf8]{inputenc}
+\usepackage{algpseudocode}
+\usepackage{algorithm}
+
+\graphicspath{{figures/}}
+
+% Environments
+% \newtheorem{theorem}{Theorem}
+% \newtheorem{definition}{Definition}
+% \newtheorem{problem}{Problem}
+\newtheorem{objective}{Objective}
+\newtheorem{example}{Example}
+
+\crefname{problem}{Problem}{Problems}
+\crefname{section}{Sec.}{Secs.}
+\crefname{theorem}{Thm.}{Thms.}
+\crefname{definition}{Def.}{Defs.}
+\crefname{objective}{Obj.}{Obj.}
+
+% Aliases
+
+\newcommand*{\xd}{\dot{x}}
+\newcommand*{\R}{\mathbb{R}}
+\newcommand*{\N}{\mathbb{N}}
+
+%% Temporal logic symbols
+% \newcommand{\not}{\neg}
+% \newcommand{\and}{\wedge}
+% \newcommand{\or}{\vee}
+\newcommand{\Next}{\mathbf{X}}
+\newcommand{\Always}{\mathbf{G}}
+\newcommand{\Event}{\mathbf{F}}
+\newcommand{\luntil}{\mathbf{U}}
+\newcommand{\Implies}{\Rightarrow}
+\newcommand{\Not}{\lnot}
+\newcommand{\True}{\top}
+
+% \newcommand*{\iff}{\Leftrightarrow}
+
+\newcommand*{\psat}[1]{[[#1]]}
+
+\newcommand*{\fran}[1]{\textcolor{blue}{#1}}
+
+\begin{document}
+
+\section{Introduction}
+\label{sec:introduction}
+
+In the field of formal methods, a wide variety of system models are analyzed 
+against a formal specification, commonly represented as a temporal logic
+formula, with the goal of verifying whether the specification is satisfied, or
+synthesizing controls that guarantee that such is the case. In the literature,
+several tools and algorithms have been proposed for systems modeled as
+finte-state transition systems, linear and non-linear Ordinary Differential
+Equations (ODEs) and hybrid systems.  However, the analysis of systems governed
+by Partial Differential Equations (PDEs) has not been attempted yet. Our goal is
+to develop tools and algorithms that address the common problems in formal
+methods for these kinds of systems.
+
+Consider, for example, a steel plate whose temperature at each point $x$ and
+time $t$ is given by $u(x, t)$. The evolution of the temperature follows the
+well-known heat equation, which is a PDE with a spatial domain defined by the
+steel plate. We want to design a control strategy
+to apply heat to the boundary of the plate in such a way that the temperature in
+the left half of the plate oscillates forever between being higher than \SI{300}{\kelvin} 
+and lower than \SI{200}{\kelvin} at all points, while the right half oscillates forever in the
+opposite way. In addition to the usual temporal operators such as ``forever", we
+also need to consider spatial operators, such as ``at all points in the left
+half of the plate".
+
+\section{Objectives}
+\label{sec:objectives}
+
+Our main objective for this project is to develop a formal methods framework for
+the verification and control of systems governed by PDEs. Our overall approach
+will consist in reducing the PDE to an ODE by applying the Finite Element Method
+(FEM), and adapting existing tools and algorithms in formal methods to be able
+to solve the resulting high-dimensional problem. This approach will constrain us
+to PDEs that the FEM method can be applied to, which is not an overly restrictive
+assumption, as all PDEs of engineering interest (Maxwell equations, Navier-Stokes equations,
+momentum equation, diffusion and heat equations, etc) meet this criteria.
+Additionally, in this project we will consider the resulting ODE to be linear,
+which constrains the physical system to linear material behavior. We will
+consider PDEs in 1D, 2D and 3D.
+
+\begin{objective} \label{obj:spec}
+    [Specification languages] We will develop formal specification languages
+    suitable for describing properties of PDE systems. The languages will be
+    able to capture both temporal and spatial features of the evolution of the
+    system.
+\end{objective}
+
+Some problems will require specification languages with certain properties, such
+as overall bounded or unbounded time, explicit time bounds for specific
+properties, discrete or continuous time semantics, stochastic properties, and
+different types of spatial features, such as extremes and averages over
+a spatial domain or universal and existential properties. We will focus on
+adding to existing temporal logics, such as LTL and STL, the necessary elements
+to describe spatial properties. 
+
+\begin{objective} \label{obj:abst_based}
+    [Abstraction-based verification and synthesis] We will develop a
+    verification and synthesis algorithm for PDE systems, with specifications
+    given in the languages proposed above, based on the construction of
+    abstractions and finite-state models.
+\end{objective}
+
+With \cref{obj:abst_based} we will extend the classical formal methods approach
+for verification and control to PDE systems. Specifically, we will translate
+our specifications to automata, build a finite-state abstraction of the PDE
+system, and solve the verification or control problem on the product between
+both. This objective presents two key challenges: first, the finite automaton
+obtained from the specification needs to represent spatial properties over
+spatial domains that are infinite sets; second, the state space of a PDE system
+is infinite-dimensional, and classical abstraction-based
+tools for ODE systems do not scale well in the number of dimensions. We will
+address these challenges by first obtaining a finite-dimensional approximation
+of the PDE system using the FEM, and then exploiting its special coupled
+structure to work with lower-dimensional systems.
+
+\begin{objective} \label{obj:opt_based}
+    [Optimization-based verification and synthesis] We will develop a
+    verification and synthesis algorithm for PDE systems based on optimization
+    techniques and receding horizon control.
+\end{objective}
+
+For this objective, we will build upon the recent advances in optimal control
+for linear systems with temporal logic constraints. We will develop a mixed
+integer linear encoding for both the PDE system and the specification, which we can then solve
+for a variety of cost functions, such as energy spent or robustness of the
+specification. In this approach, both the system trajectory and the
+specification need to be discretized in space and time so they can be encoded 
+as MILP constraints.
+The main challenge will be to apply the discretization steps in such a way that
+optimality and satisfaction guarantees obtained from the MILP apply to the PDE
+system and the given specification.
+
+We will implement our algorithms as publicly available Python packages that can
+be easily incorporated as part of other projects.
+
+\section{Significance}
+\label{sec:significance}
+
+The work proposed here will advance the state of the art in two different areas:
+the theory and application of formal methods and the analysis of PDEs.
+
+Regarding the field of formal methods, this work will extend the work done in
+the formulation and solution of
+verification and synthesis problems that have been considered in the literature for a
+large class of systems, including finite-state systems, linear and non-linear
+ODE systems and hybrid systems. The proposed research will add a new class of
+systems never considered before: those governed by PDEs. Our approach will also
+require the adaptation of existing tools and algorithms used in the analysis of
+ODE systems, which will improve their scalability with the number of dimensions
+of the system.
+
+On the side of the analysis of PDEs, this work will allow the automatic
+verification and design of systems
+with complex specifications stated in a high-level and user-friendly language.
+This process is also guaranteed to be correct.
+
+\section{Research Plan}
+\label{sec:research_plan}
+
+\subsection{Specification Language}
+\label{sub:specification_language}
+
+In order to satisfy \cref{obj:spec}, our specification language must be able to
+describe spatial properties of the system. By spatial we mean properties about
+the state of the system in some spatial domain, such as:
+
+\begin{itemize}
+    \item The left half of a plate has a temperature above \SI{100}{\kelvin}
+    \item The maximum displacement of a truss at the mid third of its
+        length is less than \SI{2}{\cm}
+\end{itemize}
+
+We propose these properties to be encoded as simple predicates to be used as
+part of already defined temporal logics, such as LTL or STL. A possible
+definition would be the following: consider
+each predicate $\lambda$ to be defined as a tuple $(Q_\lambda,
+X_\lambda, \mu_\lambda)$ and represented using the syntax 
+$Q_\lambda x \in X_\lambda : u(x) - \mu_\lambda(x) > 0$, with:
+
+\begin{itemize}
+    \item $Q_\lambda \in \{\forall, \exists\}$ the spatial quantifier,
+    \item $X_\lambda$ the spatial domain of the predicate, which is a subset of
+        the domain of the PDE
+    \item $\mu_\lambda : X_\lambda \to \R$ a continuous and differentiable function 
+        representing the reference profile.
+\end{itemize}
+
+The satisfaction of a
+predicate with respect to the continuous-time trajectory of a PDE system,
+$u(x,t)$, at time $t \in \R$ is defined as $u[t] \models \lambda_i \iff 
+u(x, t) - \mu_\lambda(x) > 0$ for all $x \in X_\lambda$ if $Q_\lambda = \forall$ 
+or for some $x \in X_\lambda$ otherwise.
+
+These predicates are of particular interest, since they resemble first order
+logic formulas and can be immediately used as part of LTL or STL formulae. In the
+case of STL, we can easily define quantitative semantics, with the robustness $r$
+of a predicate $\lambda$ being $r(\lambda_\lambda,u, t) = 
+\min_{x \in X_\lambda} u(x, t)$ if $Q_\lambda = \forall$ and
+$r(\lambda_\lambda,u, t) = \max_{x \in X_\lambda} u(x, t)$ otherwise.
+
+Note that a similar approach can be used for similarly structured properties.
+Indeed, the predicate $\exists x \in X: u(x) - \mu(x) > 0$ is equivalent to
+$\max_{x \in X} (u(x) - \mu(x)) > 0$, and, more generally, we can write the 
+predicate in functional form as $F_{X, \mu}(u) > 0$. From the point of view of
+defining a specification language, there is no 
+restriction on the type of functionals one can use to define predicates.
+However, the verification and control synthesis algorithms that we will design
+will impose certain limits, particularly the ability to "discretize" the
+functional.
+
+\begin{example}
+    \label{ex:stl}
+
+    Consider the following formula in STL for a heat equation with a single predicate
+    $\lambda = (Q = \forall, X = [8, 9], \mu(x) = -(28x - 192))$, which we 
+    represent using the syntax:
+
+    \begin{equation}
+        \psi = \Always_{[1,10]} \forall x \in [8,9] : u(x) - (28x - 192) > 0
+    \end{equation}
+
+    The specification reads in natural language: ``Always between 1 and 10 time
+    units, at all points in a rod between lengths 8 and 9, the temperature
+    profile is above the profile $\mu(x) = 28x - 192$."
+
+\end{example}
+
+An alternative to the predicate based approach is to use a spatial logic that
+would allow us to describe spatial features of the system in terms of patterns.
+For example, the property "the temperature of the plate follows a checkerboard
+pattern" can be easily expressed in SpaTeL \cite{iman's work}.
+
+\subsection{Finite Element Method}
+\label{sub:Finite Element Method}
+
+We provide in this section a brief summary of the Finite Element Method (FEM).
+We present the method applied
+to a simplified heat equation, although the same technique can be applied to other
+PDEs.
+
+Let $\Omega = (0, L) \subset \R$ be an open interval representing the interior
+of a one-dimensional rod of length $L$; $\rho, c, \kappa > 0$ 
+constants denoting density, capacity and conductivity of the rod's material respectively;
+$g_0, g_L \in \R$ the boundary conditions at each end of the rod; and $u_0 :
+\Omega \rightarrow \R$ an initial value for the temperature on the rod. 
+The evolution of the temperature at
+each point in the rod can be described by a function $u : \bar \Omega \times [0,
+T] \rightarrow \R$, where $T > 0$ denotes the final time and can be infinity and
+$\bar \Omega$ is the spatial domain, such that the following initial boundary
+value problem (IBVP) is satisfied:
+
+\begin{equation}\label{eq:pde}
+    \Sigma^{H}(u_0, g) : \quad \left \{
+    \begin{aligned}
+        \rho c \frac{\partial u}{\partial t} - \kappa \frac{\partial^2
+        u}{\partial^2 x} &= 0, \text{on } \Omega \times (0, T) \\
+        u(0, t) &= g_0, \forall t \in (0, T) \\
+        u(L, t) &= g_L, \forall t \in (0, T) \\
+        u(x, 0) &= u_0(x), \forall x \in \Omega
+    \end{aligned}
+    \right.
+\end{equation}
+
+An important aspect of the FEM is the creation of a weak formulation of the
+governing PDEs in \cref{eq:pde}. The purpose in deriving a weak form is to
+reduce the second order spatial derivative of $u$ in \cref{eq:pde} to first
+derivatives so that low order (in this case, linear) polynomials can be used to
+approximate the field value $u$. We can construct a weak formulation of \cref{eq:pde} with the same set of
+solutions in the following way: let $D$ be the set of sufficiently smooth 
+real-valued functions on $\bar{\Omega} \times (0, T)$ such that all 
+$u \in D$ satisfies $u(0, t) = g_0, u(L, t) = g_L, \forall t \in (0, T)$, 
+and $V$ a similar set of time
+independent functions such that all $w \in V$ satisfies $w(0) = w(L) = 0$. 
+Find $u \in D$ such that for all $w \in V$,
+
+\begin{equation}\label{eq:weak_pde}
+    \begin{aligned}
+        &\int_{\Omega} \frac{\partial w}{\partial x} \kappa \frac{\partial
+        u}{\partial x} d \Omega + 
+        \int_{\Omega} w \rho c \frac{\partial u}{\partial t} d \Omega = 0 \\
+        &\int_{\Omega} w \rho c u(\cdot, 0) d \Omega =
+        \int_{\Omega} w \rho c u^0 d \Omega \\
+    \end{aligned}
+\end{equation}
+
+We now obtain an approximate solution to the weak formulation by considering
+\cref{eq:weak_pde} with $u$ and $w$ in subspaces of $D$ and $V$.
+
+Let $\{x_i\}_{i = 0}^{n +
+1}$, where $x_0 = 0, x_{n+1} = L, x_i \in \Omega, i = 1,...,n$, be a partition of
+$\bar\Omega$. Let $d_i(t), i = 0,...,n+1$ represent the
+temperature of the rod at node $x_i$, with $d_0(t) = g_0, d_{n+1} = g_L$ and let $d = (d_1, ..., d_n)' \in
+\R^n$. We define the following linear node shape function matrices for $i =
+0,...,n+1$:
+
+\begin{equation}
+    N_i(x) = \begin{cases}
+        \frac{x - x_{i - 1}}{x_i - x_{i - 1}} & i > 0, x \in [x_{i-1}, x_i] \\
+        \frac{x_{i+1} - x}{x_{i+1} - x_{i}} & i < n+1, x \in [x_{i}, x_{i+1}] 
+    \end{cases} 
+\end{equation}
+
+which results in the following linear interpolation of the field variable $u$ in
+terms of its nodal values $d$:
+
+\begin{equation}
+    u^d(x, t) = \sum_{i=0}^{n+1} N_i(x) d_i(t)
+\end{equation}
+
+Consider the subspaces $D^h \subset D$ and $V^h \subset V$ of linear
+interpolations defined above and time-invariant interpolations respectively.
+It can be shown that $u^d(x, t)$ is a solution of the weak formulation over the
+sets $D^h$ and $V^h$, where $d$ evolves
+according to the following linear system:
+
+\begin{equation}\label{eq:fem}
+    \Sigma^H_{FEM}(u_0, g) \quad \left \{
+    \begin{aligned}
+        \dot{d} &= A d + b(g) \\
+        d_i(0) &= u_0(x_i), i = 1,...,n
+    \end{aligned}
+    \right.
+\end{equation}
+
+In the above, $A = -M^{-1}K, b(g) = M^{-1} F(g)$ and $M, K$ and $F(g)$ are the capacity,
+stiffness and external force matrices respectively. For the sake of brevity, 
+we omit the definition of these matrices. However, we want to point out that,
+in this case, $A$ is a banded matrix of bandwidth 3. Other PDEs share a similar
+coupled structure, where the evolution of the field value at each node only
+depends on the values at adjacent nodes. Also note that the external force
+matrix depends on the boundary conditions $g$, which also holds for other types
+of (possibly time-varying) boundary conditions and other PDEs. Under the
+linearity assumption on the PDE, the resulting ODE system is linear in the
+boundary conditions, which we can view as control inputs.
+
+\subsection{Abstraction-Based Approach}
+\label{sub:abstraction_based_approach}
+
+In this approach, we are given a PDE system, $\Sigma$, and a specification in a logic based on
+LTL, $\psi$. We will define a partition of the domain of the system that is
+consistent with the predicates in $\psi$ (i.e., the boundaries of the spatial
+domains of the predicates coincide with boundaries of elements in the
+partition), and obtain the FEM system associated with the partition,
+$\Sigma_{FEM}$. This is a regular linear ODE system that can, in principle, be
+analyzed using the classical formal methods theory. In short, we consider a partition of the
+state space of $\Sigma_{FEM}$ which is used to abstract the dynamics of the
+system into a finite-state model, the Transition System (TS) $T$. Then, we obtain the
+product of $T$ with an automata representation of the specification, usually a
+Büchi automaton $B$, resulting in the automaton $P = T \times B$. The product $P$ contains all
+satisfying runs of the system when projected over $T$, and the verification or
+control problem is reduced to a model checking or synthesis problem on the automaton $P$.
+
+In order to fully convert the problem from a PDE system to the ODE system, we need a
+corresponding regular LTL formula, $\psi_{FEM}$, with predicates now denoting regions of the
+state space of $\Sigma_{FEM}$. In general, we will address this translation step
+by considering the predicates to apply only to the field values of the PDE at
+the nodes. For example, the predicate "the temperature of the plate at every
+point in region
+$X$ is less than \SI{100}{\kelvin}" would be translated to "the temperature at
+all nodes within $X$ is less than \SI{100}{\kelvin}", which defines a region in
+the state space of $\Sigma_{FEM}$ and so fits within the classic formal methods
+framework for linear systems and LTL specifications.
+
+\subsubsection{Conservative Language Translation}
+\label{ssub:Language translation}
+
+Note that in reducing the verification or control problem from a PDE system with
+an extended LTL specification to a linear ODE system with a regular LTL
+specification, we introduce an approximation error from the FEM and incur a loss of
+information from the translation of the specification. As an example of 
+the importance of the latter,
+assume we synthesize a control scheme for the boundary temperatures of a steel plate
+that satisfies the predicate above for $\Sigma_{FEM}$ by forcing the temperature
+to be \SI{99}{\kelvin} at all nodes. It is possible, however, that due to the
+dynamics of the PDE system, the temperature between nodes follows a wave pattern
+that results in the plate reaching temperatures higher than \SI{100}{\kelvin} at
+some points. 
+
+In order to ensure the specification is satisfied by the PDE system, we will
+design a translation procedure that takes into account the errors introduced by
+the FEM approximation and the loss of information incurred by the translation
+itself. The main idea will be to perturb the reference profiles of the
+predicates to account for the worst case scenario. For example, if we can
+guarantee that \SI{2}{\kelvin} is the maximum discrepancy between the real
+temperature at a point in the plate and the approximated temperature at the
+nodes, we would translate the predicate to "the temperature at all nodes within
+$X$ is less than \SI{98}{\kelvin}". Note that the problem of how to perturb the
+predicates in order to guarantee the satisfaction of the PDE system is not
+trivial. For example, if the predicate was under a negation operator in the
+specification, we would need to perturb it in the opposite direction, i.e., the new
+reference temperature would be \SI{102}{\kelvin}. The reference profile itself
+must also be taken into account if it is not flat.
+
+The translation procedure introduces a level of conservatism that is similar to
+the conservatism present in the classical abstraction-based verification and
+control algorithms due to the quality of the partition of the state space. In
+the case of PDE systems, this conservatism appears even before we apply the
+abstraction-based algorithms, which leads to the problem of designing a ``good"
+partition of the domain of the PDE. We will investigate how the parameters of
+the PDE and the specification influence the conservatism of the translation
+procedure and we will
+draw upon the FEM literature to design a partitioning scheme that will reduce
+the conservatism to a user-defined level in terms of distance to the reference
+profiles.
+
+\subsubsection{Transition System Decomposition}
+\label{ssub:Transition System Decomposition}
+
+As we mentioned before, one of the main challenges in this approach is the high
+number of dimensions of the ODE system obtained from the FEM (which can range
+from hundreds to tens of thousands in very accurate simulations). We propose a
+decomposition method that avoids the expensive computation of the full
+TS. Assume $\Sigma_{FEM}$ is the form of \cref{eq:fem}. We partition the domain
+of the PDE in two connected sets, $L$ and $R$, which induce a partition of the state 
+variables of $\Sigma_{FEM}$ in two corresponding sets, $d_L$
+and $d_R$. We define the subsystems corresponding to each group as ODE systems
+of the form:
+
+\begin{equation}
+    \Sigma^{L}_{FEM} : \dot{d}_L = A_L d_L + A_R d_R + b_L
+\end{equation}
+
+and similarly for the $R$ subsystem. In the above, $A_L$ and $A_R$ are matrices 
+obtained from $A$
+and $b_L$ is the vector obtained from the entries of $b$ corresponding to $x_L$.
+Recall from \cref{sub:Finite Element Method} that $\Sigma_{FEM}$ has a special
+coupled structure, which implies that in the previous equation, only the rows of $A_R$
+corresponding to nodes near the boundary between $L$ and $R$ are not zero. Thus,
+we reduce the original ODE system to two (or more, if we further refine the
+partition of the domain) smaller ODE systems with some external variables.
+Assuming the external variables are constrained to a finite set (which we can
+compute by performing a reachability analysis), we abstract
+the subsystems into the transition systems $T_L$ and $T_R$.
+
+The problem is now be decomposed in two subproblems as long as we also
+decompose the specification $\psi_{FEM}$ in two subspecifications,
+$\psi_{FEM}^{L}$ and $\psi_{FEM}^{R}$, such that solving the subproblems yield a
+solution to the full problem. A naive approach would be to remove all
+predicates over variables in $d_R$ from $\psi_{FEM}$ to obtain $\psi_{FEM}^{L}$
+and viceversa. We will investigate under which conditions this approach
+allows us to lift the solutions of the subproblems to a solution of the full
+problem. We will also explore alternative specification decompositions.
+The lifting of subproblem solutions can also in itself be challenging, specially in
+control problems. In some instances, the parallel composition of the control
+strategies will be enough, but it is not clear whether this strategy will be
+even feasible in more complicated examples.
+
+\begin{example}
+    Consider the evolution of the temperature in a rod of length \SI{5}{\cm} 
+    partitioned every \SI{}{\cm} for the
+    purposes of the FEM, and let $L$ and $R$ be its left and right halves
+    respectively. The $L$ subsystem evolves according to the following equation:
+
+    \begin{equation}
+        \dot{d}_{1,2} = A_{1,2} d_{1,2} + A_3 d_3 + b_{1,2}
+    \end{equation}
+
+    and similarly for the $R$ subsystem. Assume that after we perform a reachability
+    analysis on the system, we find $d_2$ and $d_3$ to be always within the set 
+    $[10, 20]$. With this information, we can construct a TS for each subsystem
+    based on a given partition of the state space. Suppose we want to verify the
+    specification ``At all points in the rod, the temperature is always less
+    than \SI{40}{\kelvin}", which is translated to the regular LTL formula
+    $\psi_{FEM} = \Always \bigwedge_{i=1}^{4} d_i < 40$. We can verify each subsystem with
+    its corresponding subspecification, which in the case of the $L$ subsystem
+    is $\psi^L_{FEM} = \Always \bigwedge_{i=1}^{2} d_i < 40$. In this case, if
+    each subsystem satisfies its subspecification, we can conclude the full
+    system satisfies the specification.
+\end{example}
+
+\subsection{Optimization-Based Approach}
+\label{sub:optimization_based_approach}
+
+Our second approach to formal methods for PDEs will be based on optimization
+techniques. Consider that we are given a specification in a spatial extension of
+STL. We follow a procedure similar to \cref{sub:abstraction_based_approach} and
+obtain an ODE system, $\Sigma_{FEM}$, that approximates the PDE field at the nodes, and a
+translated STL formula with predicates over the state space of $\Sigma_{FEM}$.
+In order to encode the verification or control problem as an optimization
+problem, we further approximate the system with a set of difference equations
+in order to obtain a time discretization of the system for some time interval
+$\Delta t$. A theoretically
+perfect discretization for a system in the form of \cref{eq:fem} is:
+
+\begin{equation}
+    \label{eq:disc_system}
+    \Sigma_{FEM}^{\Delta t}(d(0), g) : \quad \left\{
+    \begin{aligned}
+        \tilde d^{k+1} &= \tilde A \tilde d^k + \tilde b(g) \\
+        \tilde d^0 &= d(0)
+    \end{aligned}
+    \right.
+\end{equation}
+
+where $\tilde A = e^{A \Delta t}$ and $\tilde b = - e^{A \Delta t} A^{-1} \left
+( e^{- A \Delta t} - I \right ) b$. However, in practice one needs to numerically compute the
+exponential matrices in $\tilde A$ and $\tilde b$, which introduces an
+approximation error difficult to control. As an alternative, we can use any
+numerical integration algorithm with fixed time step appropriate to the specific
+PDE system under study, several of which have been
+thoroughly analyzed in the FEM literature, such as the Newmark family. However,
+we require the difference equations to be linear.
+
+The specification $\psi_{FEM}$ must also be translated to a discrete-time
+specification, $\psi_{FEM}^{\Delta t}$, which will also be perturbed 
+to compensate the approximation error as well as the information loss. Finally,
+we can encode the evolution of the system $\Sigma_{FEM}^{\Delta t}$, as well as
+the STL formula $\psi_{FEM}^{\Delta t}$, as mixed integer linear constraints,
+following the procedure proposed in \cite{sadra's paper}. Recall that we can
+define quantitative semantics for STL using the notion of robustness of a
+specification $\phi$ with respect to a signal $\tilde d$, $r(\phi, \tilde d)$,
+which is positive if and only if $\tilde d$ satisfies $\phi$. Then, a verification problem
+for a set of initial conditions $D_0$ can be formulated as the following
+optimization problem:
+
+\begin{equation}
+    \label{eq:stl_set_opt}
+    \begin{aligned}
+        &r_m = &\min \quad &r(\psi^{\Delta t}_{FEM}, \tilde{d}) \\
+        &  &\text{s.t. } &\cref{eq:disc_system} \\
+        &  & &d(0) \in D_0
+    \end{aligned}
+\end{equation}
+
+where the system satisfies the specification for all initial conditions in $D_0$
+if $r_m > 0$. A similar formulation will allow us to verify sets of static
+boundary conditions instead, which is a problem that naturally arises in
+mechanical systems where bodies are assumed to be initially at rest. 
+If we are instead solving a control synthesis problem where we
+consider the control inputs to be the boundary conditions, which we require to
+be within a set $G$, we reformulate it as:
+
+\begin{equation}
+    \label{eq:stl_ctrl_opt}
+    \begin{aligned}
+        &r_M = &\max \quad &r(\psi^{\Delta t}_{FEM}, \tilde{d}) \\
+        &  &\text{s.t. } &\cref{eq:disc_system} \\
+        &  & &g^k \in G
+    \end{aligned}
+\end{equation}
+
+where the synthesized controls satisfy the specification if $r_M > 0$.
+Similarly, an optimal control problem with input step-cost $c$ can be formulated
+as follows:
+
+\begin{equation}
+    \label{eq:stl_opt_ctrl_opt}
+    \begin{aligned}
+        &  &\min \quad &\sum_i c(g^i) \\
+        &  &\text{s.t. } &\cref{eq:disc_system} \\
+        &  & &r(\psi^{\Delta t}_{FEM}, \tilde{d}) > 0\\
+        &  & &g^k \in G
+    \end{aligned}
+\end{equation}
+
+Note that the final time for the optimization problems is given by the temporal
+horizon of the specification, i.e., the maximum time required to decide over the
+satisfaction of the specification. If the horizon is too long, a receding
+horizon scheme can be employed, with the usual challenges of convergence to the
+optimal solution, terminal constraints and recursive feasibility.
+
+Some of the general challenges that we will need to address with this approach will be
+the relationship between the optimal cost for the discretized system and the PDE
+system, as well as the computational complexity to solve the optimization
+problem. Regarding the latter, an important observation is the partition of the
+PDE domain does not only influence the complexity directly through the resulting
+dimension of the FEM system, but also through the choice of $\Delta t$, which is
+usually required to be smaller as the size of the partition decreases. We will
+consider this observation as part of the design of the partition, analyzing the
+tradeoff between complexity and conservatism.
+
+\end{document}
