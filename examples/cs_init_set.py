@@ -46,9 +46,10 @@ nu = [ 0.        ,  0.39831978,  0.77791517,  1.1143266 ,  1.39081859,
 pset = np.array([[1, 0, 9], [-1, 0, -9], [0, 1, 13.0], [0, -1, -5.0]])
 f = lambda x, p: p[0] * x + p[1]
 
-system, xpart, _ = heatlinfem(N, L, T)
+system = heatlinfem(N, L, T, dt)
+system = system.to_canon()
 
-cs = fem.build_cs(system, xpart, dt, None, T, cregions,
+cs = fem.build_cs(system, None, T, cregions,
                   cspec, eps=eps, eta=eta, nu=nu, pset=pset, f=f)
 
 print "loaded cs"

@@ -29,8 +29,8 @@ vset = np.array([[1, 0, 0], [-1, 0, 0], [0, 1, 10.0], [0, -1, 0]])
 fd = lambda x, p: p[0] * x + p[1]
 fv = lambda x, p: p[0] * x + p[1]
 
-sosys = mechlinfem.mechlinfem(xpart, rho, E, g, f_nodal)
-cs = fem.build_cs(sosys, xpart, dt, None, g, cregions, cspec,
+sosys = mechlinfem.mechlinfem(xpart, rho, E, g, f_nodal, dt)
+cs = fem.build_cs(sosys, None, g, cregions, cspec,
                   discretize_system=False, pset=[dset, vset], f=[fd,fv])
 cs.thunk = {'dt': cs.dt}
 cs.dsystem = cs.system

@@ -113,7 +113,7 @@ def sosys_test():
     F = np.array([1, 2])
 
     sosys = s.SOSystem(M, K, F)
-    fosys = sosys.to_fosystem()
+    fosys = sosys.to_fosystem().to_canon()
     dt = .1
     T = 10
     t_cont = np.linspace(0, T, int(T/dt) + 1)

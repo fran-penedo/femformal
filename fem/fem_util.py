@@ -6,9 +6,12 @@ import femmilp.system_milp as sysmilp
 import logging
 logger = logging.getLogger('FEMFORMAL')
 
-def build_cs(system, xpart, dt, d0, g, cregions, cspec,
+def build_cs(system, d0, g, cregions, cspec,
              pset=None, f=None, discretize_system=True, cstrue=None,
              eps=None, eta=None, nu=None):
+    dt = system.dt
+    xpart = system.xpart
+
     if discretize_system:
         dsystem = s.cont_to_disc(system, dt)
     else:
@@ -89,55 +92,135 @@ def so_lin_sample(bounds, g, xpart_x, xpart_y=None):
     else:
         return [x0, vx0]
 
+def id_sample(bounds, g, xpart_x, xpart_y=None):
+    u0, v0 = bounds
+    x0 = [u0(x) for x in xpart_x]
+    vx0 = [v0(x) for x in xpart_x]
+
+    if xpart_y is not None:
+        y0 = [u0(x) for x in xpart_y]
+        vy0 = [v0(x) for x in xpart_y]
+        return [x0, vx0], [y0, vy0]
+    else:
+        return [x0, vx0]
 
 
-def max_diff(sys, dt, xpart, g, tlims, xlims, sys_true, dt_true, xpart_true,
-             bounds, samplef=lin_sample, n=50, log=True):
+def max_diff(sys, g, tlims, xlims, sys_true,
+             bounds, sample=None, n=50, log=True):
+    if sample is None:
+        sample_ic = lin_sample
+        sample_f = None
+    else:
+        sample_ic, sample_f = sample
+
+    bounds_ic, bounds_f = bounds
+    sys_x = sys
+    sys_y = sys_true
     mdiff = 0.0
     if log:
         logger.debug("Starting max_diff")
     for i in range(n):
         if log and i % 10 == 0:
             logger.debug("Iteration: {}, mdiff = {}".format(i, mdiff))
-        x0, y0 = samplef(bounds, g, xpart, xpart_true)
-        diff = s.sys_max_diff(
-            sys, sys_true, dt, dt_true, xpart, xpart_true,
-            x0, y0, tlims, xlims)
+
+        if sample_f is not None:
+            f_nodal_x, f_nodal_y = sample_f(bounds_f, g, sys.xpart, sys_true.xpart)
+            sys_x, sys_y = sys.copy(), sys_true.copy()
+            sys_x.F = sys_x.F + f_nodal_x
+            sys_y.F = sys_y.F + f_nodal_y
+        x0, y0 = sample_ic(bounds_ic, g, sys_x.xpart, sys_y.xpart)
+
+        diff = s.sys_max_diff(sys_x, sys_y, x0, y0, tlims, xlims, plot=False)
         mdiff = max(mdiff, diff)
 
     if log:
         logger.debug("mdiff = {}".format(mdiff))
     return mdiff
 
-def max_xdiff(sys, dt, xpart, g, tlims, bounds, samplef=lin_sample, n=50, log=True):
-    mdiff = np.zeros((len(xpart) - 1,))
+def max_xdiff(sys, g, tlims, bounds, sample=None, n=50, log=True):
+    if sample is None:
+        sample_ic = lin_sample
+        sample_f = None
+    else:
+        sample_ic, sample_f = sample
+
+    bounds_ic, bounds_f = bounds
+    sys_x = sys
+    mdiff = np.zeros((len(sys.xpart) - 1,))
     if log:
         logger.debug("Starting max_xdiff")
     for i in range(n):
         if log and i % 10 == 0:
             logger.debug("Iteration: {}, mdiff = {}".format(i, mdiff))
-        x0 = samplef(bounds, g, xpart)
-        dx = s.sys_max_xdiff(sys, dt, xpart, x0, tlims)
+        if sample_f is not None:
+            f_nodal = sample_f(bounds_f, g, sys.xpart)
+            sys_x = sys.copy()
+            sys_x.F = sys_x.F + f_nodal
+        x0 = sample_ic(bounds_ic, g, sys_x.xpart)
+        dx = s.sys_max_xdiff(sys_x, x0, tlims[0], tlims[1])
         mdiff = np.max([mdiff, dx], axis=0)
 
     if log:
         logger.debug("mdiff = {}".format(mdiff))
     return mdiff
 
-def max_tdiff(sys, dt, xpart, g, tlims, bounds, samplef=lin_sample, n=50, log=True):
-    mdiff = np.zeros((len(xpart),))
+def max_tdiff(sys, dt, xpart, g, tlims, bounds, sample=None, n=50, log=True):
+    if sample is None:
+        sample_ic = lin_sample
+        sample_f = None
+    else:
+        sample_ic, sample_f = sample
+
+    bounds_ic, bounds_f = bounds
+    sys_x = sys
+    mdiff = np.zeros((len(sys.xpart),))
     if log:
         logger.debug("Starting max_tdiff")
     for i in range(n):
         if log and i % 10 == 0:
             logger.debug("Iteration: {}, mdiff = {}".format(i, mdiff))
-        x0 = samplef(bounds, g, xpart)
-        dx = s.sys_max_tdiff(sys, dt, xpart, x0, tlims)
+        if sample_f is not None:
+            f_nodal = sample_f(bounds_f, g, sys.xpart)
+            sys_x = sys.copy()
+            sys_x.F = sys_x.F + f_nodal
+        x0 = sample_ic(bounds_ic, g, sys_x.xpart)
+        dx = s.sys_max_tdiff(sys_x, x0, tlims[0], tlims[1])
         mdiff = np.max([mdiff, dx], axis=0)
 
     if log:
         logger.debug("mdiff = {}".format(mdiff))
     return mdiff
+
+def max_der_diff(sys, g, tlims, bounds, sample, n=50, log=True):
+    if sample is None:
+        sample_ic = lin_sample
+        sample_f = None
+    else:
+        sample_ic, sample_f = sample
+
+    bounds_ic, bounds_f = bounds
+    sys_x = sys
+    mdiff_x = np.zeros((len(sys.xpart) - 1,))
+    mdiff_t = np.zeros((len(sys.xpart),))
+    if log:
+        logger.debug("Starting max_der_diff")
+    for i in range(n):
+        if log and i % 10 == 0:
+            logger.debug("Iteration: {}, mdiff_x = {}".format(i, mdiff_x))
+            logger.debug("Iteration: {}, mdiff_t = {}".format(i, mdiff_t))
+        if sample_f is not None:
+            f_nodal = sample_f(bounds_f, g, sys.xpart)
+            sys_x = sys.copy()
+            sys_x.F = sys_x.F + f_nodal
+        x0 = sample_ic(bounds_ic, g, sys_x.xpart)
+        dx, dtx = s.sosys_max_der_diff(sys_x, x0, tlims)
+        mdiff_x = np.max([mdiff_x, dx], axis=0)
+        mdiff_t = np.max([mdiff_t, dtx], axis=0)
+
+    if log:
+        logger.debug("mdiff_x = {}".format(mdiff_x))
+        logger.debug("mdiff_t = {}".format(mdiff_t))
+    return mdiff_x, mdiff_t
 
 
 class CaseStudy(object):

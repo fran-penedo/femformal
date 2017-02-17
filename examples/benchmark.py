@@ -26,11 +26,7 @@ def run_cs_draw(m, args):
 def run_cs_milp(m, args):
     # logger.debug(m.system)
     start = timer()
-    if hasattr(m, 'thunk'):
-        thunk = m.thunk
-    else:
-        thunk = None
-    res = rh_system_sat(m.dsystem, m.d0, m.rh_N, m.spec, thunk)
+    res = rh_system_sat(m.dsystem, m.d0, m.rh_N, m.spec)
     finish = timer()
     print 'Res: {}'.format(res)
     print 'Time {}'.format(finish - start)
@@ -38,7 +34,7 @@ def run_cs_milp(m, args):
 def run_cs_milp_set(m, args):
     cs = m.cs
     start = timer()
-    res = rh_system_sat_set(cs.dsystem, cs.pset, cs.f, cs.xpart, cs.rh_N, cs.spec, cs.thunk)
+    res = rh_system_sat_set(cs.dsystem, cs.pset, cs.f, cs.xpart, cs.rh_N, cs.spec)
     finish = timer()
     print 'Res: {}'.format(res)
     print 'Time {}'.format(finish - start)

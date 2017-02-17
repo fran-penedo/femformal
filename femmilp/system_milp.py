@@ -15,7 +15,7 @@ logger.propagate = False
 
 logger.setLevel(logging.DEBUG)
 
-def rh_system_sat(system, d0, N, spec, thunk=None):
+def rh_system_sat(system, d0, N, spec):
     # print spec
     hd = max(0, spec.horizon())
     H = hd
@@ -30,7 +30,7 @@ def rh_system_sat(system, d0, N, spec, thunk=None):
                 m, "d", system.A, system.b, dcur, H, None)
         elif isinstance(system, sys.SOSystem):
             d = milp.add_newmark_constr_x0(
-                m, "d", system.M, system.K, system.F, dcur, thunk['dt'], H, None)
+                m, "d", system.M, system.K, system.F, dcur, system.dt, H, None)
         else:
             raise Exception(
                 "Not implemented for this class of system: {}".format(
@@ -65,7 +65,7 @@ def rh_system_sat(system, d0, N, spec, thunk=None):
 
     return fvar.getAttr("x")
 
-def rh_system_sat_set(system, pset, f, xpart, N, spec, thunk=None):
+def rh_system_sat_set(system, pset, f, xpart, N, spec):
     # print spec
     hd = max(0, spec.horizon())
     H = hd
@@ -77,7 +77,7 @@ def rh_system_sat_set(system, pset, f, xpart, N, spec, thunk=None):
             m, "d", system.A, system.b, H, xpart, pset, f)
     elif isinstance(system, sys.SOSystem):
         d = milp.add_newmark_constr_x0_set(
-            m, "d", system.M, system.K, system.F, xpart, pset, f, thunk['dt'], H)
+            m, "d", system.M, system.K, system.F, xpart, pset, f, system.dt, H)
     else:
         raise Exception(
             "Not implemented for this class of system: {}".format(
@@ -92,15 +92,16 @@ def rh_system_sat_set(system, pset, f, xpart, N, spec, thunk=None):
     logger.debug("Optimizing")
     m.optimize()
     logger.debug("Finished optimizing")
-    # if j == 0:
-    #     for v in m.getVars():
-    #         print v
+    if j == 0:
+        for v in m.getVars():
+            print v
 
     if m.status != milp.GRB.status.OPTIMAL:
         logger.warning("MILP returned status: {}".format(m.status))
         return False
     else:
         return fvar.getAttr("x")
+
 
 class ContModel(object):
     def __init__(self, model):
@@ -111,6 +112,7 @@ class ContModel(object):
         _, i, t = milp.unlabel(var_t)
         return self.model[t][i]
 
+
 def csystem_robustness(spec, system, d0, dt):
     scale_time(spec, dt)
     h = spec.horizon()
@@ -119,6 +121,7 @@ def csystem_robustness(spec, system, d0, dt):
     model = ContModel(sys.cont_integrate(system, d0[1:-1], t))
 
     return milp.robustness(spec, model)
+
 
 def _Build_f(p, op, isnode):
     if isnode:
@@ -155,6 +158,7 @@ class SysSignal(stl.Signal):
     def __repr__(self):
         return self.__str__()
 
+
 def scale_time(formula, dt):
     formula.bounds = [int(b / dt) for b in formula.bounds]
     for arg in formula.args:
@@ -163,6 +167,7 @@ def scale_time(formula, dt):
 
 def perturb(formula, eps):
     return stl.perturb(formula, eps)
+
 
 def expr_parser():
     num = stl.num_parser()

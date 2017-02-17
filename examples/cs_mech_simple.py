@@ -26,9 +26,9 @@ cspec = "G_[0.001, 0.005] (F_[0.0, 0.002] (A) & F_[0.0, 0.002] (B))"
 # cspec = "F_[{}, {}] (B)".format(54 * dt, 54 * dt + 0.002)
 # cspec = "F_[0.001, 0.02] (B)"
 
-sosys = mechlinfem.mechlinfem(xpart, rho, E, g, f_nodal)
+sosys = mechlinfem.mechlinfem(xpart, rho, E, g, f_nodal, dt)
 d0, v0 = mechlinfem.state(u0, du0, xpart, g)
-cs = fem.build_cs(sosys, xpart, dt, [d0, v0], g, cregions, cspec, discretize_system=False)
+cs = fem.build_cs(sosys, [d0, v0], g, cregions, cspec, discretize_system=False)
 
 print sosys
 print d0

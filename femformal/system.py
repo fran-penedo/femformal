@@ -10,7 +10,7 @@ logger = logging.getLogger('FEMFORMAL')
 
 class System(object):
 
-    def __init__(self, A, b, C=None):
+    def __init__(self, A, b, C=None, xpart=None, dt=1.0):
         """
         Creates the system $\dot{x} = A x + C w + b$
 
@@ -25,6 +25,8 @@ class System(object):
             self.C = np.array(C)
         else:
             self.C = np.empty(shape=(0,0))
+        self.xpart = xpart
+        self.dt = dt
 
     def subsystem(self, indices):
         i = np.array(indices)
@@ -59,25 +61,20 @@ class System(object):
         return "A:\n{0}\nb:\n{1}\nc:\n{2}".format(self.A, self.b, self.C)
 
 
-class SOSystem(object):
+class FOSystem(object):
 
-    def __init__(self, M, K, F):
+    def __init__(self, M, K, F, xpart=None, dt=1.0):
         self.M = M
         self.K = K
         self.F = F
+        self.xpart = xpart
+        self.dt = dt
 
-    def to_fosystem(self):
-        n = self.n
-        zeros = np.zeros((n, n))
-        ident = np.identity(n)
-        Maug = np.asarray(np.bmat([[ident, zeros],[zeros, self.M]]))
-        Kaug = np.asarray(np.bmat([[zeros, -ident],[self.K, zeros]]))
-        Faug = np.hstack([np.zeros(n), self.F])
-
-        A = np.linalg.solve(Maug, -Kaug)
-        b = np.linalg.solve(Maug, Faug)
+    def to_canon(self):
+        A = np.linalg.solve(self.M, -self.K)
+        b = np.linalg.solve(self.M, self.F)
         C = np.empty(shape=(0,0))
-        system = System(A, b, C)
+        system = System(A, b, C, self.xpart, self.dt)
 
         return system
 
@@ -87,6 +84,39 @@ class SOSystem(object):
 
     def __str__(self):
         return "M:\n{0}\nK:\n{1}\nF:\n{2}".format(self.M, self.K, self.F)
+
+
+class SOSystem(object):
+
+    def __init__(self, M, K, F, xpart=None, dt=1.0):
+        self.M = M
+        self.K = K
+        self.F = F
+        self.xpart = xpart
+        self.dt = dt
+
+    def to_fosystem(self):
+        n = self.n
+        zeros = np.zeros((n, n))
+        ident = np.identity(n)
+        Maug = np.asarray(np.bmat([[ident, zeros],[zeros, self.M]]))
+        Kaug = np.asarray(np.bmat([[zeros, -ident],[self.K, zeros]]))
+        Faug = np.hstack([np.zeros(n), self.F])
+
+        system = FOSystem(Maug, Kaug, Faug, self.xpart, self.dt)
+        return system
+
+    @property
+    def n(self):
+        return len(self.M)
+
+    def copy(self):
+        return SOSystem(self.M.copy(), self.K.copy(), self.F.copy(),
+                        self.xpart.copy(), self.dt)
+
+    def __str__(self):
+        return "M:\n{0}\nK:\n{1}\nF:\n{2}".format(self.M, self.K, self.F)
+
 
 def is_region_invariant(system, region, dist_bounds):
     for facet, normal, dim in facets(region):
@@ -153,7 +183,7 @@ def newm_integrate(sosys, d0, v0, T, dt=.1):
     K = sosys.K[np.ix_(n_e, n_e)]
     F = sosys.F[n_e]
 
-    its = int(T / dt)
+    its = int(round(T / dt))
     d = np.array(d0)
     v = np.array(v0)
     a = np.zeros(d.shape[0])
@@ -191,7 +221,7 @@ def diff(x, y, dtx, dty, xpart, ypart, xl, xr):
         x, y = y, x
         dtx, dty = dty, dtx
 
-    yy = y[::int(dtx / dty)]
+    yy = y[::int(round(dtx / dty))]
     xinter = linterx(x, xpart)
     yinter = linterx(yy, ypart)
     yl = bisect_left(ypart, xl)
@@ -199,10 +229,12 @@ def diff(x, y, dtx, dty, xpart, ypart, xl, xr):
     d = np.array([xinter(z) - yinter(z) for z in ypart[yl:yr]]).T
     return d
 
-def sys_diff(xsys, ysys, dtx, dty, xpart, ypart, x0, y0, tlims, xlims, plot=False):
+def sys_diff(xsys, ysys, x0, y0, tlims, xlims, plot=False):
+    dtx, dty = xsys.dt, ysys.dt
+    xpart, ypart = xsys.xpart, ysys.xpart
     t0, T = tlims
     xl, xr = xlims
-    tx = int(T / dtx)
+    tx = int(round(T / dtx))
     ty = np.linspace(0, T, int(T / dty))
     x = disc_integrate(xsys, x0[1:-1], tx)
     x = np.c_[x0[0] * np.ones(x.shape[0]), x, x0[-1] * np.ones(x.shape[0])]
@@ -214,45 +246,53 @@ def sys_diff(xsys, ysys, dtx, dty, xpart, ypart, x0, y0, tlims, xlims, plot=Fals
     if plot:
         yl = bisect_left(ypart, xl)
         yr = bisect_right(ypart, xr) - 1
-        ttx = np.linspace(0, T, int(T / dtx))
+        ttx = np.linspace(0, T, int(round(T / dtx)))
         draw.draw_pde_trajectory(x, xpart, ttx, hold=True)
         draw.draw_pde_trajectory(y, ypart, ty, hold=True)
         draw.draw_pde_trajectory(absdif, ypart[yl:yr], ttx, hold=False)
     return absdif
 
-def sosys_diff(xsys, ysys, dtx, dty, xpart, ypart, x0, y0, tlims, xlims, plot=False):
+def sosys_diff(xsys, ysys, x0, y0, tlims, xlims, plot=False):
+    dtx, dty = xsys.dt, ysys.dt
+    xpart, ypart = xsys.xpart, ysys.xpart
     t0, T = tlims
     xl, xr = xlims
     x = newm_integrate(xsys, x0[0], x0[1], T, dtx)[0]
     y = newm_integrate(ysys, y0[0], y0[1], T, dty)[0]
-    x = x[int(t0/dtx):]
-    y = y[int(t0/dty):]
+    x = x[int(round(t0/dtx)):]
+    y = y[int(round(t0/dty)):]
     absdif = np.abs(diff(x, y, dtx, dty, xpart, ypart, xl, xr))
     if plot:
         yl = bisect_left(ypart, xl)
         yr = bisect_right(ypart, xr) - 1
-        ttx = np.linspace(0, T, int(T / dtx))
-        tty = np.linspace(0, T, int(T / dty))
+        ttx = np.linspace(0, T, int(round(T / dtx)))
+        tty = np.linspace(0, T, int(round(T / dty)))
         draw.draw_pde_trajectory(x, xpart, ttx, hold=True)
         draw.draw_pde_trajectory(y, ypart, tty, hold=True)
         draw.draw_pde_trajectory(absdif, ypart[yl:yr], ttx, hold=False)
     return absdif
 
-def sys_max_diff(xsys, ysys, dtx, dty, xpart, ypart, x0, y0, tlims, xlims):
+def sys_max_diff(xsys, ysys, x0, y0, tlims, xlims, plot=False):
     if isinstance(xsys, SOSystem):
         diff_f = sosys_diff
+    elif isinstance(xsys, FOSystem):
+        diff_f = sys_diff
+        xsys = xsys.to_canon()
+        ysys = ysys.to_canon()
     else:
         diff_f = sys_diff
-    absdif = diff_f(xsys, ysys, dtx, dty, xpart, ypart, x0, y0, tlims, xlims, True)
+
+    absdif = diff_f(xsys, ysys, x0, y0, tlims, xlims, plot)
     return np.max(absdif)
 
-
-def sys_max_xdiff(sys, dt, xpart, x0, t0, T):
+def sys_max_xdiff(sys, x0, t0, T):
+    dt = sys.dt
+    xpart = sys.xpart
     # print x0
-    t = np.linspace(0, T, int(T / dt))
+    t = np.linspace(0, T, int(round(T / dt)))
     x = cont_integrate(sys, x0[1:-1], t)
     x = np.c_[x0[0] * np.ones(x.shape[0]), x, x0[-1] * np.ones(x.shape[0])]
-    x = x[int(t0/dt):]
+    x = x[int(round(t0/dt)):]
 
     # draw.draw_pde_trajectory(x, xpart, t)
 
@@ -261,33 +301,53 @@ def sys_max_xdiff(sys, dt, xpart, x0, t0, T):
 
     return mdx
 
-def sys_max_tdiff(sys, dt, xpart, x0, t0, T):
-    t = int(T / dt)
+def sys_max_tdiff(sys, x0, t0, T):
+    dt = sys.dt
+    xpart = sys.xpart
+
+    t = int(round(T / dt))
     x = disc_integrate(sys, x0[1:-1], t)
     x = np.c_[x0[0] * np.ones(x.shape[0]), x, x0[-1] * np.ones(x.shape[0])]
-    x = x[int(t0/dt):]
+    x = x[int(round(t0/dt)):]
 
     dtx = np.abs(np.diff(x, axis=0))
     mdtx = np.max(dtx, axis=0)
 
     return mdtx
 
+def sosys_max_der_diff(sys, x0, tlims):
+    x, vx = newm_integrate(sys, x0[0], x0[1], tlims[1], sys.dt)
+    x = x[int(round(tlims[0]/sys.dt)):]
+
+    dx = np.abs(np.diff(x))
+    dtx = np.abs(np.diff(x, axis=0))
+    mdx = np.max(dx, axis=0)
+    mdtx = np.max(dtx, axis=0)
+
+    return mdx, mdtx
 
 
-def draw_system_disc(sys, x0, dt, T, xpart, t0=0,
+
+def draw_system_disc(sys, x0, T, t0=0,
                      prefix=None, animate=True, allonly=False, hold=False):
-    tx = np.linspace(t0, T, int((T - t0)/dt))
-    x = disc_integrate(sys, x0[1:-1], int(T/dt))
+    dt = sys.dt
+    xpart = sys.xpart
+
+    tx = np.linspace(t0, T, int(round((T - t0)/dt)))
+    x = disc_integrate(sys, x0[1:-1], int(round(T/dt)))
     x = np.c_[x0[0] * np.ones(x.shape[0]), x, x0[-1] * np.ones(x.shape[0])]
-    x = x[int(t0/dt):]
+    x = x[int(round(t0/dt)):]
     draw.draw_pde_trajectory(x, xpart, tx, prefix=prefix,
                              animate=animate, hold=hold, allonly=allonly)
 
-def draw_sosys(sosys, d0, v0, g, T, xpart, dt=0.1, t0=0,
+def draw_sosys(sosys, d0, v0, g, T, t0=0,
                prefix=None, animate=True, allonly=False, hold=False):
-    tx = np.linspace(t0, T, int((T - t0)/dt))
+    dt = sosys.dt
+    xpart = sosys.xpart
+
+    tx = np.linspace(t0, T, int(round((T - t0)/dt)))
     d, v = newm_integrate(sosys, d0, v0, T, dt)
-    d = d[int(t0/dt):]
+    d = d[int(round(t0/dt)):]
     draw.draw_pde_trajectory(d, xpart, tx, prefix=prefix,
                              animate=animate, hold=hold, allonly=allonly)
 

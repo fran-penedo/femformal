@@ -4,7 +4,7 @@ import femformal.system as s
 import logging
 logger = logging.getLogger('FEMFORMAL')
 
-def mechlinfem(xpart, rho, E, g, f_nodal):
+def mechlinfem(xpart, rho, E, g, f_nodal, dt):
     # n_g = len([x for x in g if x is not None])
     gg = [x if x is not None else 0.0 for x in g]
     # Number of equations for n_g = 2
@@ -32,10 +32,10 @@ def mechlinfem(xpart, rho, E, g, f_nodal):
         np.diag(Koffd, -1)) * E
     F = F + f_nodal
 
-    print M.shape
-    print K.shape
-    print F.shape
-    sosys = s.SOSystem(M, K, F)
+    # print M.shape
+    # print K.shape
+    # print F.shape
+    sosys = s.SOSystem(M, K, F, xpart, dt)
     # system = sosys.to_fosystem()
 
     return sosys
