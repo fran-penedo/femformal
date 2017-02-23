@@ -188,7 +188,7 @@ textbook on FEM, such as \cite{hughes_finite_2012-1}.
 Let $\Omega = (0, L) \subset \R$ be an open interval representing the interior
 of a one-dimensional rod of length $L$; $\rho, c, \kappa > 0$ 
 constants denoting density, capacity and conductivity of the rod's material respectively;
-$g_0, g_L \in \R$ the boundary conditions at each end of the rod; and $u_0 :
+$g = (g_0, g_L) \in \R^2$ the boundary conditions at each end of the rod; and $u_0 :
 \Omega \rightarrow \R$ an initial value for the temperature on the rod. 
 The evolution of the temperature at
 each point in the rod can be described by a function $u : \bar \Omega \times [0,
@@ -197,7 +197,7 @@ $\bar \Omega$ is the spatial domain, such that the following initial boundary
 value problem (IBVP) is satisfied:
 
 \begin{equation}\label{eq:pde}
-    \Sigma^{H}(u_0) \quad \left \{
+    \Sigma^{H}(u_0, g) \quad \left \{
     \begin{aligned}
         \rho c \frac{\partial u}{\partial t} - \kappa \frac{\partial^2
         u}{\partial^2 x} &= 0, \text{on } \Omega \times (0, T) \\
@@ -261,15 +261,15 @@ sets $D^h$ and $V^h$, where $d$ evolves
 according to the following linear system:
 
 \begin{equation}\label{eq:fem}
-    \Sigma^H_{FEM}(u_0) \quad \left \{
+    \Sigma^H_{FEM}(u_0, g) \quad \left \{
     \begin{aligned}
-        \dot{d} &= A d + b \\
+        \dot{d} &= A d + b(g) \\
         d_i(0) &= u_0(x_i), i = 1,...,n
     \end{aligned}
     \right.
 \end{equation}
 
-In the above, $A = -M^{-1}K, b = M^{-1} F$ and $M, K$ and $F$ are the capacity,
+In the above, $A = -M^{-1}K, b(g) = M^{-1} F(g)$ and $M, K$ and $F$ are the capacity,
 stiffness and external force matrices respectively, which are defined as
 follows:
 
@@ -287,7 +287,7 @@ follows:
             0 & -\frac{1}{l_2} & \frac{1}{l_2} + \frac{1}{l_3} &  \cdots \\ 
             \vdots & \ddots & \ddots & \ddots 
         \end{pmatrix} \label{eq:matrices_K}\\
-        F &= \kappa \begin{pmatrix}
+        F(g) &= \kappa \begin{pmatrix}
             \frac{g_0}{l_0} \\
             0 \\
             \vdots \\
@@ -369,31 +369,31 @@ time $t$.
 
 In order to define specifications over the trajectories of PDEs, we extend
 regular STL using the following set of predicates:
-let $\Lambda = \{\lambda_i | i = 1,...,m\}$ be a set of predicates over
-a set $\bar\Omega$, where $\lambda_i$ is a predicate defined as a tuple $(Q_i, X_i, \mu_i)$, 
-and represented using the syntax $Q_i x \in X_i : u(x) - \mu_i(x) >
-0$, and:
+let $\Lambda$ be a set of predicates over
+a set $\bar\Omega$, where each predicate $\lambda \in \Lambda$ is defined as a
+tuple $(Q_\lambda, X_\lambda, \mu_\lambda)$, 
+and represented using the syntax $Q_\lambda x \in X_\lambda : u(x) - \mu_\lambda(x) >
+0$, with:
 
 \begin{itemize}
-    \item $Q_i \in \{\forall, \exists\}$ is the spatial quantifier,
-    \item $X_i \subseteq \bar\Omega$ is the spatial domain of the predicate and
+    \item $Q_\lambda \in \{\forall, \exists\}$ is the spatial quantifier,
+    \item $X_\lambda \subseteq \bar\Omega$ is the spatial domain of the predicate and
         we require it to be a closed set, and 
-    \item $\mu_i : X_i \to \R$ is a continuous and differentiable function 
+    \item $\mu_\lambda : X_\lambda \to \R$ is a continuous and differentiable function 
         representing the reference profile.
 \end{itemize}
 
-We will sometimes use $Q_\lambda, X_\lambda, \mu_\lambda$ to refer to the
-elements of the tuple representing $\lambda$. The set of predicates $\Lambda$ is
+The set of predicates $\Lambda$ is
 said to be compatible with a PDE system $\Sigma$ if $\bar\Omega$ is the spatial
 domain of the trajectories of $\Sigma$. We consider STL formulas 
 with the previously defined syntax and semantics 
 over the set of predicates $\Lambda$, where the satisfaction of a
 predicate with respect to a continuous-time signal $u : \bar\Omega \times [0, T]
-\to \R$ at time $t \in \R$ is defined as $u[t] \models \lambda_i \iff 
-u(x, t) - \mu_i(x) > 0$ for all $x \in X_i$ if $Q_i = \forall$ or for some $x \in
-X_i$ otherwise. We define the quantitative semantics as before with
-$r(\lambda_i,u, t) = \min_{x \in X_i} u(x, t)$ if $Q_i = \forall$ and
-$r(\lambda_i,u, t) = \max_{x \in X_i} u(x, t)$ otherwise.
+\to \R$ at time $t \in \R$ is defined as $u[t] \models \lambda \iff 
+u(x, t) - \mu_\lambda(x) > 0$ for all $x \in X_\lambda$ if $Q_\lambda = \forall$ or for some $x \in
+X_\lambda$ otherwise. We define the quantitative semantics as before with
+$r(\lambda,u, t) = \min_{x \in X_\lambda} (u(x, t) - \mu_\lambda(x))$ if $Q_\lambda = \forall$ and
+$r(\lambda,u, t) = \max_{x \in X_\lambda} u(x, t) - \mu_\lambda(x))$ otherwise.
 
 \begin{example}
     \label{ex:stl}
@@ -412,10 +412,10 @@ $r(\lambda_i,u, t) = \max_{x \in X_i} u(x, t)$ otherwise.
 
 \end{example}
 
-Throughout this paper, we will use the notation $S(s_0) \models \psi$ to denote
+Throughout this paper, we will use the notation $S(s_0, g) \models \psi$ to denote
 that the trajectory of system $S$ (either a PDE system or its corresponding FEM
-system) with initial condition $s_0$ satisfies formula $\psi$ (either in regular STL or in
-STL for PDEs).
+system) with initial state $s_0$ and boundary conditions $g$ satisfies formula 
+$\psi$ (either in regular STL or in STL for PDEs).
 
 \section{Problem Formulation}
 \label{sec:problem_formulation}
@@ -439,6 +439,18 @@ in a set:
     Given a PDE system $\Sigma$, an STL formula over $\Lambda$, $\psi$, and a set of initial states
     $U_0$, check whether the trajectory of $\Sigma$ satisfies $\psi$ 
     for any initial state $u_0 \in U_0$.
+\end{problem}
+
+Finally, we can also formulate a verification problem for PDEs with static
+boundary conditions contained in a set. For the sake of clarity, we will not
+formulate this problem in its most general form, as the notation required for
+the boundary conditions becomes cumbersome.
+
+\begin{problem}
+    Given a PDE system $\Sigma$, an STL formula over $\Lambda$, $\psi$, an
+    initial state $u_0$, and a set of boundary conditions $G$, check whether the
+    system $\Sigma(u_0, g)$ satisfies $\psi$ for any boundary conditions $g \in
+    G$.
 \end{problem}
 
 Even though the formulation is general for any PDE, in what follows we make two
@@ -494,10 +506,11 @@ $|u(x, t) - u^d(x, t)| \leq \epsilon(x, t)$.
 
 \begin{definition}
 \label{def:m_perturbation}
-    Let $\lambda \in \Lambda$ be the predicate represented by the tuple $(Q, X,
-    \mu)$ and let $f : \bar\Omega \to \R$ be a continuous function. The perturbation of
-    $\lambda$ by $f$, $\lambda^f$, is the predicate given by the tuple $(Q, X,
-    \mu^f)$, where $\mu^f(x, u) = \mu(x, u) + f(x)$.
+    Let $\lambda \in \Lambda$ be a predicate
+    and let $f : \bar\Omega \to \R$ be a continuous and differentiable function. The perturbation of
+    $\lambda$ by $f$, $\lambda^f$, is the predicate given by the tuple
+    $(Q_\lambda, X_\lambda,
+    \mu^f_\lambda)$, where $\mu^f_\lambda(x, u) = \mu_\lambda(x, u) + f(x)$.
 \end{definition}
 
 \begin{definition}
@@ -685,16 +698,16 @@ equation:
 
 \begin{equation}
     \label{eq:disc_system}
-    \Sigma_{FEM}^{\Delta t}(d(0)) \quad \left\{
+    \Sigma_{FEM}^{\Delta t}(d(0), g) \quad \left\{
     \begin{aligned}
-        \tilde d^{k+1} &= \tilde A \tilde d^k + \tilde b \\
+        \tilde d^{k+1} &= \tilde A \tilde d^k + \tilde b(g) \\
         \tilde d^0 &= d(0)
     \end{aligned}
     \right.
 \end{equation}
 
-where $\tilde A = e^{A \Delta t}$ and $\tilde b = - e^{A \Delta t} A^{-1} \left
-( e^{- A \Delta t} - I \right ) b$. Note that, in theory, $d(k \Delta t) = \tilde d^k,
+where $\tilde A = e^{A \Delta t}$ and $\tilde b(g) = - e^{A \Delta t} A^{-1} \left
+( e^{- A \Delta t} - I \right ) b(g)$. Note that, in theory, $d(k \Delta t) = \tilde d^k,
 \forall k \in \N$. However, in practice one needs to numerically compute the
 exponential matrices in $\tilde A$ and $\tilde b$, which introduces an
 approximation error difficult to control. As an alternative, we can use any
@@ -802,7 +815,7 @@ We can reformulate \cref{pr:stl_set} as the following optimization problem:
     \end{aligned}
 \end{equation}
 
-If $r_m > 0$, then $\psi$ is satisfied in the initial set $U_0$. This
+If $r_m > 0$, then $\psi$ is satisfied for the initial set $U_0$. This
 optimization problem is clearly non-convex, due to the $\max$ and $\min$
 operators present in the definition of robustness, and the objective function is
 non-differentiable. However, we can apply the technique described in
@@ -811,6 +824,26 @@ represent robustness as mixed-integer linear constraints. On the other hand, the
 system dynamics are linear and we assume the initial set can be represented as
 linear constraints over $\tilde{d}^0$. Therefore, \cref{eq:stl_set_opt} is a
 MILP.
+
+A solution to \cref{pr:stl_bound_set} can be found with a similar optimization
+problem:
+
+\begin{equation}
+    \label{eq:stl_bound_set_opt}
+    \begin{aligned}
+        &r_m = &\min \quad &r(\psi^{\delta, \eta, \nu}_{FEM}, \tilde{d}, 0) \\
+        &  &\text{s.t. } &\cref{eq:disc_system} \\
+        &  & &u^{\tilde{d}}(\cdot, 0) = u_0 \\
+        &  & &g \in G \end{aligned}
+\end{equation}
+
+In this case, we need $G$ to be polytopic for the previous optimization problem
+to be a MILP. Note that we can combine \cref{eq:stl_set_opt,eq:stl_bound_set_opt} in order to
+solve a problem with both sets of initial states and sets of boundary
+conditions. In general, we can use \cref{eq:stl_bound_set_opt} with any time-independent 
+parameter in the PDE that appears
+as an independent term in the FEM system (with respect to other unknowns). We
+present an example in \cref{sub:linear_elasticity} for a second order PDE.
 
 The computational time needed to solve a MILP grows exponentially with 
 the number of binary variables. In our encoding, we introduce one
@@ -1000,11 +1033,11 @@ negative, since we cannot guarantee their non-satisfaction.
 \label{sub:linear_elasticity}
 
 Consider a steel rod of length $L = \SI{100}{}$, density $\rho = \SI{7.24e-4}{}$ and Young's
-modulus $E = \SI{30e6}{}$ with one end fixed and a force of $h_L = \SI{1000}{}$ applied to the
+modulus $E = \SI{30e6}{}$ with one end fixed and a force $h_L$ applied to the
 other end. The displacement $u(x, t)$ of the rod follows the following IBVP:
 
 \begin{equation}\label{eq:pde_mech}
-    \Sigma^{M}(u_0, v_0) \quad \left \{
+    \Sigma^{M}(u_0, v_0, h_L) \quad \left \{
     \begin{aligned}
         \rho \frac{\partial^2 u}{\partial^2 t} - E \frac{\partial^2
         u}{\partial^2 x} &= 0, \text{on } \Omega \times (0, T) \\
@@ -1021,16 +1054,17 @@ where $u_0, v_0$ are the initial displacements and velocities.
 The corresponding FEM system for linear elements is given by:
 
 \begin{equation}\label{eq:fem_mech}
-    \Sigma^H_{FEM}(u_0, v_0) \quad \left \{
+    \Sigma^M_{FEM}(u_0, v_0, h_L) \quad \left \{
     \begin{aligned}
-        M\ddot{d} + K d &= F \\
+        M\ddot{d} + K d &= F + F_{nodal}(h_L) \\
         d_i(0) &= u_0(x_i), i = 1,...,n \\
         \dot{d}_i(0) &= v_0(x_i), i = 1,...,n
     \end{aligned}
     \right.
 \end{equation}
 
-where $M, K, F$ are the mass, stiffness and force matrices, respectively, and
+where $F_{nodal}(h_L) = (0, 0, ..., 0, h_L)^T$ is the nodal force vector, and $M, K, F$ 
+are the mass, stiffness and force matrices, respectively, and
 they have the same expressions as in
 \cref{eq:matrices_M,eq:matrices_K,eq:matrices_F}, with $c = 1, \kappa = E$.
 For this example, we use the central differences algorithm to obtain a time
@@ -1038,22 +1072,36 @@ discretization with time interval $\Delta t$. The resulting difference equations
 are the following:
 
 \begin{equation}
-    \Sigma^{M, \Delta t}_{FEM}(d^0, v^0) \quad \left \{
+    \Sigma^{M, \Delta t}_{FEM}(d^0, v^0, h_L) \quad \left \{
     \begin{aligned}
         \tilde v^{n+1} &= v^n + \frac{1}{2} \Delta t a^n \\
         \tilde d^{n+1} &= \tilde d^{n} + \Delta t \tilde v^{n+1} \\
-        M a^{n+1} &= F - K \tilde d^{n+1} \\
+        M a^{n+1} &= F + F_{nodal}(h_L) - K \tilde d^{n+1} \\
         v^{n+1} &= \tilde v^{n+1} + \frac{1}{2} \Delta t a^{n+1} \\
-        M a^0 &= F - K d^0 \\
+        M a^0 &= F + F_{nodal}(h_L) - K d^0 \\
     \end{aligned}
     \right.
 \end{equation}
 
-We are interested in verifying the following specification:
+A classical engineering problem related to the safety of this system is to
+verify that the maximum displacements at all points in the rod do not exceed a
+safe profile. We formulate an STL specification that captures the behavior in
+the following way:
+
+\begin{equation}
+    \phi_1 = \Always_{[0.001, 0.005]} \lnot \exists x \in [20, 80]: u(x) - 7 \cdot
+    10^{-5} x - 10^{-3} > 0
+\end{equation}
+
+We solve the verification problem assuming the rod starts at rest ($u_0 = 0,
+v_0 = 0$) and the foce $h_L$ is contained in the set $[900, 1100]$.
+
+We also consider a more complicated specification that refers to the periodic
+behavior of the system:
 
 \begin{equation}
 \begin{aligned}
-    \phi &= \Always_{[0.001, 0.005]} \bigl( \Event_{[0, 0.002]} \forall x \in [20,
+    \phi_2 &= \Always_{[0.001, 0.005]} \bigl( \Event_{[0, 0.002]} \forall x \in [20,
     80]: u(x) - 3 \cdot 10^{-5} x > 0 \\
     &\land \Event_{[0, 0.002]} \lnot \exists x
     \in [20, 80]: u(x) - (7 \cdot 10^{-5}x - 0.5 \cdot 10^{-3}) > 0\bigr)
