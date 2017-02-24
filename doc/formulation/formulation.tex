@@ -1093,9 +1093,6 @@ the following way:
     10^{-5} x - 10^{-3} > 0
 \end{equation}
 
-We solve the verification problem assuming the rod starts at rest ($u_0 = 0,
-v_0 = 0$) and the foce $h_L$ is contained in the set $[900, 1100]$.
-
 We also consider a more complicated specification that refers to the periodic
 behavior of the system:
 
@@ -1113,6 +1110,39 @@ which reads in natural language: ``For \SI{0.004}{\second} since
 at every point between lengths \SI{20}{} and \SI{80}{} are above the profile
 $\mu_1(x) = 3 \cdot 10^{-5} x$ and below the profile $\mu_2(x) = 7 \cdot 10^{-5} x
 - 0.5 \cdot 10^{-3}$."
+
+We solve the verification problem assuming the rod starts at rest ($u_0 = 0,
+v_0 = 0$) and the foce $h_L$ is contained in the set $[900, 1100]$. We show in
+\cref{fig:bounds_mech} the bounds used for $\delta, \eta$ and $\nu$ for a
+uniform mesh of size $h=5$ and time interval $\Delta t = \frac{h}{\sqrt{E
+/ \rho}} = \SI{2.46e-5}{\second}$. The two trajectories
+obtained for the extreme values of $h_L$, along with the profiles used in the
+specification $\phi_2$ are depicted in \cref{fig:}. We summarize our results in \cref{tab:}.
+
+\begin{figure}
+    \centering
+    \begin{minipage}[c]{0.4\textwidth}
+        \includegraphics[width=\textwidth]{figures/pert_plot_mech.png}
+    \end{minipage}\hfill
+    \begin{minipage}[c]{0.6\textwidth}
+        \caption{$\delta$, $\eta$ and $\nu$ bounds used in the perturbation terms}
+        \label{fig:bounds_mech}
+    \end{minipage}
+\end{figure}
+
+\begin{figure}[!t]
+    \centering 
+    \subfloat[$h_L = 1100$]{\label{fig:mech_plots_a}
+        \includegraphics[width=0.49\textwidth]{figures/mech_plots1.png}}
+        \hfill
+    \subfloat[$a = 5.0, b = 20.0 $]{\label{fig:mech_plots_b}
+        \includegraphics[width=0.49\textwidth]{figures/mech_plots2.png}}
+        \hfill
+        \caption{Two sample trajectories of $u^d(x, t)$ using a mesh of size
+        $h=0.2$ and the reference profiles $\mu_1 = 9x$ and $\mu_2 = 9x + 15$}
+    \label{fig:ex2_evolution}
+\end{figure}
+
 
 \section{Conclusion}
 \label{sec:conclusion}
