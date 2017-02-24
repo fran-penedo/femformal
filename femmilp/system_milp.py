@@ -38,11 +38,13 @@ def rh_system_sat(system, d0, N, spec):
         logger.debug("Adding STL constraints")
         fvar, vbds = milp.add_stl_constr(m, "spec", spec)
         # m.addConstr(fvar >= 0)
-        m.params.outputflag = 0
+        # m.params.outputflag = 0
         m.update()
         # if j == 0:
         #     m.write("out.lp")
-        logger.debug("Optimizing")
+        logger.debug(
+            "Optimizing MILP with {} variables ({} binary) and {} constraints".format(
+                m.numvars, m.numbinvars, m.numconstrs))
         m.optimize()
         logger.debug("Finished optimizing")
         if j == 0:
@@ -85,16 +87,16 @@ def rh_system_sat_set(system, pset, f, xpart, N, spec):
     logger.debug("Adding STL constraints")
     fvar, vbds = milp.add_stl_constr(m, "spec", spec)
     fvar.setAttr("obj", 1.0)
-    m.params.outputflag = 0
+    # m.params.outputflag = 0
     m.update()
-    # if j == 0:
-    #     m.write("out.lp")
-    logger.debug("Optimizing")
+    m.write("out.lp")
+    logger.debug(
+        "Optimizing MILP with {} variables ({} binary) and {} constraints".format(
+            m.numvars, m.numbinvars, m.numconstrs))
     m.optimize()
     logger.debug("Finished optimizing")
-    if j == 0:
-        for v in m.getVars():
-            print v
+    # for v in m.getVars():
+    #     print v
 
     if m.status != milp.GRB.status.OPTIMAL:
         logger.warning("MILP returned status: {}".format(m.status))

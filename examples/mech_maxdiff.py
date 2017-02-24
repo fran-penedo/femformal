@@ -13,6 +13,7 @@ g = [0.0, None]
 fs_nodal = [np.zeros(N + 1) for N in Ns]
 # for f_nodal in fs_nodal:
 #     f_nodal[-1] = 1000.0
+# dt = 5.0 / np.sqrt(E/rho)
 dt = 5.0 / np.sqrt(E/rho)
 u0 = lambda x: 0.0
 v0 = lambda x: 0.0

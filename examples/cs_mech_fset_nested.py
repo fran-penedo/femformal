@@ -17,10 +17,10 @@ dt = 5.0 / np.sqrt(E / rho)
 # du0 = lambda x: 0.0
 
 apc1 = logic.APCont([20, 80], 1, lambda x: 3e-3 * x / 100 , lambda x: 3e-5)
-apc2 = logic.APCont([20, 80], 1, lambda x: 7e-3 * x / 100 + 1.0e-3, lambda x: 7e-5)
+apc2 = logic.APCont([20, 80], 1, lambda x: 7e-3 * x / 100 - 1.5e-3, lambda x: 7e-5)
 cregions = {'A': apc1, 'B': apc2}
 
-cspec = "G_[0.001, 0.005] (B)"
+cspec = "G_[0.001, 0.005] (F_[0.0, 0.002] (A) & F_[0.0, 0.002] (B))"
 
 eps = 9.6884306133304676e-16
 
@@ -44,5 +44,5 @@ ff = lambda x, p: 0.0 if x < L else p[0]
 sosys = mechlinfem.mechlinfem(xpart, rho, E, g, f_nodal, dt)
 cs = fem.build_cs(sosys, None, g, cregions, cspec,
                   discretize_system=False, pset=[dset, vset, fset], f=[fd,fv,ff],
-                  eps=eps, eta=eta, nu=None)
+                  eps=None, eta=None, nu=None)
 cs.dsystem = cs.system

@@ -11,13 +11,13 @@ E = 30e6
 xpart = np.linspace(0, L, N + 1)
 g = [0.0, None]
 f_nodal = np.zeros(N + 1)
-f_nodal[-1] = 1000.0
+f_nodal[-1] = 1100.0
 dt = 5.0 / np.sqrt(E / rho)
 u0 = lambda x: 0.0
 du0 = lambda x: 0.0
 
 apc1 = logic.APCont([20, 80], 1, lambda x: 3e-3 * x / 100 , lambda x: 0.0)
-apc2 = logic.APCont([20, 80], -1, lambda x: 7e-3 * x / 100 - .5e-3, lambda x: 0.0)
+apc2 = logic.APCont([20, 80], -1, lambda x: 7e-3 * x / 100 + 1.0e-3, lambda x: 0.0)
 cregions = {'A': apc1, 'B': apc2}
 
 # cspec = "((F_[1, 10] (A)) & (G_[1, 10] (B)))"
@@ -36,7 +36,7 @@ print v0
 print cs.spec
 
 import matplotlib.pyplot as plt
-sys.draw_sosys(sosys, d0, v0, g, 0.01, xpart, dt=dt, animate=False, hold=True)
+sys.draw_sosys(sosys, d0, v0, g, 0.01, animate=False, hold=True)
 ax = plt.gcf().get_axes()[1]
 for apc in [apc1, apc2]:
     ax.plot(apc.A, [apc.p(x) for x in apc.A], 'b-', lw=1)
