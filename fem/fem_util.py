@@ -21,7 +21,12 @@ def build_cs(system, d0, g, cregions, cspec,
         regions = {label: logic.ap_cont_to_disc(pred, xpart)
                 for label, pred in cregions.items()}
         dspec = logic.subst_spec_labels_disc(cspec, regions)
-        spec = sysmilp.stl_parser().parseString(dspec)[0]
+        try:
+            spec = sysmilp.stl_parser().parseString(dspec)[0]
+        except Exception as e:
+            logger.exception("Error while parsing specification:\n{}\n".format(dspec))
+            raise e
+
         # if discretize_system:
         sysmilp.scale_time(spec, dt)
         md = 0.0
