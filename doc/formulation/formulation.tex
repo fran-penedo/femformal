@@ -1,4 +1,8 @@
-\documentclass[oribibl]{llncs/llncs}
+% \documentclass[oribibl]{llncs/llncs}
+\documentclass[letterpaper, 10 pt, conference]{ieeeconf/ieeeconf}
+\IEEEoverridecommandlockouts
+\overrideIEEEmargins
+
 \usepackage{color}
 \usepackage{graphicx}
 \usepackage[caption=false]{subfig}
@@ -17,15 +21,17 @@
 \graphicspath{{figures/}}
 
 % Environments
-% \newtheorem{theorem}{Theorem}
-% \newtheorem{definition}{Definition}
-% \newtheorem{problem}{Problem}
-% \newtheorem{remark}{Remark}
+\newtheorem{theorem}{Theorem}
+\newtheorem{definition}{Definition}
+\newtheorem{problem}{Problem}
+\newtheorem{remark}{Remark}
+\newtheorem{example}{Example}
 
 \crefname{problem}{Problem}{Problems}
 \crefname{section}{Sec.}{Secs.}
 \crefname{theorem}{Thm.}{Thms.}
 \crefname{definition}{Def.}{Defs.}
+\crefname{equation}{}{}
 
 % Aliases
 
@@ -51,9 +57,31 @@
 
 \newcommand*{\fran}[1]{\textcolor{blue}{#1}}
 
-\title{Placeholder}
+\title{\LARGE \bf
+Formal Verification of Spatio-Temporal Properties in Partial Differential Equations
+}
 
-% \author{Francisco Penedo\inst{1} \and Harold S. Park\inst{1} \and Calin Belta\inst{1}}
+\author{\authorblockN{Francisco Penedo}
+    \authorblockA{Division of Systems Engineering\\
+    Boston University\\
+    Email: franp@bu.edu}
+\and \authorblockN{Harold Park}
+    \authorblockA{Department of Mechanical Engineering\\
+    Boston University\\
+    Email: parkhs@bu.edu}
+\and \authorblockN{Calin Belta}
+    \authorblockA{Division of Systems Engineering\\
+    Boston University\\
+    Email: cbelta@bu.edu}
+}
+
+% \author{ \parbox{3 in}{\centering Francisco Penedo,
+%         \hspace*{ 0.5 in}}
+%         \parbox{3 in}{ \centering Harold Park,
+%         \hspace*{ 0.5 in}}
+%         \parbox{3 in}{ \centering and Calin Belta
+%         \thanks{foobar}}
+% }
 
 % \institute{
 % Boston University, Boston, MA, U.S.A.\\
@@ -63,6 +91,8 @@
 \begin{document}
 
 \maketitle
+\thispagestyle{empty}
+\pagestyle{empty}
 
 \begin{abstract}
 
@@ -78,7 +108,7 @@
     mixed-integer linear encoding is then used to solve the verification problem
     for a set of initial conditions.
     We showcase the conservatism and computational cost of the algorithm on a
-    one-dimensional heat equation.
+    one-dimensional heat equation and wave equation.
 
 \end{abstract}
 
@@ -130,7 +160,7 @@ linear- and branching-time properties over infinite time horizons. Probabilistic
 versions have been defined and used when verification is considered in a
 probabilistic way. For those applications that require explicit time
 constraints, such as scheduling or motion planning, we may express properties
-using Bounded Linear Temporal Logic (BLTL) \cite{jha_bayesian_2009-1}, Metric
+using Bounded Linear Temporal Logic (BLTL) \cite{jha_bayesian_2009}, Metric
 Temporal Logic (MTL) \cite{luo_using_2016}, 
 or Time-Window Temporal Logic (TWTL) \cite{AkVaBe-ICRA-2016}. We may additionally be interested in more
 than a binary answer to the verification problem, such as how robustly our
@@ -210,7 +240,7 @@ We provide in this section a brief summary of the Finite Element Method (FEM).
 We present the method applied
 to a simplified heat equation, although the same technique can be applied to other
 PDEs. A more detailed exposition can be found in any
-textbook on FEM, such as \cite{hughes_finite_2012-1}.
+textbook on FEM, such as \cite{hughes_finite_2000}.
 
 Let $\Omega = (0, L) \subset \R$ be an open interval representing the interior
 of a one-dimensional rod of length $L$; $\rho, c, \kappa > 0$ 
@@ -383,8 +413,8 @@ using the real valued function $r(\phi, s, t)$, which satisfies the property $s[
         &r(\phi_1 \land \phi_2, s, t) &= &\min\{r(\phi_1,s, t),
     r(\phi_2,s, t)\} \\
     &r(\phi_1 \luntil_{[a,b]} \phi_2,s, t) &= 
-    &\max_{t' \in [t+a, t+b]} \left \{ \min\{ r(\phi_2,s, t), 
-\min_{t'' \in [t, t']}\{r(\phi_1,s, t)\}\} \right \}
+    &\max_{t' \in [t+a, t+b]} \biggl\{ \min \bigl\{ r(\phi_2,s, t), \\
+    & & &\min_{t'' \in [t, t']}\{r(\phi_1,s, t)\} \bigr\} \biggr\}
     \end{aligned}
 \end{equation}
 
@@ -474,6 +504,7 @@ formulate this problem in its most general form, as the notation required for
 the boundary conditions becomes cumbersome.
 
 \begin{problem}
+\label{pr:stl_bound_set}
     Given a PDE system $\Sigma$, an STL formula over $\Lambda$, $\psi$, an
     initial state $u_0$, and a set of boundary conditions $G$, check whether the
     system $\Sigma(u_0, g)$ satisfies $\psi$ for any boundary conditions $g \in
@@ -500,7 +531,7 @@ discretization and a temporal discretization. The solution of \cref{pr:stl_set}
 involves a reformulation into an optimization problem that can be encoded as a
 mixed-integer linear program.
 
-\section{Formally Correct Discretization of STL for PDEs}
+\section{Discretization of STL for PDEs}
 \label{sec:formally_correct_discretization_of_pdestl}
 
 In this section we define a series of reformulations of an STL formula over
@@ -512,9 +543,8 @@ with minimal changes.
 
 \begin{figure}[!t]
     \centering 
-        \includegraphics[width=0.99\textwidth]{diagram.png}
-    \caption{Summary of our approach to solve the verification problem for a
-    PDE.}
+    \includegraphics[width=0.99\columnwidth]{diagram.png}
+    \caption{Summary of our approach to solve the PDE verification problem }
     \label{fig:diagram}
 \end{figure}
 
@@ -525,7 +555,7 @@ trajectory of $\Sigma$ and $u^d(x, t)$ the piecewise linear approximation
 obtained by interpolating the trajectory of $\Sigma_{FEM}$. In the following, we
 assume the partition $\{x_i\}_{i=1}^m$ is proposition preserving with respect 
 to the set of
-regions $\{X_i\}_{i = 1}^{m}$\footnote{This is well defined since the $X_i$ are
+regions $\{X_i\}_{i = 1}^{m}$\footnote{This is well defined since the $X_i$ sets are
 closed and there are a finite number of them. In higher dimensions, the
 additional requirement that $X_i$ are polytopic is required}. Suppose we are given
 an a priori bound, $\epsilon(x, t)$, on the pointwise difference between them, i.e., 
@@ -733,8 +763,8 @@ equation:
     \right.
 \end{equation}
 
-where $\tilde A = e^{A \Delta t}$ and $\tilde b(g) = - e^{A \Delta t} A^{-1} \left
-( e^{- A \Delta t} - I \right ) b(g)$. Note that, in theory, $d(k \Delta t) = \tilde d^k,
+where $\tilde A = e^{A \Delta t}$ and $\tilde b(g) = - e^{A \Delta t} A^{-1} 
+( e^{- A \Delta t} - I ) b(g)$. Note that, in theory, $d(k \Delta t) = \tilde d^k,
 \forall k \in \N$. However, in practice one needs to numerically compute the
 exponential matrices in $\tilde A$ and $\tilde b$, which introduces an
 approximation error difficult to control. As an alternative, we can use any
@@ -763,9 +793,10 @@ signal $\tilde{d}$. In particular, $\tilde{d}[t] \models \mu \iff
 \begin{theorem}
     \label{th:nu_approximation}
     If $\tilde d \models \psi^{\delta, \eta, \nu}_{FEM}$, with
+    $\nu^d_j = \max_t |\dot d_j(t)| + \epsilon^d_j$ and
     $\nu^y_e = \max_t \frac{|\dot d_e(t)| + |\dot d_{e+1}(t)|}{2} +
-    \frac{\epsilon^d_e + \epsilon^d_{e+1}}{2}$ and $\nu^d_j = \max_t
-    |\dot d_j(t)| + \epsilon^d_j$, then $d \models \psi^{\delta, \eta}_{FEM}$.
+    \frac{\epsilon^d_e + \epsilon^d_{e+1}}{2}$, then 
+    $d \models \psi^{\delta, \eta}_{FEM}$.
 \end{theorem}
 \begin{proof}
     Similar to \cref{th:eta_approximation}.
@@ -891,10 +922,7 @@ of the spatial domains and inversely proportional to the size of the partition
 In this section we solve some instances of \cref{pr:stl,pr:stl_set} and discuss
 the conservativeness of our approach as well as the computational performance.
 We implemented our framework using Python 2.7 and Gurobi 7.0 as our MILP solver.
-We ran our implementation in an Intel Core i7 at 2.4GHz and 8GB RAM. In order to
-better understand the cost of computing the STL reformulations and building the
-MILP model, we performed the robustness computations in single initial state
-problems by solving a similar MILP to \cref{eq:stl_set_opt}.
+We ran our implementation in an Intel Core i7 at 2.4GHz and 8GB RAM.
 
 \subsection{Heat Equation}
 \label{sub:heat_equation}
@@ -915,10 +943,10 @@ profile in the specification.
 \begin{figure}[!t]
     \centering 
     \subfloat[$h = 1.0$]{\label{fig:ex1_a}
-        \includegraphics[width=0.49\textwidth]{ex1_plots10.png}}
+        \includegraphics[width=0.48\columnwidth]{ex1_plots10.png}}
         \hfill
     \subfloat[$ h = 0.2$]{\label{fig:ex1_b}
-        \includegraphics[width=0.49\textwidth]{ex1_plots50.png}}
+        \includegraphics[width=0.48\columnwidth]{ex1_plots50.png}}
         \hfill
     \caption{Trajectory $u^d(x, t)$ for two mesh sizes and the reference
         temperature profile $\mu(x) = 28x - 192$. Note how the trajectory
@@ -944,10 +972,10 @@ sizes.
 \begin{figure}[!t]
     \centering 
     \subfloat[$h = 0.5$]{\label{fig:bounds_a}
-        \includegraphics[width=0.49\textwidth]{pert_plot_N20.png}}
+        \includegraphics[width=0.48\columnwidth]{pert_plot_N20.png}}
         \hfill
     \subfloat[$ h = 0.2$]{\label{fig:bounds_b}
-        \includegraphics[width=0.49\textwidth]{pert_plot_N50.png}}
+        \includegraphics[width=0.48\columnwidth]{pert_plot_N50.png}}
         \hfill
     \caption{Bounds used for $\delta$, $\eta$ and $\nu$ multiplied by their
     respective coefficients in the perturbation terms. Note that we show $\nu^d_j$ at
@@ -956,26 +984,25 @@ sizes.
 \end{figure}
 
 The robustness results are shown in \cref{tab:res_meshes}. As expected, finer meshes
-yield robustness values closer to the true robustness.
+yield robustness values closer to the true robustness (-2.7).
 
 \begin{table}
 \centering
-\begin{tabular}{|c|c|c|c|c|c|c|}
+\caption{Varying mesh size robustness results}
+\label{tab:res_meshes}
+\begin{tabular}{|c|c|c|c|c|c|}
     \hline
     $h$ & $\delta$ & $r(\psi_{FEM}^{0, 0, 0})$ & $r(\psi_{FEM}^{\delta, 0, 0})$ &
     $r(\psi_{FEM}^{\delta, \eta, 0})$ & $r(\psi_{FEM}^{\delta, \eta,
-\nu})$ & Time (s)  \\
+\nu})$ \\
     \hline
-    1 & 5.29 & 1.66 & -3.44 & -32.25 & -34.10 & 0.5 \\
-    0.5 & 1.49 & -1.57 & -2.93 & -18.61 & -20.61 & 1.5 \\
-    0.33 & 0.68 & -2.29 & -2.92 & -13.34 & -15.47 & 3.6 \\
-    0.25 & 0.37 & -2.68 & -3.03 & -10.55 & -12.72 & 5.9 \\
-    0.2 & 0.24 & -2.74 & -2.94 & -9.10 & -11.27 & 9.9 \\
+    1 & 5.29 & 1.66 & -3.44 & -32.25 & -34.10 \\
+    0.5 & 1.49 & -1.57 & -2.93 & -18.61 & -20.61 \\
+    0.33 & 0.68 & -2.29 & -2.92 & -13.34 & -15.47 \\
+    0.25 & 0.37 & -2.68 & -3.03 & -10.55 & -12.72 \\
+    0.2 & 0.24 & -2.74 & -2.94 & -9.10 & -11.27 \\
     \hline
 \end{tabular}
-\caption{Verification of a single initial value. Robustness of the true
-trajectory is -2.7}
-\label{tab:res_meshes}
 \end{table}
 
 We checked the validity of our approach as well as the degree of
@@ -1001,10 +1028,10 @@ trajectories.
 \begin{figure}[!t]
     \centering 
     \subfloat[$a = 8.5, b = 10.0$]{\label{fig:ex2_a}
-        \includegraphics[width=0.49\textwidth]{ex2_plots0.png}}
+        \includegraphics[width=0.48\columnwidth]{ex2_plots0.png}}
         \hfill
     \subfloat[$a = 5.0, b = 20.0 $]{\label{fig:ex2_b}
-        \includegraphics[width=0.49\textwidth]{ex2_plots1.png}}
+        \includegraphics[width=0.48\columnwidth]{ex2_plots1.png}}
         \hfill
         \caption{Two sample trajectories of $u^d(x, t)$ using a mesh of size
         $h=0.2$ and the reference profiles $\mu_1 = 9x$ and $\mu_2 = 9x + 15$}
@@ -1039,6 +1066,8 @@ marked as undefined satisfaction the cases in which the minimum robustness is
 negative, since we cannot guarantee their non-satisfaction.
 
 \begin{table}
+\caption{Verification of sets of initial values}
+\label{tab:res_sets}
 \centering
 \begin{tabular}{|c|c|c|c|c|}
     \hline
@@ -1052,8 +1081,6 @@ negative, since we cannot guarantee their non-satisfaction.
     $[5, 12]$ & [0, 20] & -29.6 & Undefined & 82 \\
     \hline
 \end{tabular}
-\caption{Verification of sets of initial values}
-\label{tab:res_sets}
 \end{table}
 
 \subsection{Linear Elasticity}
@@ -1154,10 +1181,10 @@ specification $\phi_2$ are depicted in \cref{fig:}. We summarize our results in 
 
 \begin{figure}
     \centering
-    \begin{minipage}[c]{0.4\textwidth}
+    \begin{minipage}[c]{0.5\columnwidth}
         \includegraphics[width=\textwidth]{figures/pert_plot_mech.png}
     \end{minipage}\hfill
-    \begin{minipage}[c]{0.6\textwidth}
+    \begin{minipage}[c]{0.5\columnwidth}
         \caption{$\delta$, $\eta$ and $\nu$ bounds used in the perturbation terms}
         \label{fig:bounds_mech}
     \end{minipage}
@@ -1166,14 +1193,14 @@ specification $\phi_2$ are depicted in \cref{fig:}. We summarize our results in 
 \begin{figure}[!t]
     \centering 
     \subfloat[$h_L = 1100$]{\label{fig:mech_plots_a}
-        \includegraphics[width=0.49\textwidth]{figures/mech_plots1.png}}
+        \includegraphics[width=0.48\columnwidth]{figures/mech_plots1.png}}
         \hfill
     \subfloat[$a = 5.0, b = 20.0 $]{\label{fig:mech_plots_b}
-        \includegraphics[width=0.49\textwidth]{figures/mech_plots2.png}}
+        \includegraphics[width=0.48\columnwidth]{figures/mech_plots2.png}}
         \hfill
         \caption{Two sample trajectories of $u^d(x, t)$ using a mesh of size
         $h=0.2$ and the reference profiles $\mu_1 = 9x$ and $\mu_2 = 9x + 15$}
-    \label{fig:ex2_evolution}
+    \label{fig:mech_evolution}
 \end{figure}
 
 
