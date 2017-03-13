@@ -85,19 +85,42 @@
 \section{Introduction}
 \label{sec:introduction}
 
-In the analysis of many engineering problems, it is important to determine
-whether, subject to a range of initial and boundary conditions, the system of
-interest satisfies certain constraints, or operates within desirable performance
-bounds. When the complexity
-and diversity of these properties increase, it is useful to state them in
-formal languages  that ensure the specification has a
-non-ambiguous meaning while being expressive enough to capture many different
-behaviors of the system. Among these, temporal logics have enjoyed some
+Partial differential equations (PDEs) model nearly all of the physical systems
+and processes of interest to scientists and engineers. Some well-known examples
+include the Navier-Stokes equation for fluid mechanics, the Maxwell equations
+for electromagnetics, the Schrödinger equation for quantum mechanics, the heat
+equation and the wave equation. The analysis of these and other PDEs has had a
+tremendous impact on sociaty by enabling our understanding of thermal,
+electrical, fluidic and mechanical processes.
+
+While a mature field, the study of PDEs is often approached from a simulation
+angle, in which approximate models obtained through spatio-temporal
+discretization techniques, such as the Finite Element Method (FEM)
+\cite{hughes_finite_2000}, are numerically integrated. These methods, however,
+do not allow for rigorous guarantees that a system satisfies a complex
+specification. These specifications are typically expressed in formal languages
+that ensure the specification has a non-ambiguous meaning while being expressive
+enough to capture many different behaviors of the system. 
+Among these, temporal logics have enjoyed some
 popularity in the fields of robotics, synthetic biology or traffic networks,
 besides their original use for digital circuits and computer programs. The
 appeal of these formalisms comes from their ability to specify time-related
 properties, the availability of verification algorithms, and their resemblance
 to natural language.
+
+% In the analysis of many engineering problems, it is important to determine
+% whether, subject to a range of initial and boundary conditions, the system of
+% interest satisfies certain constraints, or operates within desirable performance
+% bounds. When the complexity
+% and diversity of these properties increase, it is useful to state them in
+% formal languages  that ensure the specification has a
+% non-ambiguous meaning while being expressive enough to capture many different
+% behaviors of the system. Among these, temporal logics have enjoyed some
+% popularity in the fields of robotics, synthetic biology or traffic networks,
+% besides their original use for digital circuits and computer programs. The
+% appeal of these formalisms comes from their ability to specify time-related
+% properties, the availability of verification algorithms, and their resemblance
+% to natural language.
 
 Many different temporal logics have been proposed tailored to
 different kinds of verification problems and systems. Linear Temporal Logic
@@ -127,15 +150,19 @@ a mixed-integer linear encoding of the specification plus the system dynamics in
 the case of linear systems \cite{sadraddini_robust_2015}.
 
 The temporal logics discussed so far have only been applied to systems with a
-finite-dimensional state space. However, the state space of many interesting systems
-is instead a function over some domain, and its time evolution
-follows a Partial Differential Equation (PDE). In this work, we extend STL to allow
-specifications over the solutions of PDEs and formulate and solve the problem 
-of verifying a property in our extension to STL. We consider both verification
+finite-dimensional state space. However, the state of systems modeled by
+PDEs is instead a function over the PDE spatial domain, and lives in an
+infinite-dimensional function space. In this work, we extend STL to allow
+specifications over the solutions of PDEs in such a way that both temporal and
+spatial properties can be formally stated. Then, we formulate and solve the problem 
+of verifying a PDE against property in our extension to STL. We consider both verification
 with a single initial condition or with a set of initial conditions.
-Even though there exists a theory on the often related problem of optimal
-control for PDEs (see \cite{lions_optimal_1971}), to the best of our knowledge, the verification 
+To the best of our knowledge, the verification 
 of temporal properties in systems governed by a PDE has not been explored before.
+
+% Even though there exists a theory on the often related problem of optimal
+% control for PDEs (see \cite{lions_optimal_1971}), to the best of our knowledge, the verification 
+% of temporal properties in systems governed by a PDE has not been explored before.
 
 The approach we take makes use of the Finite Element Method (FEM) to
 approximate the trajectory of the PDE by an interpolation of the solution of a
@@ -1032,17 +1059,21 @@ negative, since we cannot guarantee their non-satisfaction.
 \subsection{Linear Elasticity}
 \label{sub:linear_elasticity}
 
-Consider a steel rod of length $L = \SI{100}{}$, density $\rho = \SI{7.24e-4}{}$ and Young's
-modulus $E = \SI{30e6}{}$ with one end fixed and a force $h_L$ applied to the
+Consider a steel and brass rod of length $L = \SI{100}{\m}$, the section between 
+\SI{30}{\m} and \SI{60}{\m} being brass, with densities $\rho_{steel} =
+\SI{8e3}{\kg\per\m^3}, \rho_{brass} = \SI{8.5e3}{\kg\per\m^3}$ and Young's
+modulus $E_{steel} = \SI{200}{\giga\pascal}, E_{brass} =
+\SI{100}{\giga\pascal}$,
+with one end fixed and a force $h_L$ applied to the
 other end. The displacement $u(x, t)$ of the rod follows the following IBVP:
 
 \begin{equation}\label{eq:pde_mech}
     \Sigma^{M}(u_0, v_0, h_L) \quad \left \{
     \begin{aligned}
-        \rho \frac{\partial^2 u}{\partial^2 t} - E \frac{\partial^2
-        u}{\partial^2 x} &= 0, \text{on } \Omega \times (0, T) \\
+        \rho \frac{\partial^2 u}{\partial t^2} - E \frac{\partial^2
+        u}{\partial x^2} &= 0, \text{on } \Omega \times (0, T) \\
         u(0, t) &= 0, \forall t \in (0, T) \\
-        \rho \frac{\partial^2 u}{\partial^2 t}(L, t) &= h_L, \forall t \in (0, T) \\
+        \rho \frac{\partial^2 u}{\partial t^2}(L, t) &= h_L, \forall t \in (0, T) \\
         % u(L, t) &= g_L, \forall t \in (0, T) \\
         u(x, 0) &= u_0(x), \forall x \in \Omega \\
         \frac{\partial u}{\partial t}(x, 0) &= v_0(x), \forall x \in \Omega
@@ -1050,7 +1081,8 @@ other end. The displacement $u(x, t)$ of the rod follows the following IBVP:
     \right.
 \end{equation}
 
-where $u_0, v_0$ are the initial displacements and velocities.
+where $u_0, v_0$ are the initial displacements and velocities, and $\rho, E$ are
+the density and Young's modulus of the rod at each point.
 The corresponding FEM system for linear elements is given by:
 
 \begin{equation}\label{eq:fem_mech}
@@ -1066,7 +1098,8 @@ The corresponding FEM system for linear elements is given by:
 where $F_{nodal}(h_L) = (0, 0, ..., 0, h_L)^T$ is the nodal force vector, and $M, K, F$ 
 are the mass, stiffness and force matrices, respectively, and
 they have the same expressions as in
-\cref{eq:matrices_M,eq:matrices_K,eq:matrices_F}, with $c = 1, \kappa = E$.
+\cref{eq:matrices_M,eq:matrices_K,eq:matrices_F}, with $c = 1, \kappa =
+diag(E(x_i)), \rho = diag(\rho(x_i))$.
 For this example, we use the central differences algorithm to obtain a time
 discretization with time interval $\Delta t$. The resulting difference equations
 are the following:
