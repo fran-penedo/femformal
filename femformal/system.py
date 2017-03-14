@@ -256,20 +256,26 @@ def sosys_diff(xsys, ysys, x0, y0, tlims, xlims, plot=False):
     dtx, dty = xsys.dt, ysys.dt
     xpart, ypart = xsys.xpart, ysys.xpart
     t0, T = tlims
-    xl, xr = xlims
     x = newm_integrate(xsys, x0[0], x0[1], T, dtx)[0]
     y = newm_integrate(ysys, y0[0], y0[1], T, dty)[0]
     x = x[int(round(t0/dtx)):]
     y = y[int(round(t0/dty)):]
-    absdif = np.abs(diff(x, y, dtx, dty, xpart, ypart, xl, xr))
+    if any(isinstance(xlim, list) for xlim in xlims):
+        absdif = [(xlim, diff(x, y, dtx, dty, xpart, ypart, xlim[0], xlim[1]))
+               for xlim in xlims]
+    else:
+        xl, xr = xlims
+        absdif = np.abs(diff(x, y, dtx, dty, xpart, ypart, xl, xr))
     if plot:
-        yl = bisect_left(ypart, xl)
-        yr = bisect_right(ypart, xr) - 1
         ttx = np.linspace(0, T, int(round(T / dtx)))
         tty = np.linspace(0, T, int(round(T / dty)))
         draw.draw_pde_trajectory(x, xpart, ttx, hold=True)
         draw.draw_pde_trajectory(y, ypart, tty, hold=True)
-        draw.draw_pde_trajectory(absdif, ypart[yl:yr], ttx, hold=False)
+        for xlim, dif in absdif:
+            yl = bisect_left(ypart, xlim[0])
+            yr = bisect_right(ypart, xlim[1]) - 1
+            draw.draw_pde_trajectory(dif, ypart[yl:yr], ttx, hold=True)
+        draw.plt.show()
     return absdif
 
 def sys_max_diff(xsys, ysys, x0, y0, tlims, xlims, plot=False):
@@ -283,7 +289,10 @@ def sys_max_diff(xsys, ysys, x0, y0, tlims, xlims, plot=False):
         diff_f = sys_diff
 
     absdif = diff_f(xsys, ysys, x0, y0, tlims, xlims, plot)
-    return np.max(absdif)
+    if isinstance(absdif, list):
+        return np.max([np.max(dif) for xlim, dif in absdif])
+    else:
+        return np.max(absdif)
 
 def sys_max_xdiff(sys, x0, t0, T):
     dt = sys.dt

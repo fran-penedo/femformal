@@ -88,7 +88,7 @@ def rh_system_sat_set(system, pset, f, xpart, N, spec):
     fvar, vbds = milp.add_stl_constr(m, "spec", spec)
     fvar.setAttr("obj", 1.0)
     # m.params.outputflag = 0
-    m.params.numericfocus = 3
+    # m.params.numericfocus = 3
     m.update()
     m.write("out.lp")
     logger.debug(
