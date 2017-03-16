@@ -256,7 +256,7 @@ linear program (MILP) following previously established methods.
 Our method requires the PDE to be linear, which usually constrains the
 physical system to linear material behavior. However, this assumption is
 not overly restrictive as most engineering systems are designed to operate
-within the linear material response regime \cite{}.
+within the linear material response regime.
 
 \section{Preliminaries}
 \label{sec:preliminaries}
@@ -467,7 +467,7 @@ and represented using the syntax $Q_\lambda x \in X_\lambda : u(x) - \mu_\lambda
 
 We consider STL formulas 
 with the previously defined syntax and semantics 
-over the set of predicates $\Lambda$, where the satisfaction of a
+over the set of predicates $\Lambda$, which we call Spatial-STL (S-STL). The satisfaction of a
 predicate with respect to a continuous-time signal $u : \bar\Omega \times [0, T]
 \to \R$ at time $t \in \R$ is defined as $u[t] \models \lambda \iff 
 u(x, t) - \mu_\lambda(x) > 0$ for all $x \in X_\lambda$ if $Q_\lambda = \forall$ or for some $x \in
@@ -478,7 +478,7 @@ $r(\lambda,u, t) = \max_{x \in X_\lambda} u(x, t) - \mu_\lambda(x))$ otherwise.
 \begin{example}
     \label{ex:stl}
 
-    Consider the following formula in STL for a heat equation with a single predicate
+    Consider the following formula in S-STL for a heat equation with a single predicate
     $\lambda = (Q = \forall, X = [8, 9], \mu(x) = -(28x - 192))$:
 %
     \begin{equation}
@@ -494,7 +494,7 @@ $r(\lambda,u, t) = \max_{x \in X_\lambda} u(x, t) - \mu_\lambda(x))$ otherwise.
 Throughout this paper, we will use the notation $S(s_0, g) \models \psi$ to denote
 that the trajectory of system $S$ (either a PDE system or its corresponding FEM
 system) with initial state $s_0$ and boundary conditions $g$ satisfies formula 
-$\psi$ (either in regular STL or in STL for PDEs).
+$\psi$ (either in regular STL or in S-STL).
 
 \section{Problem Formulation}
 \label{sec:problem_formulation}
@@ -555,7 +555,7 @@ mixed-integer linear program.
 \section{Discretization of STL for PDEs}
 \label{sec:formally_correct_discretization_of_pdestl}
 
-In this section we define a series of reformulations of an STL formula over
+In this section we define a series of reformulations of an S-STL formula over
 $\Lambda$ such that satisfaction of each successive reformulation guarantees the
 satisfaction of the previous one. A diagram showing the hierarchy of the
 reformulations is shown in \cref{fig:diagram}. The theory developed in this section is stated
@@ -565,7 +565,7 @@ with minimal changes.
 \begin{figure}[!t]
     \centering 
     \includegraphics[width=0.99\columnwidth]{diagram.png}
-    \caption{Summary of our approach to solve the PDE verification problem }
+    \caption{Summary of our approach to solve the PDE verification problem.}
     \label{fig:diagram}
 \end{figure}
 
@@ -593,9 +593,9 @@ $|u(x, t) - u^d(x, t)| \leq \epsilon(x, t)$.
 
 \begin{definition}
 \label{def:delta_perturbation}
-    Let $\psi$ be an STL formula over $\Lambda$ in negation normal form 
+    Let $\psi$ be an S-STL formula over $\Lambda$ in negation normal form 
     and let $\delta : \bar\Omega \to \R$ be a continuous function. The
-    conservative perturbation of $\psi$ by $\delta$, $\psi^\delta$, is an STL
+    conservative perturbation of $\psi$ by $\delta$, $\psi^\delta$, is an S-STL
     formula in negation normal form obtained by substituting every predicate
     $\lambda$ that appears in $\psi$ in the following way:
 
@@ -682,7 +682,8 @@ $\Lambda^{\delta}_{FEM}$ by a real number $k$ in a manner analogous to
 
 \begin{definition} 
 \label{def:eta_approximation}
-    The STL formula over $\Lambda^{\delta}_{FEM}$, $\psi^{\delta, \eta}_{FEM}$, corresponding to an STL
+    The STL formula over $\Lambda^{\delta}_{FEM}$, $\psi^{\delta, \eta}_{FEM}$,
+    corresponding to an S-STL
     formula in negation normal form, $\psi^\delta$, over $\Lambda^\delta$, with
     $\eta : \bar\Omega \to \R$, is a formula obtained by substituting every
     predicate $\lambda$ in $\psi^\delta$ by the formula $\bigoplus_{e \in
@@ -864,7 +865,7 @@ following observation:
     \label{th:robustness}
     If $u, u^d, d$ and $\tilde{d}$ are trajectories of $\Sigma$, interpolation
     of $\Sigma_{FEM}$, $\Sigma_{FEM}$ and $\Sigma_{FEM}^{\Delta t}$,
-    respectively, and $\psi$ is an STL formula over $\Lambda$, then the 
+    respectively, and $\psi$ is an S-STL formula over $\Lambda$, then the 
     following inequality holds:
     %
     \begin{equation}
@@ -1004,7 +1005,7 @@ sizes.
         \hfill
     \caption{Bounds used for $\delta$, $\eta$ and $\nu$ multiplied by their
     respective coefficients in the perturbation terms. Note that we show $\nu^d_j$ at
-    $x_j$ and use $\nu_e^y = \frac{\nu^d_j + \nu^d_{j+1}}{2}$}
+    $x_j$ and use $\nu_e^y = \frac{\nu^d_j + \nu^d_{j+1}}{2}$.}
     \label{fig:bounds}
 \end{figure}
 
@@ -1059,7 +1060,7 @@ trajectories.
         \includegraphics[width=0.48\columnwidth]{ex2_plots1.png}}
         \hfill
         \caption{Two sample trajectories of $u^d(x, t)$ using a mesh of size
-        $h=0.2$ and the reference profiles $\mu_1 = 9x$ and $\mu_2 = 9x + 15$}
+        $h=0.2$ and the reference profiles $\mu_1 = 9x$ and $\mu_2 = 9x + 15$.}
     \label{fig:ex2_evolution}
 \end{figure}
 
@@ -1079,7 +1080,7 @@ standard deviation of 1.00 to verify the perturbed formula.
     \includegraphics[width=0.8\linewidth]{figures/cs_ran_init_results.png}
     \caption{Difference between true robustness and robustness of the
         discretized specification with and without perturbations for
-        random initial values}
+        random initial values.}
     \label{fig:res_diffs}
 \end{figure}
 
@@ -1125,7 +1126,7 @@ other end. The displacement $u(x, t)$ of the rod follows the following IBVP:
         \rho \frac{\partial^2 u}{\partial t^2} - E \frac{\partial^2
         u}{\partial x^2} &= 0, \quad \text{on } \Omega \times (0, T) \,, \\
         u(0, t) &= 0, \quad \forall t \in (0, T) \,, \\
-        \rho \frac{\partial^2 u}{\partial t^2}(L, t) &= h_L, \quad 
+        E \frac{\partial u}{\partial x}(L, t) &= h_L, \quad 
         \forall t \in (0, T) \,, \\
         % u(L, t) &= g_L, \forall t \in (0, T) \\
         u(x, 0) &= u_0(x), \quad \forall x \in \Omega \,, \\
@@ -1153,79 +1154,78 @@ are the mass, stiffness and force matrices, respectively, and
 they have the same expressions as in
 \cref{eq:matrices_M,eq:matrices_K,eq:matrices_F}, with $c = 1, \kappa =
 diag(E(x_i)), \rho = diag(\rho(x_i))$.
-For this example, we use the central differences algorithm to obtain a time
-discretization with time interval $\Delta t$. The resulting difference equations
-are the following:
-%
-\begin{equation}
-    \Sigma^{M, \Delta t}_{FEM}(d^0, v^0, h_L) \quad \left \{
-    \begin{aligned}
-        \tilde v^{n+1} &= v^n + \frac{1}{2} \Delta t a^n \,, \\
-        \tilde d^{n+1} &= \tilde d^{n} + \Delta t \tilde v^{n+1} \,, \\
-        M a^{n+1} &= F + F_{nodal}(h_L) - K \tilde d^{n+1} \,, \\
-        v^{n+1} &= \tilde v^{n+1} + \frac{1}{2} \Delta t a^{n+1} \,, \\
-        M a^0 &= F + F_{nodal}(h_L) - K d^0 \,. \\
-    \end{aligned}
-    \right.
-\end{equation}
+For this example, we use the central differences algorithm
+\cite{hughes_finite_2000} to obtain a time
+discretization with time interval $\Delta t$. 
+
+% The resulting difference equations
+% are the following:
+% %
+% \begin{equation}
+%     \Sigma^{M, \Delta t}_{FEM}(d^0, v^0, h_L) \quad \left \{
+%     \begin{aligned}
+%         \tilde v^{n+1} &= v^n + \frac{1}{2} \Delta t a^n \,, \\
+%         \tilde d^{n+1} &= \tilde d^{n} + \Delta t \tilde v^{n+1} \,, \\
+%         M a^{n+1} &= F + F_{nodal}(h_L) - K \tilde d^{n+1} \,, \\
+%         v^{n+1} &= \tilde v^{n+1} + \frac{1}{2} \Delta t a^{n+1} \,, \\
+%         M a^0 &= F + F_{nodal}(h_L) - K d^0 \,. \\
+%     \end{aligned}
+%     \right.
+% \end{equation}
 
 A classical engineering problem related to the safety of this system is to
 verify that the maximum displacements at all points in the rod do not exceed a
-safe profile. We formulate an STL specification that captures the behavior in
-the following way:
-
-\begin{equation}
-    \phi_1 = \Always_{[0.001, 0.005]} \lnot \exists x \in [20, 80]: u(x) - 7 \cdot
-    10^{-5} x - 10^{-3} > 0
-\end{equation}
-
-We also consider a more complicated specification that refers to the periodic
-behavior of the system:
-
+safe profile. We simultaneously consider the opposite requirement (exceeding a
+target profile at some point in time) in order to show the richness of the
+specification language. The resulting S-STL formula is the following:
+%
 \begin{equation}
 \begin{aligned}
-    \phi_2 &= \Always_{[0.001, 0.005]} \bigl( \Event_{[0, 0.002]} \forall x \in [20,
-    80]: u(x) - 3 \cdot 10^{-5} x > 0 \\
-    &\land \Event_{[0, 0.002]} \lnot \exists x
-    \in [20, 80]: u(x) - (7 \cdot 10^{-5}x - 0.5 \cdot 10^{-3}) > 0\bigr)
-\end{aligned}
+    \phi &= & \Event_{[0.0, 0.3]} \big ( & \lnot \exists x \in [35, 55]: u(x) -
+        \mu_1(-1) > 0 \land \\
+    & & &\lnot \exists x \in [65, 90]: u(x) - \mu_2(-1) > 0 \big)
+    \land \\
+    & & \Event_{[0.0, 0.3]} \big ( & \forall x \in [35, 55]: u(x) - \mu_1(1.5) > 0 \land \\
+    & & & \forall x \in [65, 90]: u(x) - \mu_2(1) > 0 \big ) \,,
+    \end{aligned}
 \end{equation}
-
-which reads in natural language: ``For \SI{0.004}{\second} since
-\SI{0.001}{\second}, within intervals of \SI{0.002}{\second} the displacements
-at every point between lengths \SI{20}{} and \SI{80}{} are above the profile
-$\mu_1(x) = 3 \cdot 10^{-5} x$ and below the profile $\mu_2(x) = 7 \cdot 10^{-5} x
-- 0.5 \cdot 10^{-3}$."
-
+%
+where $\mu_1(a) = (400x + a) \cdot 10^{-3}$ and $\mu_2(a) = (200x + a) \cdot
+10^{-3}$.
 We solve the verification problem assuming the rod starts at rest ($u_0 = 0,
-v_0 = 0$) and the foce $h_L$ is contained in the set $[900, 1100]$. We show in
-\cref{fig:bounds_mech} the bounds used for $\delta, \eta$ and $\nu$ for a
-uniform mesh of size $h=5$ and time interval $\Delta t = \frac{h}{\sqrt{E
-/ \rho}} = \SI{2.46e-5}{\second}$. The two trajectories
-obtained for the extreme values of $h_L$, along with the profiles used in the
-specification $\phi_2$ are depicted in \cref{fig:}. We summarize our results in \cref{tab:}.
+v_0 = 0$) and the foce $h_L$ is contained in the set $[\SI{1900}{\newton},
+\SI{2100}{\newton}]$. We show in
+\cref{fig:mech_plots_bounds} the bounds used for $\delta, \eta$ and $\nu$ for a
+uniform mesh of size $h=5$ and time interval $\Delta t = \SI{1}{\milli\second}$. 
+The trajectory for $h_L = \SI{2000}{\newton}$ for one period, 
+along with the profiles used in the
+specification $\phi$ are depicted in \cref{fig:mech_plots_trajectory}. 
+The resulting MILP has 42033
+variables, 8404 of them binary, and 50419 constraints. It took 5341 seconds to
+solve it, resulting in a minimum robustness of 0.16, which means the
+specification is satisfied.
 
-\begin{figure}
-    \centering
-    \begin{minipage}[c]{0.5\columnwidth}
-        \includegraphics[width=\textwidth]{figures/pert_plot_mech.png}
-    \end{minipage}\hfill
-    \begin{minipage}[c]{0.5\columnwidth}
-        \caption{$\delta$, $\eta$ and $\nu$ bounds used in the perturbation terms}
-        \label{fig:bounds_mech}
-    \end{minipage}
-\end{figure}
+% \begin{figure}
+%     \centering
+%     \begin{minipage}[c]{0.5\columnwidth}
+%         \includegraphics[width=\textwidth]{figures/pert_plot_mech.png}
+%     \end{minipage}\hfill
+%     \begin{minipage}[c]{0.5\columnwidth}
+%         \caption{$\delta$, $\eta$ and $\nu$ bounds used in the perturbation terms}
+%         \label{fig:bounds_mech}
+%     \end{minipage}
+% \end{figure}
 
 \begin{figure}[!t]
     \centering 
-    \subfloat[$h_L = 1100$]{\label{fig:mech_plots_a}
-        \includegraphics[width=0.48\columnwidth]{figures/mech_plots1.png}}
+    \subfloat[]{\label{fig:mech_plots_trajectory}
+        \includegraphics[width=0.63\columnwidth]{figures/mech_plots.png}}
         \hfill
-    \subfloat[$a = 5.0, b = 20.0 $]{\label{fig:mech_plots_b}
-        \includegraphics[width=0.48\columnwidth]{figures/mech_plots2.png}}
+    \subfloat[]{\label{fig:mech_plots_bounds}
+        \includegraphics[width=0.33\columnwidth]{figures/pert_plot_mech.png}}
         \hfill
-        \caption{Two sample trajectories of $u^d(x, t)$ using a mesh of size
-        $h=0.2$ and the reference profiles $\mu_1 = 9x$ and $\mu_2 = 9x + 15$}
+        \caption{Trajectory for $h_L = \SI{2000}{\newton}$ (left) and $\delta$,
+        $\eta$ and $\nu$ bounds (right).}
     \label{fig:mech_evolution}
 \end{figure}
 
@@ -1234,7 +1234,7 @@ specification $\phi_2$ are depicted in \cref{fig:}. We summarize our results in 
 \label{sec:conclusion}
 
 In this paper, we formulated and solved a verification problem for systems governed by a
-PDE with specifications given in a novel extension to STL. Our solution relies
+PDE with specifications given in an extension to STL. Our solution relies
 on the approximation of the PDE using the Finite Element Method, which reduces
 the problem to the verification of a standard STL formula for a discrete-time
 linear system. The reformulation requires perturbing the predicates in the
@@ -1250,7 +1250,7 @@ few minutes on consumer hardware.
 
 As future work, we want to find the bounds $\delta, \eta$ and $\nu$ in a
 systematic way, either analytically or using a robust statistical method. We
-also plan to formulate and solve control problems for PDEs under STL constraints
+also plan to formulate and solve control problems for PDEs under S-STL constraints
 using a similar approach.
 
 \bibliographystyle{llncs/splncs03}
