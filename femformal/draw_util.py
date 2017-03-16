@@ -49,7 +49,7 @@ def draw_ts_2D(ts, partition, prefix=None):
 
 def draw_pde_trajectory(ds, xs, ts,
                         allonly=False, animate=True, prefix=None, hold=False,
-                        ylabel='Temperature'):
+                        ylabel='Temperature', xlabel='x'):
     global _holds
 
     d_min, d_max = np.amin(ds), np.amax(ds)
@@ -64,7 +64,7 @@ def draw_pde_trajectory(ds, xs, ts,
         ax = fig.add_subplot(111)
     ax.set_xlim(xs[0], xs[-1])
     ax.set_ylim(d_min, d_max)
-    ax.set_xlabel('x')
+    ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
 
     l, = ax.plot([], [], 'b-')
@@ -103,7 +103,7 @@ def draw_pde_trajectory(ds, xs, ts,
         for i in range(len(ts)):
             axall.plot(xs, ds[i], color=scalarmap.to_rgba(ts[i]))
         cbar = fig.colorbar(scalarmap, ax=axall)
-        cbar.set_label('Time (s)')
+        cbar.set_label('Time t (s)')
 
     _render(fig, savefun, hold)
 

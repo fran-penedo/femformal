@@ -351,7 +351,7 @@ def draw_system_disc(sys, x0, T, t0=0,
 
 def draw_sosys(sosys, d0, v0, g, T, t0=0,
                prefix=None, animate=True, allonly=False, hold=False,
-               ylabel='Displacement'):
+               ylabel='Displacement', xlabel='x'):
     dt = sosys.dt
     xpart = sosys.xpart
 
@@ -360,7 +360,7 @@ def draw_sosys(sosys, d0, v0, g, T, t0=0,
     d = d[int(round(t0/dt)):]
     draw.draw_pde_trajectory(d, xpart, tx, prefix=prefix,
                              animate=animate, hold=hold, allonly=allonly,
-                             ylabel=ylabel)
+                             ylabel=ylabel, xlabel=xlabel)
 
 
 
