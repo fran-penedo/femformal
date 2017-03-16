@@ -1,4 +1,3 @@
-% \documentclass[oribibl]{llncs/llncs}
 \documentclass[letterpaper, 10 pt, conference]{ieeeconf/ieeeconf}
 \IEEEoverridecommandlockouts
 \overrideIEEEmargins
@@ -98,17 +97,16 @@ Formal Verification of Spatio-Temporal Properties in Partial Differential Equati
 
 
     In this paper, we introduce a new verification problem with temporal
-    specifications for a wide range of linear partial differential equations. 
+    logic specifications for a wide range of linear partial differential equations. 
     We leverage the finite
     element method (FEM) to reduce the problem to a verification problem for
-    discrete-time linear systems. The specifications are formalized using a
-    novel extension of signal temporal logic (STL) that also admits quantitative
-    semantics. A conservative procedure to reformulate the specification into a
+    discrete-time linear systems. The specifications are formalized using an
+    extension of signal temporal logic (STL).
+    A conservative procedure to reformulate the specification into a
     regular STL formula as part of the FEM reduction is also presented. A
     mixed-integer linear encoding is then used to solve the verification problem
-    for a set of initial conditions.
-    We showcase the conservatism and computational cost of the algorithm on a
-    one-dimensional heat equation and wave equation.
+    for a given set of initial conditions.
+    We illustrate the algorithm on one-dimensional heat and wave equations.
 
 \end{abstract}
 
@@ -120,7 +118,7 @@ and processes of interest to scientists and engineers. Some well-known examples
 include the Navier-Stokes equation for fluid mechanics, the Maxwell equations
 for electromagnetics, the Schrödinger equation for quantum mechanics, the heat
 equation and the wave equation. The analysis of these and other PDEs has had a
-tremendous impact on sociaty by enabling our understanding of thermal,
+tremendous impact on society by enabling our understanding of thermal,
 electrical, fluidic and mechanical processes.
 
 While a mature field, the study of PDEs is often approached from a simulation
@@ -128,15 +126,22 @@ angle, in which approximate models obtained through spatio-temporal
 discretization techniques, such as the Finite Element Method (FEM)
 \cite{hughes_finite_2000}, are numerically integrated. These methods, however,
 do not allow for rigorous guarantees that a system satisfies a complex
-specification. These specifications are typically expressed in formal languages
-that ensure the specification has a non-ambiguous meaning while being expressive
-enough to capture many different behaviors of the system. 
-Among these, temporal logics have enjoyed some
-popularity in the fields of robotics, synthetic biology or traffic networks,
-besides their original use for digital circuits and computer programs. The
-appeal of these formalisms comes from their ability to specify time-related
+specification. Such specifications are typically expressed in formal languages
+such as temporal logics, which have been a popular choice in the fields of
+robotics, synthetic biology or traffic networks. Their appeal comes from 
+their ability to specify time-related
 properties, the availability of verification algorithms, and their resemblance
 to natural language.
+
+% These specifications are typically expressed in formal languages
+% that ensure the specification has a non-ambiguous meaning while being expressive
+% enough to capture many different behaviors of the system. 
+% Among these, temporal logics have enjoyed some
+% popularity in the fields of robotics, synthetic biology or traffic networks,
+% besides their original use for digital circuits and computer programs. The
+% appeal of these formalisms comes from their ability to specify time-related
+% properties, the availability of verification algorithms, and their resemblance
+% to natural language.
 
 % In the analysis of many engineering problems, it is important to determine
 % whether, subject to a range of initial and boundary conditions, the system of
@@ -152,32 +157,46 @@ to natural language.
 % properties, the availability of verification algorithms, and their resemblance
 % to natural language.
 
-Many different temporal logics have been proposed tailored to
-different kinds of verification problems and systems. Linear Temporal Logic
-(LTL) \cite{gerth_simple_1996} and Computational Tree Logic (CTL)
-\cite{clarke_automatic_1986} have been widely used to verify
-linear- and branching-time properties over infinite time horizons. Probabilistic
-versions have been defined and used when verification is considered in a
-probabilistic way. For those applications that require explicit time
-constraints, such as scheduling or motion planning, we may express properties
-using Bounded Linear Temporal Logic (BLTL) \cite{jha_bayesian_2009}, Metric
-Temporal Logic (MTL) \cite{luo_using_2016}, 
-or Time-Window Temporal Logic (TWTL) \cite{AkVaBe-ICRA-2016}. We may additionally be interested in more
-than a binary answer to the verification problem, such as how robustly our
-system satisfies the specification. In this case, Signal Temporal Logic (STL)
-\cite{donze_robust_2010}
-admits quantitative semantics that corresponds to the distance of the system
-trajectory to the boundary of satisfaction.
+Many different temporal logics have been proposed tailored to different kinds of
+temporal properties: Linear Temporal
+Logic (LTL) \cite{gerth_simple_1996} and Computational Tree Logic (CTL) \cite{clarke_automatic_1986} 
+consider linear- and branching-time
+properties over infinite time horizons; Bounded Linear Temporal Logic 
+(BLTL) \cite{jha_bayesian_2009}, Metric Temporal Logic (MTL) \cite{luo_using_2016} 
+and Time Window Temporal Logic (TWTL) \cite{AkVaBe-ICRA-2016} allow
+explicit time constraints; and Signal Temporal Logic (STL) \cite{donze_robust_2010} 
+defines a notion of
+robust satisfaction. In order to use these formalisms for verification, a
+suitable model of the system is required, such as finite models obtained through
+abstraction procedures (typically for LTL and CTL), or mixed-integer linear
+encodings (for example for STL) \cite{sadraddini_robust_2015}.
 
-In order to formulate a verification problem using a temporal logic, a suitable
-model of the system is required. In the case of LTL and CTL, a finite model is
-obtained either directly (e.g., for electrical circuits) or through
-an abstraction process (e.g., when dealing with dynamical systems described with
-differential equations). For the bounded time logics, a full trajectory is
-needed, which can present a problem when we attempt to verify the behavior of a
-system for a set of initial conditions. One can overcome this issue by using 
-a mixed-integer linear encoding of the specification plus the system dynamics in
-the case of linear systems \cite{sadraddini_robust_2015}.
+% Many different temporal logics have been proposed tailored to
+% different kinds of verification problems and systems. Linear Temporal Logic
+% (LTL) \cite{gerth_simple_1996} and Computational Tree Logic (CTL)
+% \cite{clarke_automatic_1986} have been widely used to verify
+% linear- and branching-time properties over infinite time horizons. Probabilistic
+% versions have been defined and used when verification is considered in a
+% probabilistic way. For those applications that require explicit time
+% constraints, such as scheduling or motion planning, we may express properties
+% using Bounded Linear Temporal Logic (BLTL) \cite{jha_bayesian_2009}, Metric
+% Temporal Logic (MTL) \cite{luo_using_2016}, 
+% or Time-Window Temporal Logic (TWTL) \cite{AkVaBe-ICRA-2016}. We may additionally be interested in more
+% than a binary answer to the verification problem, such as how robustly our
+% system satisfies the specification. In this case, Signal Temporal Logic (STL)
+% \cite{donze_robust_2010}
+% admits quantitative semantics that corresponds to the distance of the system
+% trajectory to the boundary of satisfaction.
+%
+% In order to formulate a verification problem using a temporal logic, a suitable
+% model of the system is required. In the case of LTL and CTL, a finite model is
+% obtained either directly (e.g., for electrical circuits) or through
+% an abstraction process (e.g., when dealing with dynamical systems described with
+% differential equations). For the bounded time logics, a full trajectory is
+% needed, which can present a problem when we attempt to verify the behavior of a
+% system for a set of initial conditions. One can overcome this issue by using 
+% a mixed-integer linear encoding of the specification plus the system dynamics in
+% the case of linear systems \cite{sadraddini_robust_2015}.
 
 The temporal logics discussed so far have only been applied to systems with a
 finite-dimensional state space. However, the state of systems modeled by
@@ -185,48 +204,57 @@ PDEs is instead a function over the PDE spatial domain, and lives in an
 infinite-dimensional function space. In this work, we extend STL to allow
 specifications over the solutions of PDEs in such a way that both temporal and
 spatial properties can be formally stated. Then, we formulate and solve the problem 
-of verifying a PDE against property in our extension to STL. We consider both verification
-with a single initial condition or with a set of initial conditions.
+of verifying a PDE against a property in our extension to STL. We consider both verification
+with a single initial condition and with a set of initial conditions.
 To the best of our knowledge, the verification 
-of temporal properties in systems governed by a PDE has not been explored before.
+of temporal properties in systems governed by PDEs has not been explored before.
 
 % Even though there exists a theory on the often related problem of optimal
 % control for PDEs (see \cite{lions_optimal_1971}), to the best of our knowledge, the verification 
 % of temporal properties in systems governed by a PDE has not been explored before.
 
-The approach we take makes use of the Finite Element Method (FEM) to
+Our approach uses the FEM to
 approximate the trajectory of the PDE by an interpolation of the solution of a
 system of Ordinary Differential Equations (ODEs). The FEM is a well-established
 numerical method to obtain approximate numerical solutions to PDEs, and is particularly
 well-suited to problems with complicated
-geometries where exact solutions cannot be found. It works by subdividing, or
-discretizing, the domain into small parts (called finite elements), which
-imposes an approximation, typically in the form of a low-order polynomial, in
-the spatial variation of the field variable of interest. The vertices of the
-elements (called the nodes) represent the discrete locations where the unknown
-field variables of interest are to be determined; this ocurs through the
-assembly of all the unknown nodal degrees of freedom into a global system.
-Importantly, the error introduced in moving from a continuous PDE to a discrete
-FEM model can be systematically improved by using more elements to discretize
-the domain of interest.
-
+geometries where exact solutions cannot be found. The state space of the
+resulting ODE system represents the field values of the PDE at discrete 
+locations, called nodes, obtained after discretizing the domain.
 In the process of approximating the PDE trajectory by the FEM model and then
-discretizing it both in space (considering the finite-dimensional state space
-given by the field values at the nodes) and time, we define a conservative
+discretizing it both in space (considering only the values at the nodes) and time, 
+we define a conservative
 reformulation of the specification that follows the same approximation and
 discretization steps. In order to account for the approximation and
-discretization errors, the predicates in the formula are perturbed in such a way
-that all trajectories satisfying the perturbed predicates also satisfy the
+discretization errors, the predicates in the formula are corrected in such a way
+that all trajectories satisfying the corrected predicates also satisfy the
 original ones. Finally, we encode the resulting problem into a mixed-integer
 linear program (MILP) following previously established methods.
 
-Our method requires the PDE to be linear and also that a FEM approximation to
-the PDE can be made. The
-latter assumption is not overly restrictive, as the FEM can be applied to all PDEs 
-of engineering interest, i.e., Maxwell equations for electromagnetics,
-Navier-Stokes equations for fluid dynamics, momentum equation for mechanics,
-diffusion and heat equations, and so on. The linear assumption usually constrains the
-physical system to linear material behavior, although this assumption is also
+% It works by subdividing, or
+% discretizing, the domain into small parts (called finite elements), which
+% imposes an approximation, typically in the form of a low-order polynomial, in
+% the spatial variation of the field variable of interest. The vertices of the
+% elements (called the nodes) represent the discrete locations where the unknown
+% field variables of interest are to be determined; this ocurs through the
+% assembly of all the unknown nodal degrees of freedom into a global system.
+% Importantly, the error introduced in moving from a continuous PDE to a discrete
+% FEM model can be systematically improved by using more elements to discretize
+% the domain of interest.
+
+
+% Our method requires the PDE to be linear and also that a FEM approximation to
+% the PDE can be made. The
+% latter assumption is not overly restrictive, as the FEM can be applied to all PDEs 
+% of engineering interest, i.e., Maxwell equations for electromagnetics,
+% Navier-Stokes equations for fluid dynamics, momentum equation for mechanics,
+% diffusion and heat equations, and so on. The linear assumption usually constrains the
+% physical system to linear material behavior, although this assumption is also
+% not overly restrictive as most engineering systems are designed to operate
+% within the linear material response regime \cite{}.
+
+Our method requires the PDE to be linear, which usually constrains the
+physical system to linear material behavior. However, this assumption is
 not overly restrictive as most engineering systems are designed to operate
 within the linear material response regime \cite{}.
 
@@ -236,11 +264,11 @@ within the linear material response regime \cite{}.
 \subsection{Finite Element Method}
 \label{sec:heat_equation_and_finite_element_analysis}
 
-We provide in this section a brief summary of the Finite Element Method (FEM).
+In this section we provide a brief summary of the Finite Element Method (FEM)
+\cite{hughes_finite_2000}.
 We present the method applied
 to a simplified heat equation, although the same technique can be applied to other
-PDEs. A more detailed exposition can be found in any
-textbook on FEM, such as \cite{hughes_finite_2000}.
+PDEs. 
 
 Let $\Omega = (0, L) \subset \R$ be an open interval representing the interior
 of a one-dimensional rod of length $L$; $\rho, c, \kappa > 0$ 
@@ -250,17 +278,17 @@ $g = (g_0, g_L) \in \R^2$ the boundary conditions at each end of the rod; and $u
 The evolution of the temperature at
 each point in the rod can be described by a function $u : \bar \Omega \times [0,
 T] \rightarrow \R$, where $T > 0$ denotes the final time and can be infinity and
-$\bar \Omega$ is the spatial domain, such that the following initial boundary
-value problem (IBVP) is satisfied:
-
+$\bar \Omega$ is the closure of $\Omega$ (which we call the spatial domain),
+such that the following initial boundary value problem (IBVP) is satisfied:
+%
 \begin{equation}\label{eq:pde}
     \Sigma^{H}(u_0, g) \quad \left \{
     \begin{aligned}
         \rho c \frac{\partial u}{\partial t} - \kappa \frac{\partial^2
-        u}{\partial^2 x} &= 0, \text{on } \Omega \times (0, T) \\
-        u(0, t) &= g_0, \forall t \in (0, T) \\
-        u(L, t) &= g_L, \forall t \in (0, T) \\
-        u(x, 0) &= u_0(x), \forall x \in \Omega
+        u}{\partial^2 x} &= 0, \text{on } \Omega \times (0, T) \,, \\
+        u(0, t) &= g_0, \forall t \in (0, T) \,, \\
+        u(L, t) &= g_L, \forall t \in (0, T) \,, \\
+        u(x, 0) &= u_0(x), \forall x \in \Omega \,.
     \end{aligned}
     \right.
 \end{equation}
@@ -269,24 +297,23 @@ An important aspect of the FEM is the creation of a weak formulation of the
 governing PDEs in \cref{eq:pde}. The purpose in deriving a weak form is to
 reduce the second order spatial derivative of $u$ in \cref{eq:pde} to first
 derivatives so that low order (in this case, linear) polynomials can be used to
-approximate the field value $u$. We can construct a weak formulation of \cref{eq:pde} with the same set of
-solutions in the following way: let $D$ be the set of sufficiently smooth 
+approximate the field value $u$. Let $D$ be the set of sufficiently smooth 
 real-valued functions on $\bar{\Omega} \times (0, T)$ such that all 
-$u \in D$ satisfies $u(0, t) = g_0, u(L, t) = g_L, \forall t \in (0, T)$, 
+$u \in D$ satisfy $u(0, t) = g_0, u(L, t) = g_L, \forall t \in (0, T)$, 
 and $V$ a similar set of time
-independent functions such that all $w \in V$ satisfies $w(0) = w(L) = 0$. 
-Find $u \in D$ such that for all $w \in V$,
-
+independent functions such that all $w \in V$ satisfy $w(0) = w(L) = 0$. 
+The problem is to find $u \in D$ such that for all $w \in V$,
+%
 \begin{equation}\label{eq:weak_pde}
     \begin{aligned}
         &\int_{\Omega} \frac{\partial w}{\partial x} \kappa \frac{\partial
         u}{\partial x} d \Omega + 
-        \int_{\Omega} w \rho c \frac{\partial u}{\partial t} d \Omega = 0 \\
+        \int_{\Omega} w \rho c \frac{\partial u}{\partial t} d \Omega = 0 \,, \\
         &\int_{\Omega} w \rho c u(\cdot, 0) d \Omega =
-        \int_{\Omega} w \rho c u^0 d \Omega \\
+        \int_{\Omega} w \rho c u^0 d \Omega \,. \\
     \end{aligned}
 \end{equation}
-
+%
 We now obtain an approximate solution to the weak formulation by considering
 \cref{eq:weak_pde} with $u$ and $w$ in subspaces of $D$ and $V$.
 
@@ -296,19 +323,19 @@ $\bar\Omega$. Let $d_i(t), i = 0,...,n+1$ represent the
 temperature of the rod at node $x_i$, with $d_0(t) = g_0, d_{n+1} = g_L$ and let $d = (d_1, ..., d_n)' \in
 \R^n$. We define the following linear node shape function matrices for $i =
 0,...,n+1$:
-
+%
 \begin{equation}
     N_i(x) = \begin{cases}
-        \frac{x - x_{i - 1}}{x_i - x_{i - 1}} & i > 0, x \in [x_{i-1}, x_i] \\
-        \frac{x_{i+1} - x}{x_{i+1} - x_{i}} & i < n+1, x \in [x_{i}, x_{i+1}] 
+        \frac{x - x_{i - 1}}{x_i - x_{i - 1}} & i > 0, x \in [x_{i-1}, x_i] \,, \\
+        \frac{x_{i+1} - x}{x_{i+1} - x_{i}} & i < n+1, x \in [x_{i}, x_{i+1}] \,,
     \end{cases} 
 \end{equation}
-
+%
 which results in the following linear interpolation of the field variable $u$ in
 terms of its nodal values $d$:
-
+%
 \begin{equation}
-    u^d(x, t) = \sum_{i=0}^{n+1} N_i(x) d_i(t)
+    u^d(x, t) = \sum_{i=0}^{n+1} N_i(x) d_i(t) \,.
 \end{equation}
 
 Consider the subspaces $D^h \subset D$ and $V^h \subset V$ of linear
@@ -316,49 +343,46 @@ interpolations defined above and time-invariant interpolations respectively.
 It can be shown that $u^d(x, t)$ is a solution of the weak formulation over the
 sets $D^h$ and $V^h$, where $d$ evolves
 according to the following linear system:
-
+%
 \begin{equation}\label{eq:fem}
     \Sigma^H_{FEM}(u_0, g) \quad \left \{
     \begin{aligned}
-        \dot{d} &= A d + b(g) \\
-        d_i(0) &= u_0(x_i), i = 1,...,n
+        \dot{d} &= A d + b(g) \,, \\
+        d_i(0) &= u_0(x_i), \quad i = 1,...,n \,.
     \end{aligned}
     \right.
 \end{equation}
-
+%
 In the above, $A = -M^{-1}K, b(g) = M^{-1} F(g)$ and $M, K$ and $F$ are the capacity,
 stiffness and external force matrices respectively, which are defined as
 follows:
-
+%
 % \begin{equation}
     \begin{align}
-        M &= \frac{\rho c}{6} \begin{pmatrix}
+        &M = \frac{\rho c}{6} \begin{pmatrix}
             2 l_0 + 2 l_1 & l_1  & 0 & \cdots \\ 
             l_1 & 2 l_1 + 2 l_2 & l_2  & \cdots \\ 
             0 & l_2 & 2 l_2 + 2 l_3 &  \cdots \\ 
             \vdots & \ddots & \ddots & \ddots 
-        \end{pmatrix} \label{eq:matrices_M} \\
-        K &= \kappa \begin{pmatrix}
+        \end{pmatrix} \,, \label{eq:matrices_M} \\
+        &K = \kappa \begin{pmatrix}
             \frac{1}{l_0} + \frac{1}{l_1} & -\frac{1}{l_1}  & 0 & \cdots \\ 
             -\frac{1}{l_1} & \frac{1}{l_1} + \frac{1}{l_2} & -\frac{1}{l_2}  & \cdots \\ 
             0 & -\frac{1}{l_2} & \frac{1}{l_2} + \frac{1}{l_3} &  \cdots \\ 
             \vdots & \ddots & \ddots & \ddots 
-        \end{pmatrix} \label{eq:matrices_K}\\
-        F(g) &= \kappa \begin{pmatrix}
-            \frac{g_0}{l_0} \\
-            0 \\
-            \vdots \\
-            0 \\
-            \frac{g_L}{l_n}
-        \end{pmatrix} \label{eq:matrices_F}
+        \end{pmatrix} \,, \label{eq:matrices_K}\\
+        &F(g) = \kappa \begin{pmatrix}
+            \frac{g_0}{l_0} & 0 & \hdots & 0 & \frac{g_L}{l_n}
+        \end{pmatrix}^\top \,, \label{eq:matrices_F}
     \end{align}
 % \end{equation}
-
-where $l_e = x_{e+1} - x_e$. As a simplifying assumption, we consider the lumped version of $M$, which is
-defined as a diagonal matrix resulting from adding all elements in each row of
-$M$. Note that with this assumption, $A$ is a banded matrix of bandwidth 3. 
-In the following, we will call $\Sigma_{FEM}$ the FEM system corresponding to a
-PDE system $\Sigma$.
+%
+where $l_e = x_{e+1} - x_e$. As a simplifying assumption, we consider the lumped
+version of $M$, which is defined as a diagonal matrix resulting from adding all
+elements in each row of $M$. Note that with this assumption, $A$ is a banded
+matrix of bandwidth 3. In general, we will denote a PDE by $\Sigma(u_0, g)$
+and we will call $\Sigma_{FEM}$ the FEM system corresponding to a PDE system
+$\Sigma$.
 
 \subsection{Signal Temporal Logic}
 \label{sec:signal_temporal_logic}
@@ -370,30 +394,31 @@ PDE system $\Sigma$.
 
 In this paper, we base our new specification language for PDEs in Signal
 Temporal Logic. An STL formula $\phi$ is defined recursively in the following way:
-
+%
 \begin{equation}
-    \phi ::= \mu | \lnot \mu | \phi_1 \land \phi_2 | \phi_1 \luntil_{[a,b]} \phi_2
+    \phi ::= \mu | \lnot \mu | \phi_1 \land \phi_2 | \phi_1 \luntil_{[a,b]}
+    \phi_2 \,,
 \end{equation}
-
+%
 where $\mu$ is a predicate over signals of the form $\mu \equiv \mu(s) > 0$,
 $\phi_1$ and $\phi_2$ are STL formulas,
 $\lnot$ and $\land$ are the Boolean operators negation and conjunction, and
 $\luntil_{[a, b]}$ is the bounded temporal operator \emph{until}. The satisfaction
 of an STL formula at time $t$ for a signal $s :
 \R_{\geq 0} \to \R$ is defined recursively as follows:
-
+%
 \begin{equation}
     \begin{aligned}
-        s[t] &\models \mu &\iff &\mu(s(t)) > 0 \\
-        s[t] &\models \lnot \mu &\iff &\lnot (s[t] \models \mu) \\
+        s[t] &\models \mu &\iff &\mu(s(t)) > 0 \,, \\
+        s[t] &\models \lnot \mu &\iff &\lnot (s[t] \models \mu) \,, \\
         s[t] &\models \phi_1 \land \phi_2 &\iff &s[t] \models \phi_1 \land s[t]
-        \models \phi_2 \\
+        \models \phi_2 \,, \\
         s[t] &\models \phi_1 \luntil_{[a,b]} \phi_2 &\iff 
-            &\exists t' \in [t+a, t+b] \text{ s.t. } s[t'] \models \phi_2 \\
-        & & &\land \forall t'' \in [t, t'] s[t''] \models \phi_1]
+            &\exists t' \in [t+a, t+b] \text{ s.t. } s[t'] \models \phi_2 \,, \\
+        & & &\land \forall t'' \in [t, t'] s[t''] \models \phi_1] \,.
     \end{aligned}
 \end{equation}
-
+%
 A signal $s$ satisfies an STL formula, $s \models \phi$, if and
 only if $s[0] \models \phi$. We define other Boolean operators (disjunction,
 implication and equivalence) and constants (true and false) in the usual way, 
@@ -405,19 +430,19 @@ and the temporal operators
 We also define quantitative semantics for an STL formula over a signal $s$
 using the real valued function $r(\phi, s, t)$, which satisfies the property $s[t]
 \models \phi \iff r(\phi,s, t) > 0$ and is computed as follows:
-
+%
 \begin{equation}
     \begin{aligned}
-        &r(\mu, s, t) &= &\mu(s(t)) \\
-        &r(\lnot \mu, s, t) &= &-r(\mu, s,t) \\
+        &r(\mu, s, t) &= &\mu(s(t)) \,, \\
+        &r(\lnot \mu, s, t) &= &-r(\mu, s,t) \,, \\
         &r(\phi_1 \land \phi_2, s, t) &= &\min\{r(\phi_1,s, t),
-    r(\phi_2,s, t)\} \\
+    r(\phi_2,s, t)\} \,, \\
     &r(\phi_1 \luntil_{[a,b]} \phi_2,s, t) &= 
     &\max_{t' \in [t+a, t+b]} \biggl\{ \min \bigl\{ r(\phi_2,s, t), \\
-    & & &\min_{t'' \in [t, t']}\{r(\phi_1,s, t)\} \bigr\} \biggr\}
+    & & &\min_{t'' \in [t, t']}\{r(\phi_1,s, t)\} \bigr\} \biggr\} \,.
     \end{aligned}
 \end{equation}
-
+%
 We call $r(\phi,s, t)$ the robustness degree of $s$ with respect to $\phi$ at
 time $t$.
 
@@ -440,9 +465,7 @@ and represented using the syntax $Q_\lambda x \in X_\lambda : u(x) - \mu_\lambda
         representing the reference profile.
 \end{itemize}
 
-The set of predicates $\Lambda$ is
-said to be compatible with a PDE system $\Sigma$ if $\bar\Omega$ is the spatial
-domain of the trajectories of $\Sigma$. We consider STL formulas 
+We consider STL formulas 
 with the previously defined syntax and semantics 
 over the set of predicates $\Lambda$, where the satisfaction of a
 predicate with respect to a continuous-time signal $u : \bar\Omega \times [0, T]
@@ -456,16 +479,15 @@ $r(\lambda,u, t) = \max_{x \in X_\lambda} u(x, t) - \mu_\lambda(x))$ otherwise.
     \label{ex:stl}
 
     Consider the following formula in STL for a heat equation with a single predicate
-    $\lambda = (Q = \forall, X = [8, 9], \mu(x) = -(28x - 192))$, which we 
-    represent using the syntax:
-
+    $\lambda = (Q = \forall, X = [8, 9], \mu(x) = -(28x - 192))$:
+%
     \begin{equation}
-        \psi = \Always_{[1,10]} \forall x \in [8,9] : u(x) - (28x - 192) > 0
+        \psi = \Always_{[1,10]} \forall x \in [8,9] : u(x) - (28x - 192) > 0 \,.
     \end{equation}
-
+%
     The specification reads in natural language: ``Always between 1 and 10 time
-    units, at all points in a rod between lengths 8 and 9, the temperature
-    profile is above the profile $\mu(x) = 28x - 192$."
+    units, at all points $x$ in a rod between lengths 8 and 9, the temperature
+    profile $u(x)$ is above $\mu(x) = 28x - 192$."
 
 \end{example}
 
@@ -482,9 +504,9 @@ PDE:
 
 \begin{problem}
 \label{pr:stl}
-    Given a PDE system $\Sigma$, an STL formula $\psi$ over a set of predicates
-    compatible with the system, $\Lambda$, and initial state $u_0$,
-    check whether the trajectory of $\Sigma$ for the initial state $u_0$
+    Given a PDE system $\Sigma(u_0, g)$, with $u_0$ an initial state and $g$
+    the boundary conditions, and an S-STL formula $\psi$ over a set of
+    predicates $\Lambda$, check whether the trajectory of $\Sigma(u_0, g)$
     satisfies $\psi$.
 \end{problem}
 
@@ -493,30 +515,29 @@ in a set:
 
 \begin{problem}
 \label{pr:stl_set}
-    Given a PDE system $\Sigma$, an STL formula over $\Lambda$, $\psi$, and a set of initial states
-    $U_0$, check whether the trajectory of $\Sigma$ satisfies $\psi$ 
-    for any initial state $u_0 \in U_0$.
+    Given a set of initial states $U_0$, where each element $u_0 \in U_0$ is a
+    function over the spatial domain of the PDE, a set of PDE systems
+    $\{\Sigma(u_0, g) | u_0 \in U_0\}$, with $g$
+    the boundary conditions, and an S-STL formula $\psi$ over a set of
+    predicates $\Lambda$, check whether the trajectory of $\Sigma(u_0, g)$
+    satisfies $\psi$ for all $u_0 \in U_0$.
 \end{problem}
 
 Finally, we can also formulate a verification problem for PDEs with static
-boundary conditions contained in a set. For the sake of clarity, we will not
-formulate this problem in its most general form, as the notation required for
-the boundary conditions becomes cumbersome.
+boundary conditions contained in a set:
 
 \begin{problem}
 \label{pr:stl_bound_set}
-    Given a PDE system $\Sigma$, an STL formula over $\Lambda$, $\psi$, an
-    initial state $u_0$, and a set of boundary conditions $G$, check whether the
-    system $\Sigma(u_0, g)$ satisfies $\psi$ for any boundary conditions $g \in
-    G$.
+    Given a set of boundary conditions $G$, a set of PDE systems
+    $\{\Sigma(u_0, g) | g \in G\}$, with $u_0$
+    an initial state, and an S-STL formula $\psi$ over a set of
+    predicates $\Lambda$, check whether the trajectory of $\Sigma(u_0, g)$
+    satisfies $\psi$ for all $g \in G$.
 \end{problem}
 
-Even though the formulation is general for any PDE, in what follows we make two
-assumptions on the PDEs that we allow: (1) we can apply FEM to the PDE, and (2)
-the system of ODEs obtained is linear. The first assumption imposes no practical
-restriction, as FEM is applicable to most PDEs describing physical systems,
-including heat conduction, mechanical displacement, fluid mechanics or
-mass transportation systems. Assumption (2) on the other hand requires the PDE
+Even though the formulation is general for any PDE, in what follows we make the
+assumption that the system of ODEs obtained after applyting the FEM is linear.
+This assumption requires the PDE
 to be linear. Additionally, we require in \cref{pr:stl_set} the set of initial
 conditions $U_0$ to be described as a polytope in the parameters of a
 linear parameterization of the initial conditions. For example, the set $\{u(x)
@@ -595,11 +616,13 @@ $|u(x, t) - u^d(x, t)| \leq \epsilon(x, t)$.
 \end{theorem}
 \begin{proof}
     We only need to consider a predicate $\lambda$ and its negation. We have
-    \begin{equation}
+    %
+    \begin{multline}
         \label{eq:th_epsilon}
-         |u(x, t) - \mu_\lambda(x) - u^d(x, t) + \mu_\lambda(x)| = 
-         |u(x, t) - u^d(x, t)| \leq \delta(x)
-    \end{equation}
+         |u(x, t) - \mu_\lambda(x) - u^d(x, t) + \mu_\lambda(x)| = \\
+         |u(x, t) - u^d(x, t)| \leq \delta(x) \,.
+    \end{multline}
+    %
     Thus, $u(x, t) - \mu_\lambda(x) \geq u^d(x, t) -
     \mu_\lambda(x) - \delta(x)$, which proves the result for $\psi = \lambda$. For $\psi
     = \lnot \lambda$, note that satisfaction is equivalent to $u(x, t) -
@@ -615,12 +638,12 @@ $|u(x, t) - u^d(x, t)| \leq \epsilon(x, t)$.
     $\Sigma^H$ with $\Omega = (0, 10)$ and its
     FEM approximation. Consider the same specification $\psi$ defined in \cref{ex:stl}.
     The perturbed specification, $\psi^\delta$ is then:
-    
+    %
     \begin{equation}
         \psi^\delta = \Always_{[1,10]} \forall x \in [8,9] : u(x) - (28x -
-        192) - 1 > 0
+        192) - 1 > 0 \,.
     \end{equation}
-
+    %
     If the FEM approximation to $\Sigma^H$ satisfies $\psi^\delta$, we can
     conclude $\Sigma^H$ satisfies $\psi$.
     
@@ -640,15 +663,16 @@ X_\lambda, [x_{j}, x_{j+1}] \not\subseteq X_\lambda \}$,
 and satisfaction of $\alpha_{\lambda, e}$ and $\beta_{\lambda, j}$ by 
 a continuous-time signal $d : [0, T] \to \R^n$
 is defined in the following way:
-
+%
 \begin{equation}
     d[t] \models \alpha_{\lambda, e} \iff y_e(t) - 
-    \mu_\lambda(\frac{x_e + x_{e + 1}}{2}) > 0 
+    \mu_\lambda(\frac{x_e + x_{e + 1}}{2}) > 0 \,,
 \end{equation}
+%
 \begin{equation}
-     d[t] \models \beta_{\lambda, j} \iff d_j(t) - \mu_\lambda(x_j) > 0
+     d[t] \models \beta_{\lambda, j} \iff d_j(t) - \mu_\lambda(x_j) > 0 \,,
 \end{equation}
-
+%
 where $y_e = \frac{d_e(t) + d_{e+1}(t)}{2}$. The robustness degree for these
 predicates is defined as in \cref{sec:signal_temporal_logic}.
 Note that this set of predicates includes the perturbations defined in
@@ -673,14 +697,14 @@ $\Lambda^{\delta}_{FEM}$ by a real number $k$ in a manner analogous to
     \end{itemize}
 
     In both cases, 
-
+    %
     \begin{equation}
     \begin{aligned}
         k_e = \frac{x_{e+1} - x_e}{2} & \left (\max_{c \in [x_e, x_{e+1}]}
-        |\mu'(c)| + \max_{c \in [x_e, x_{e+1}]} \eta(c) \right )
+        |\mu'(c)| + \max_{c \in [x_e, x_{e+1}]} \eta(c) \right ) \,.
     \end{aligned}
     \end{equation}
-
+    %
     We will abuse the notation and use $\psi^{\delta, 0}_{FEM}$ when referring
     to the formula obtained without perturbing the predicates, i.e., both $\eta$
     and $\mu'$ are considered 0.
@@ -700,13 +724,12 @@ $\Lambda^{\delta}_{FEM}$ by a real number $k$ in a manner analogous to
     E_\lambda\}$. For any $e \in E_\lambda$, let $m = \frac{x_e + x_{e+1}}{2}, 
     h = \frac{x_{e+1} - x_{e}}{2}$. 
     For $x \in [x_e, x_{e+1}]$ we have:
-
+    %
     \begin{equation}
     \begin{aligned}
         &|u^d(x, t) - \mu_\lambda(x) - u^d(m, t) + \mu_\lambda(m)| \leq \\
         &h \max_{c \in [x_e, x_{e+1}]} 
-        |\mu'(c) + \frac{\partial u^d}{\partial x}(c, t)|
-        \leq \\
+        |\mu'(c) + \frac{\partial u^d}{\partial x}(c, t)| \leq \\
         &h \left (  
         \max_{c \in [x_e, x_{e+1}]} |\mu'(c)| +
         \max_{c \in [x_e, x_{e+1}]} |\frac{\partial u^d}{\partial x}(c, t)|
@@ -714,10 +737,10 @@ $\Lambda^{\delta}_{FEM}$ by a real number $k$ in a manner analogous to
         &h \left (  
         \max_{c \in [x_e, x_{e+1}]} |\mu'(c)| +
         \max_{c \in [x_e, x_{e+1}]} \eta(c)
-        \right )  = K_e
+        \right )  = K_e \,.
     \end{aligned}
     \end{equation}
-
+    %
     Then, $u^d(x, t) - \mu_\lambda(x) \geq u^d(m, t) - \mu_\lambda(m) - K_e =
     y_e(t) - \mu_\lambda(m) - K_e$, so $d \models \alpha^{-K_e}_{\lambda, e}$
     implies $u^d \models (Q_\lambda, [x_e, x_{e+1}], \mu_\lambda)$ and the
@@ -733,13 +756,13 @@ $\Lambda^{\delta}_{FEM}$ by a real number $k$ in a manner analogous to
     approximation using the partition $\{0.5 i | i \in 0,...,20\}$ and we found the
     bound $\eta(x) = 4$. Note that $|\mu'(x)| = 28$ for all $x$. The perturbed STL
     specification corresponding to $\psi^\delta$ is
-
-    \begin{equation}
+    %
+    \begin{multline}
         \psi^{\delta, \eta}_{FEM} = \Always_{[1,10]} \bigl(
-            (y_{16} - 39 - 1 - k > 0) \land (y_{17} - 53 - 1 - k > 0)
-        \bigr)
-    \end{equation}
-
+            (y_{16} - 39 - 1 - k > 0) \land \\ (y_{17} - 53 - 1 - k > 0)
+        \bigr) \,,
+    \end{multline}
+    %
     with $k = \frac{0.5 (28 + 4)}{2} = 8$. If we prove satisfaction of $\psi^{\delta,
     \eta}_{FEM}$ by $\Sigma^H_{FEM}$, we can conclude the interpolation satisfies
     $\psi^\delta$.
@@ -748,21 +771,21 @@ $\Lambda^{\delta}_{FEM}$ by a real number $k$ in a manner analogous to
 
 Finally, we reformulate the problem into a verification problem over the
 trajectory of a time discretization of $\Sigma_{FEM}$ with time interval $\Delta
-t \in \R$. There are several options at this point: the simplest one is to
+t \in \R_{>0}$. There are several options at this point: the simplest one is to
 consider $\Sigma_{FEM}$ as a first order linear system (augmenting the state
 space if needed) and define the time discretization as the following difference
 equation:
-
+%
 \begin{equation}
     \label{eq:disc_system}
     \Sigma_{FEM}^{\Delta t}(d(0), g) \quad \left\{
     \begin{aligned}
-        \tilde d^{k+1} &= \tilde A \tilde d^k + \tilde b(g) \\
-        \tilde d^0 &= d(0)
+        \tilde d^{k+1} &= \tilde A \tilde d^k + \tilde b(g) \,, \\
+        \tilde d^0 &= d(0) \,,
     \end{aligned}
     \right.
 \end{equation}
-
+%
 where $\tilde A = e^{A \Delta t}$ and $\tilde b(g) = - e^{A \Delta t} A^{-1} 
 ( e^{- A \Delta t} - I ) b(g)$. Note that, in theory, $d(k \Delta t) = \tilde d^k,
 \forall k \in \N$. However, in practice one needs to numerically compute the
@@ -808,14 +831,14 @@ signal $\tilde{d}$. In particular, $\tilde{d}[t] \models \mu \iff
     Continuing with \cref{ex:eta_approx}, assume we discretize $\Sigma_{FEM}$ using
     the timestep $\Delta t = 0.1$ and let $\nu = (5, 5, ...)$. The final
     perturbed specification is
-
-    \begin{equation}
+    %
+    \begin{multline}
         \psi^{\delta, \eta, \nu}_{FEM} = \Always_{[1,10]} \bigl(
-            (y_{16} - 39 - 1 - k - \frac{5}{10} > 0) \land (y_{17} - 53 - 1 - k
-            - \frac{5}{10} > 0)
-        \bigr)
-    \end{equation}
-
+            (y_{16} - 39 - 1 - k - \frac{5}{10} > 0) \land \\ 
+            (y_{17} - 53 - 1 - k - \frac{5}{10} > 0)
+        \bigr) \,.
+    \end{multline}
+    %
     As before, we can guarantee the satisfaction of $\psi^{\delta,
     \eta}_{FEM}$ by $\Sigma^H_{FEM}$ if $\Sigma_{FEM}^{H, \Delta t}$ satisfies
     $\psi^{\delta, \eta, \nu}_{FEM}$.
@@ -843,10 +866,11 @@ following observation:
     of $\Sigma_{FEM}$, $\Sigma_{FEM}$ and $\Sigma_{FEM}^{\Delta t}$,
     respectively, and $\psi$ is an STL formula over $\Lambda$, then the 
     following inequality holds:
-
+    %
     \begin{equation}
         r(\psi, u, t) \geq r(\psi^{\delta}, u^d, t) \geq r(\psi^{\delta,
         \eta}_{FEM}, d, t) \geq r(\psi^{\delta, \eta, \nu}_{FEM}, \tilde{d}, t)
+        \,.
     \end{equation}
 \end{theorem}
 \begin{proof}
@@ -863,16 +887,16 @@ In this section we formulate an optimization problem equivalent to
 as Gurobi \cite{gurobi}.
 
 We can reformulate \cref{pr:stl_set} as the following optimization problem:
-
+%
 \begin{equation}
     \label{eq:stl_set_opt}
     \begin{aligned}
         &r_m = &\min \quad &r(\psi^{\delta, \eta, \nu}_{FEM}, \tilde{d}, 0) \\
         &  &\text{s.t. } &\cref{eq:disc_system} \\
-        &  & &u^{\tilde{d}}(\cdot, 0) \in U_0
+        &  & &u^{\tilde{d}}(\cdot, 0) \in U_0 \,.
     \end{aligned}
 \end{equation}
-
+%
 If $r_m > 0$, then $\psi$ is satisfied for the initial set $U_0$. This
 optimization problem is clearly non-convex, due to the $\max$ and $\min$
 operators present in the definition of robustness, and the objective function is
@@ -885,16 +909,17 @@ MILP.
 
 A solution to \cref{pr:stl_bound_set} can be found with a similar optimization
 problem:
-
+%
 \begin{equation}
     \label{eq:stl_bound_set_opt}
     \begin{aligned}
         &r_m = &\min \quad &r(\psi^{\delta, \eta, \nu}_{FEM}, \tilde{d}, 0) \\
         &  &\text{s.t. } &\cref{eq:disc_system} \\
         &  & &u^{\tilde{d}}(\cdot, 0) = u_0 \\
-        &  & &g \in G \end{aligned}
+        &  & &g \in G \,.
+    \end{aligned}
 \end{equation}
-
+%
 In this case, we need $G$ to be polytopic for the previous optimization problem
 to be a MILP. Note that we can combine \cref{eq:stl_set_opt,eq:stl_bound_set_opt} in order to
 solve a problem with both sets of initial states and sets of boundary
@@ -932,11 +957,11 @@ meshes of different sizes. Consider a rod with parameters $L = 10, \rho = 1, c =
 1, \kappa = 1, g_0 = 10, g_L = 100$, initial value $u_0(x) = 20.0$
 for $x \in (0, L)$, $u_0(0) = g_0, u_0(L) = g_L$, and the specification from
 \cref{ex:stl}, which we restate here:
-
+%
 \begin{equation}
-    \psi = \Always_{[1,10]} \forall x \in [8,9] : u(x) - (28x - 192) > 0
+    \psi = \Always_{[1,10]} \forall x \in [8,9] : u(x) - (28x - 192) > 0 \,.
 \end{equation}
-
+%
 We show in \cref{fig:ex1_evolution} the trajectory for two mesh sizes along with the
 profile in the specification.
 
@@ -1009,14 +1034,14 @@ We checked the validity of our approach as well as the degree of
 conservativeness that the perturbations add by verifying random initial values
 of the previous form. We used for this example a uniform mesh of size $h = 0.2$
 and the following specification: 
-
-\begin{equation}
-    \begin{aligned}
-        \phi &= \Always_{[1, 10]} \forall x \in [1, 9]: u(x) - 9x > 0 \\
-        &\wedge \Event_{[4, 6]} \lnot \exists x \in [6, 7]: u(x) - (9x + 15) > 0
-\end{aligned}
-\end{equation}
-
+%
+\begin{multline}
+    % \begin{aligned}
+        \phi = \Always_{[1, 10]} \forall x \in [1, 9]: u(x) - 9x > 0 \ \land \\
+        \Event_{[4, 6]} \lnot \exists x \in [6, 7]: u(x) - (9x + 15) > 0 \,,
+% \end{aligned}
+\end{multline}
+%
 which reads in natural language: ``Always between 1 and 10 time units, at all
 points in the rod between lengths 1 and 9, the temperature profile is above the
 profile $\mu_1(x) = 9x$. Additionally, eventually between 4 and 6 time units,
@@ -1093,35 +1118,36 @@ modulus $E_{steel} = \SI{200}{\giga\pascal}, E_{brass} =
 \SI{100}{\giga\pascal}$,
 with one end fixed and a force $h_L$ applied to the
 other end. The displacement $u(x, t)$ of the rod follows the following IBVP:
-
+%
 \begin{equation}\label{eq:pde_mech}
     \Sigma^{M}(u_0, v_0, h_L) \quad \left \{
     \begin{aligned}
         \rho \frac{\partial^2 u}{\partial t^2} - E \frac{\partial^2
-        u}{\partial x^2} &= 0, \text{on } \Omega \times (0, T) \\
-        u(0, t) &= 0, \forall t \in (0, T) \\
-        \rho \frac{\partial^2 u}{\partial t^2}(L, t) &= h_L, \forall t \in (0, T) \\
+        u}{\partial x^2} &= 0, \quad \text{on } \Omega \times (0, T) \,, \\
+        u(0, t) &= 0, \quad \forall t \in (0, T) \,, \\
+        \rho \frac{\partial^2 u}{\partial t^2}(L, t) &= h_L, \quad 
+        \forall t \in (0, T) \,, \\
         % u(L, t) &= g_L, \forall t \in (0, T) \\
-        u(x, 0) &= u_0(x), \forall x \in \Omega \\
-        \frac{\partial u}{\partial t}(x, 0) &= v_0(x), \forall x \in \Omega
+        u(x, 0) &= u_0(x), \quad \forall x \in \Omega \,, \\
+        \frac{\partial u}{\partial t}(x, 0) &= v_0(x), \quad \forall x \in \Omega \,.
     \end{aligned}
     \right.
 \end{equation}
-
+%
 where $u_0, v_0$ are the initial displacements and velocities, and $\rho, E$ are
 the density and Young's modulus of the rod at each point.
 The corresponding FEM system for linear elements is given by:
-
+%
 \begin{equation}\label{eq:fem_mech}
     \Sigma^M_{FEM}(u_0, v_0, h_L) \quad \left \{
     \begin{aligned}
-        M\ddot{d} + K d &= F + F_{nodal}(h_L) \\
-        d_i(0) &= u_0(x_i), i = 1,...,n \\
-        \dot{d}_i(0) &= v_0(x_i), i = 1,...,n
+        M\ddot{d} + K d &= F + F_{nodal}(h_L) \,, \\
+        d_i(0) &= u_0(x_i), \quad i = 1,...,n \,, \\
+        \dot{d}_i(0) &= v_0(x_i), \quad i = 1,...,n \,.
     \end{aligned}
     \right.
 \end{equation}
-
+%
 where $F_{nodal}(h_L) = (0, 0, ..., 0, h_L)^T$ is the nodal force vector, and $M, K, F$ 
 are the mass, stiffness and force matrices, respectively, and
 they have the same expressions as in
@@ -1130,15 +1156,15 @@ diag(E(x_i)), \rho = diag(\rho(x_i))$.
 For this example, we use the central differences algorithm to obtain a time
 discretization with time interval $\Delta t$. The resulting difference equations
 are the following:
-
+%
 \begin{equation}
     \Sigma^{M, \Delta t}_{FEM}(d^0, v^0, h_L) \quad \left \{
     \begin{aligned}
-        \tilde v^{n+1} &= v^n + \frac{1}{2} \Delta t a^n \\
-        \tilde d^{n+1} &= \tilde d^{n} + \Delta t \tilde v^{n+1} \\
-        M a^{n+1} &= F + F_{nodal}(h_L) - K \tilde d^{n+1} \\
-        v^{n+1} &= \tilde v^{n+1} + \frac{1}{2} \Delta t a^{n+1} \\
-        M a^0 &= F + F_{nodal}(h_L) - K d^0 \\
+        \tilde v^{n+1} &= v^n + \frac{1}{2} \Delta t a^n \,, \\
+        \tilde d^{n+1} &= \tilde d^{n} + \Delta t \tilde v^{n+1} \,, \\
+        M a^{n+1} &= F + F_{nodal}(h_L) - K \tilde d^{n+1} \,, \\
+        v^{n+1} &= \tilde v^{n+1} + \frac{1}{2} \Delta t a^{n+1} \,, \\
+        M a^0 &= F + F_{nodal}(h_L) - K d^0 \,. \\
     \end{aligned}
     \right.
 \end{equation}
