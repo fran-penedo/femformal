@@ -105,7 +105,7 @@ Formal Verification of Spatio-Temporal Properties in Partial Differential Equati
     A conservative procedure to reformulate the specification into a
     regular STL formula as part of the FEM reduction is also presented. A
     mixed-integer linear encoding is then used to solve the verification problem
-    for a given set of initial conditions.
+    for a given set of initial values and boundary conditions.
     We illustrate the algorithm on one-dimensional heat and wave equations.
 
 \end{abstract}
@@ -126,12 +126,43 @@ angle, in which approximate models obtained through spatio-temporal
 discretization techniques, such as the Finite Element Method (FEM)
 \cite{hughes_finite_2000}, are numerically integrated. These methods, however,
 do not allow for rigorous guarantees that a system satisfies a complex
-specification. Such specifications are typically expressed in formal languages
-such as temporal logics, which have been a popular choice in the fields of
-robotics, synthetic biology or traffic networks. Their appeal comes from 
-their ability to specify time-related
-properties, the availability of verification algorithms, and their resemblance
-to natural language.
+specification. 
+
+The formal statement of specifications and the development of
+analysis techniques that can guarantee their satisfaction by design has been the main
+focus of the formal methods field. During the past decades, many specification
+languages have been defined, such as Linear Temporal
+Logic (LTL) \cite{gerth_simple_1996}, Computational Tree Logic (CTL)
+\cite{clarke_automatic_1986}, Bounded Linear Temporal Logic 
+(BLTL) \cite{jha_bayesian_2009}, Metric Temporal Logic (MTL) \cite{luo_using_2016} 
+Time Window Temporal Logic (TWTL) \cite{AkVaBe-ICRA-2016} and Signal Temporal Logic (STL) 
+\cite{donze_robust_2010}. Originally, these logics have been applied to the
+study of finite systems, although more recently the robotics community has
+developed abstraction procedures to reduce problems with Ordinary
+Differential Equations (ODEs) to finite models (for example through state space
+discretization or mixed-integer linear program (MILP) encodings
+\cite{sadraddini_robust_2015}).
+However, these techniques cannot be immediately applied to the analysis of PDEs.
+In this work, we extend STL to allow
+specifications over the solutions of PDEs in such a way that both temporal and
+spatial properties can be formally stated. Then, we formulate and solve the problem 
+of verifying a PDE against a property in our extension to STL. We consider verification
+for both singletons and sets of initial values and boundary conditions.
+To the best of our knowledge, the verification 
+of temporal properties in systems governed by PDEs has not been explored before.
+
+% In order to use these formalisms for verification, a
+% suitable model of the system is required, such as finite models obtained through
+% abstraction procedures (typically for LTL and CTL), or mixed-integer linear
+% encodings (for example for STL) 
+
+
+% Such specifications are typically expressed in formal languages
+% such as temporal logics, which have been a popular choice in the fields of
+% robotics, synthetic biology or traffic networks. Their appeal comes from 
+% their ability to specify time-related
+% properties, the availability of verification algorithms, and their resemblance
+% to natural language.
 
 % These specifications are typically expressed in formal languages
 % that ensure the specification has a non-ambiguous meaning while being expressive
@@ -157,19 +188,19 @@ to natural language.
 % properties, the availability of verification algorithms, and their resemblance
 % to natural language.
 
-Many different temporal logics have been proposed tailored to different kinds of
-temporal properties: Linear Temporal
-Logic (LTL) \cite{gerth_simple_1996} and Computational Tree Logic (CTL) \cite{clarke_automatic_1986} 
-consider linear- and branching-time
-properties over infinite time horizons; Bounded Linear Temporal Logic 
-(BLTL) \cite{jha_bayesian_2009}, Metric Temporal Logic (MTL) \cite{luo_using_2016} 
-and Time Window Temporal Logic (TWTL) \cite{AkVaBe-ICRA-2016} allow
-explicit time constraints; and Signal Temporal Logic (STL) \cite{donze_robust_2010} 
-defines a notion of
-robust satisfaction. In order to use these formalisms for verification, a
-suitable model of the system is required, such as finite models obtained through
-abstraction procedures (typically for LTL and CTL), or mixed-integer linear
-encodings (for example for STL) \cite{sadraddini_robust_2015}.
+% Many different temporal logics have been proposed tailored to different kinds of
+% temporal properties: Linear Temporal
+% Logic (LTL) \cite{gerth_simple_1996} and Computational Tree Logic (CTL) \cite{clarke_automatic_1986} 
+% consider linear- and branching-time
+% properties over infinite time horizons; Bounded Linear Temporal Logic 
+% (BLTL) \cite{jha_bayesian_2009}, Metric Temporal Logic (MTL) \cite{luo_using_2016} 
+% and Time Window Temporal Logic (TWTL) \cite{AkVaBe-ICRA-2016} allow
+% explicit time constraints; and Signal Temporal Logic (STL) \cite{donze_robust_2010} 
+% defines a notion of
+% robust satisfaction. In order to use these formalisms for verification, a
+% suitable model of the system is required, such as finite models obtained through
+% abstraction procedures (typically for LTL and CTL), or mixed-integer linear
+% encodings (for example for STL) \cite{sadraddini_robust_2015}.
 
 % Many different temporal logics have been proposed tailored to
 % different kinds of verification problems and systems. Linear Temporal Logic
@@ -198,16 +229,6 @@ encodings (for example for STL) \cite{sadraddini_robust_2015}.
 % a mixed-integer linear encoding of the specification plus the system dynamics in
 % the case of linear systems \cite{sadraddini_robust_2015}.
 
-The temporal logics discussed so far have only been applied to systems with a
-finite-dimensional state space. However, the state of systems modeled by
-PDEs is instead a function over the PDE spatial domain, and lives in an
-infinite-dimensional function space. In this work, we extend STL to allow
-specifications over the solutions of PDEs in such a way that both temporal and
-spatial properties can be formally stated. Then, we formulate and solve the problem 
-of verifying a PDE against a property in our extension to STL. We consider both verification
-with a single initial condition and with a set of initial conditions.
-To the best of our knowledge, the verification 
-of temporal properties in systems governed by PDEs has not been explored before.
 
 % Even though there exists a theory on the often related problem of optimal
 % control for PDEs (see \cite{lions_optimal_1971}), to the best of our knowledge, the verification 
@@ -215,7 +236,7 @@ of temporal properties in systems governed by PDEs has not been explored before.
 
 Our approach uses the FEM to
 approximate the trajectory of the PDE by an interpolation of the solution of a
-system of Ordinary Differential Equations (ODEs). The FEM is a well-established
+system of ODEs. The FEM is a well-established
 numerical method to obtain approximate numerical solutions to PDEs, and is particularly
 well-suited to problems with complicated
 geometries where exact solutions cannot be found. The state space of the
@@ -226,10 +247,10 @@ discretizing it both in space (considering only the values at the nodes) and tim
 we define a conservative
 reformulation of the specification that follows the same approximation and
 discretization steps. In order to account for the approximation and
-discretization errors, the predicates in the formula are corrected in such a way
-that all trajectories satisfying the corrected predicates also satisfy the
-original ones. Finally, we encode the resulting problem into a mixed-integer
-linear program (MILP) following previously established methods.
+discretization errors, we introduce correction terms in the formula in such a way
+that all trajectories satisfying the corrected formula also satisfy the
+original one. Finally, we encode the resulting problem into a (MILP) 
+following previously established methods.
 
 % It works by subdividing, or
 % discretizing, the domain into small parts (called finite elements), which
@@ -256,7 +277,20 @@ linear program (MILP) following previously established methods.
 Our method requires the PDE to be linear, which usually constrains the
 physical system to linear material behavior. However, this assumption is
 not overly restrictive as most engineering systems are designed to operate
-within the linear material response regime.
+within the linear material response regime. We also assume 
+time-independent boundary conditions, although this can be relaxed.
+
+The remainder of this paper is structured as follows: in
+\cref{sec:preliminaries}, we include a summary of the FEM and STL; 
+in \cref{sec:signal_temporal_logic_for_pdes} we
+define a new formal language based on STL suitable to describe properties of PDE
+systems; in \cref{sec:problem_formulation}, we formalize the verification problem
+for PDEs; in \cref{sec:formally_correct_discretization_of_pdestl}, we describe
+the process of reformulating the PDE verification problem into a discrete-time
+linear system verification problem; we solve the verification problem for sets
+of initial values and boundary conditions using MILPs in
+\cref{sec:verification_of_initial_sets}; we illustrate the performance of our
+approach in \cref{sec:examples}; and we conclude in \cref{sec:conclusion}.
 
 \section{Preliminaries}
 \label{sec:preliminaries}
@@ -273,7 +307,7 @@ PDEs.
 Let $\Omega = (0, L) \subset \R$ be an open interval representing the interior
 of a one-dimensional rod of length $L$; $\rho, c, \kappa > 0$ 
 constants denoting density, capacity and conductivity of the rod's material respectively;
-$g = (g_0, g_L) \in \R^2$ the boundary conditions at each end of the rod; and $u_0 :
+$g = (g_0, g_L) \in \R^2$ the (time-independent) boundary conditions at each end of the rod; and $u_0 :
 \Omega \rightarrow \R$ an initial value for the temperature on the rod. 
 The evolution of the temperature at
 each point in the rod can be described by a function $u : \bar \Omega \times [0,
@@ -478,7 +512,7 @@ $r(\lambda,u, t) = \max_{x \in X_\lambda} u(x, t) - \mu_\lambda(x))$ otherwise.
 \begin{example}
     \label{ex:stl}
 
-    Consider the following formula in S-STL for a heat equation with a single predicate
+    Consider the following formula in S-STL for a heat equation \cref{eq:pde} with a single predicate
     $\lambda = (Q = \forall, X = [8, 9], \mu(x) = -(28x - 192))$:
 %
     \begin{equation}
@@ -536,21 +570,26 @@ boundary conditions contained in a set:
 \end{problem}
 
 Even though the formulation is general for any PDE, in what follows we make the
-assumption that the system of ODEs obtained after applyting the FEM is linear.
+assumption that the system of ODEs obtained after applying the FEM is linear.
 This assumption requires the PDE
 to be linear. Additionally, we require in \cref{pr:stl_set} the set of initial
-conditions $U_0$ to be described as a polytope in the parameters of a
-linear parameterization of the initial conditions. For example, the set $\{u(x)
+values $U_0$ to be described as a polytope in the parameters of a
+linear parameterization of the initial values. For example, the set $\{u(x)
 = a x^2 + b | a \in [1,2], b = 5\}$ is acceptable, while $\{u(x) = a^2 x |
-a \in [1,2]\}$ is not.
+a \in [1,2]\}$ is not. Likewise, we require in \cref{pr:stl_bound_set} the set
+of boundary conditions $G$ to be a polytope.
 
-In order to solve both problems, we first reformulate the specification $\psi$
+In order to solve all three problems, we first reformulate the specification $\psi$
 in such a way that it allows us to solve the verification problems
 conservatively on a discrete-time linear system instead. This is done in three
 steps by considering the FEM approximation to the real solution, a spatial
-discretization and a temporal discretization. The solution of \cref{pr:stl_set}
+discretization and a temporal discretization. The solution of \cref{pr:stl}
+follows from \cref{th:main} in
+\cref{sec:formally_correct_discretization_of_pdestl}. The solution of
+\cref{pr:stl_set,pr:stl_bound_set}
 involves a reformulation into an optimization problem that can be encoded as a
-mixed-integer linear program.
+mixed-integer linear program, which is shown in
+\cref{sec:verification_of_initial_sets}.
 
 \section{Discretization of STL for PDEs}
 \label{sec:formally_correct_discretization_of_pdestl}
@@ -571,14 +610,14 @@ with minimal changes.
 
 
 We first reformulate the specification $\psi$ so that we can verify instead the
-approximation given by $\Sigma_{FEM}$. Recall that we denote as $u(x,t)$ the
-trajectory of $\Sigma$ and $u^d(x, t)$ the piecewise linear approximation
-obtained by interpolating the trajectory of $\Sigma_{FEM}$. In the following, we
+approximation given by $\Sigma_{FEM}(u_0, g)$. Recall that we denote as $u(x,t)$ the
+trajectory of $\Sigma(u_0, g)$ and $u^d(x, t)$ the piecewise linear approximation
+obtained by interpolating the trajectory of $\Sigma_{FEM}(u_0, g)$. In the following, we
 assume the partition $\{x_i\}_{i=1}^m$ is proposition preserving with respect 
 to the set of
 regions $\{X_i\}_{i = 1}^{m}$\footnote{This is well defined since the $X_i$ sets are
 closed and there are a finite number of them. In higher dimensions, the
-additional requirement that $X_i$ are polytopic is required}. Suppose we are given
+additional requirement that $X_i$ are polytopes is required}. Suppose we are given
 an a priori bound, $\epsilon(x, t)$, on the pointwise difference between them, i.e., 
 $|u(x, t) - u^d(x, t)| \leq \epsilon(x, t)$.
 
@@ -635,7 +674,7 @@ $|u(x, t) - u^d(x, t)| \leq \epsilon(x, t)$.
     \label{ex:eps_approx}
 
     Assume we obtain a bound $\delta(x) = 1$ for a heat conduction system
-    $\Sigma^H$ with $\Omega = (0, 10)$ and its
+    $\Sigma^H(u_0, g)$ \cref{eq:pde} with $\Omega = (0, 10)$ and its
     FEM approximation. Consider the same specification $\psi$ defined in \cref{ex:stl}.
     The perturbed specification, $\psi^\delta$ is then:
     %
@@ -644,16 +683,16 @@ $|u(x, t) - u^d(x, t)| \leq \epsilon(x, t)$.
         192) - 1 > 0 \,.
     \end{equation}
     %
-    If the FEM approximation to $\Sigma^H$ satisfies $\psi^\delta$, we can
-    conclude $\Sigma^H$ satisfies $\psi$.
+    If the FEM approximation to $\Sigma^H(u_0, g)$ satisfies $\psi^\delta$, we can
+    conclude $\Sigma^H(u_0, g)$ satisfies $\psi$.
     
 \end{example}
 
 \cref{th:epsilon_approximation} gives us a way to conservatively solve
-\cref{pr:stl} using the approximation obtained from $\Sigma_{FEM}$.
+\cref{pr:stl} using the approximation obtained from $\Sigma_{FEM}(u_0, g)$.
 However, we still need to deal with continuous functions in continuous time. Our
 next step will be to reformulate the problem into a verification problem over
-the trajectory of $\Sigma_{FEM}$, i.e., $d(t)$.
+the trajectory of $\Sigma_{FEM}(u_0, g)$, i.e., $d(t)$.
 
 Let $\Lambda^{\delta}_{FEM} = \{\alpha_{\lambda, e} | \lambda \in
 \Lambda^{\delta}, e \in E_{\lambda}\} \cup \{\beta_{\lambda, j} | \lambda \in
@@ -765,15 +804,15 @@ $\Lambda^{\delta}_{FEM}$ by a real number $k$ in a manner analogous to
     \end{multline}
     %
     with $k = \frac{0.5 (28 + 4)}{2} = 8$. If we prove satisfaction of $\psi^{\delta,
-    \eta}_{FEM}$ by $\Sigma^H_{FEM}$, we can conclude the interpolation satisfies
+    \eta}_{FEM}$ by $\Sigma^H_{FEM}(u_0, g)$, we can conclude the interpolation satisfies
     $\psi^\delta$.
     
 \end{example}
 
 Finally, we reformulate the problem into a verification problem over the
-trajectory of a time discretization of $\Sigma_{FEM}$ with time interval $\Delta
+trajectory of a time discretization of $\Sigma_{FEM}(u_0, g)$ with time interval $\Delta
 t \in \R_{>0}$. There are several options at this point: the simplest one is to
-consider $\Sigma_{FEM}$ as a first order linear system (augmenting the state
+consider $\Sigma_{FEM}(u_0, g)$ as a first order linear system (augmenting the state
 space if needed) and define the time discretization as the following difference
 equation:
 %
@@ -829,7 +868,7 @@ signal $\tilde{d}$. In particular, $\tilde{d}[t] \models \mu \iff
 \begin{example}
     \label{ex:nu_approx}
 
-    Continuing with \cref{ex:eta_approx}, assume we discretize $\Sigma_{FEM}$ using
+    Continuing with \cref{ex:eta_approx}, assume we discretize $\Sigma_{FEM}(u_0, g)$ using
     the timestep $\Delta t = 0.1$ and let $\nu = (5, 5, ...)$. The final
     perturbed specification is
     %
@@ -841,7 +880,7 @@ signal $\tilde{d}$. In particular, $\tilde{d}[t] \models \mu \iff
     \end{multline}
     %
     As before, we can guarantee the satisfaction of $\psi^{\delta,
-    \eta}_{FEM}$ by $\Sigma^H_{FEM}$ if $\Sigma_{FEM}^{H, \Delta t}$ satisfies
+    \eta}_{FEM}$ by $\Sigma^H_{FEM}(u_0, g)$ if $\Sigma_{FEM}^{H, \Delta t}(u_0, g)$ satisfies
     $\psi^{\delta, \eta, \nu}_{FEM}$.
     
 \end{example}
@@ -852,19 +891,20 @@ conservatively by solving a verification problem for regular STL and discrete-ti
 linear systems. 
 
 \begin{theorem}
-    If $\Sigma_{FEM}^{\Delta t}(d^0) \models \psi^{\delta, \eta, \nu}_{FEM}$, with $\delta, \eta$
+    \label{th:main}
+    If $\Sigma_{FEM}^{\Delta t}(u_0, g) \models \psi^{\delta, \eta, \nu}_{FEM}$, with $\delta, \eta$
     and $\nu$ defined as in \cref{th:epsilon_approximation,th:eta_approximation,th:nu_approximation}
-    and $d^0_i = u_0(x_i), i = 1,...,n$, then $\Sigma(u_0) \models \psi$.
+    and $d^0_i = u_0(x_i), i = 1,...,n$, then $\Sigma(u_0, g) \models \psi$.
 \end{theorem}
 
 We can also obtain a bound on the robustness of the
-original specification with respect to the trajectory of $\Sigma$ by making the
+original specification with respect to the trajectory of $\Sigma(u_0, g)$ by making the
 following observation:
 
 \begin{theorem}
     \label{th:robustness}
-    If $u, u^d, d$ and $\tilde{d}$ are trajectories of $\Sigma$, interpolation
-    of $\Sigma_{FEM}$, $\Sigma_{FEM}$ and $\Sigma_{FEM}^{\Delta t}$,
+    If $u, u^d, d$ and $\tilde{d}$ are trajectories of $\Sigma(u_0, g)$, interpolation
+    of $\Sigma_{FEM}(u_0, g)$, $\Sigma_{FEM}(u_0, g)$ and $\Sigma_{FEM}^{\Delta t}(u_0, g)$,
     respectively, and $\psi$ is an S-STL formula over $\Lambda$, then the 
     following inequality holds:
     %
@@ -879,11 +919,16 @@ following observation:
     \cref{th:epsilon_approximation,th:eta_approximation,th:nu_approximation}.
 \end{proof}
 
-\section{Verification of Initial Sets}
+Note that our previous analysis can be extended to the time-dependent
+boundary conditions case. However, some care must be taken in the
+definition of the correction terms (additional corrections must be made on the
+boundary on the boundary nodes) and the time discretization.
+
+\section{Verification for Sets of Initial Values and Boundary Conditions}
 \label{sec:verification_of_initial_sets}
 
 In this section we formulate an optimization problem equivalent to
-\cref{pr:stl_set} which can be converted to a mixed-integer linear program
+\cref{pr:stl_set,pr:stl_bound_set} which can be converted to a mixed-integer linear program
 (MILP). This program can then be solved using an off-the-shelf solver such 
 as Gurobi \cite{gurobi}.
 
@@ -898,7 +943,8 @@ We can reformulate \cref{pr:stl_set} as the following optimization problem:
     \end{aligned}
 \end{equation}
 %
-If $r_m > 0$, then $\psi$ is satisfied for the initial set $U_0$. This
+If $r_m > 0$, then $\psi$ is satisfied for the initial set $U_0$, which provides
+a solution for \cref{pr:stl_set}. This
 optimization problem is clearly non-convex, due to the $\max$ and $\min$
 operators present in the definition of robustness, and the objective function is
 non-differentiable. However, we can apply the technique described in
@@ -921,7 +967,9 @@ problem:
     \end{aligned}
 \end{equation}
 %
-In this case, we need $G$ to be polytopic for the previous optimization problem
+Again, if $r_m > 0$, then $\psi$ is satisfied for the set of initial values
+$U_0$, solving \cref{pr:stl_bound_set}. In this case, we need $G$ to be 
+polytopic for the previous optimization problem
 to be a MILP. Note that we can combine \cref{eq:stl_set_opt,eq:stl_bound_set_opt} in order to
 solve a problem with both sets of initial states and sets of boundary
 conditions. In general, we can use \cref{eq:stl_bound_set_opt} with any time-independent 
@@ -945,7 +993,8 @@ of the spatial domains and inversely proportional to the size of the partition
 \section{Examples}
 \label{sec:examples}
 
-In this section we solve some instances of \cref{pr:stl,pr:stl_set} and discuss
+In this section we solve some instances of \cref{pr:stl,pr:stl_set} for a heat
+equation and \cref{pr:stl_bound_set} for an elastic wave propagation system and discuss
 the conservativeness of our approach as well as the computational performance.
 We implemented our framework using Python 2.7 and Gurobi 7.0 as our MILP solver.
 We ran our implementation in an Intel Core i7 at 2.4GHz and 8GB RAM.
@@ -953,9 +1002,10 @@ We ran our implementation in an Intel Core i7 at 2.4GHz and 8GB RAM.
 \subsection{Heat Equation}
 \label{sub:heat_equation}
 
-We consider first the verification of a single initial value using uniform
-meshes of different sizes. Consider a rod with parameters $L = 10, \rho = 1, c =
-1, \kappa = 1, g_0 = 10, g_L = 100$, initial value $u_0(x) = 20.0$
+We consider first \cref{pr:stl} for a heat equation \cref{eq:pde}.
+Consider a rod with parameters\footnote{For simplicity, we consider all
+quantities unitless in this example.} $L = 10, \rho = 1, c =
+1, \kappa = 1, singleton boundary conditions g_0 = 10, g_L = 100$, singleton initial value $u_0(x) = 20.0$
 for $x \in (0, L)$, $u_0(0) = g_0, u_0(L) = g_L$, and the specification from
 \cref{ex:stl}, which we restate here:
 %
@@ -980,7 +1030,6 @@ profile in the specification.
         obtained with a finer mesh does not.}
     \label{fig:ex1_evolution}
 \end{figure}
-
 
 Throughout this
 section we will consider the true trajectory of the system for some initial
@@ -1009,7 +1058,9 @@ sizes.
     \label{fig:bounds}
 \end{figure}
 
-The robustness results are shown in \cref{tab:res_meshes}. As expected, finer meshes
+The results are shown in \cref{tab:res_meshes}, where the robustness of the
+trajectory of the system with respect to each reformulation of the specification
+is computed. As expected, finer meshes
 yield robustness values closer to the true robustness (-2.7).
 
 \begin{table}
@@ -1084,9 +1135,8 @@ standard deviation of 1.00 to verify the perturbed formula.
     \label{fig:res_diffs}
 \end{figure}
 
-
-Finally, we verified the specification for sets of initial conditions of the
-form $u_0(x) = a x + b$ with $a$ and $b$ constrained as before. Again we use a
+Finally, we solved \cref{pr:stl_set} for sets of initial values of the
+form $u_0(x) = a x + b$ and the singleton boundary conditions previously stated. Again we use a
 mesh of size $h = 0.2$. We summarize our results in \cref{tab:res_sets}. We
 marked as undefined satisfaction the cases in which the minimum robustness is
 negative, since we cannot guarantee their non-satisfaction.
@@ -1109,7 +1159,7 @@ negative, since we cannot guarantee their non-satisfaction.
 \end{tabular}
 \end{table}
 
-\subsection{Linear Elasticity}
+\subsection{Elastic Wave Propagation}
 \label{sub:linear_elasticity}
 
 Consider a steel and brass rod of length $L = \SI{100}{\m}$, the section between 
@@ -1118,10 +1168,11 @@ Consider a steel and brass rod of length $L = \SI{100}{\m}$, the section between
 modulus $E_{steel} = \SI{200}{\giga\pascal}, E_{brass} =
 \SI{100}{\giga\pascal}$,
 with one end fixed and a force $h_L$ applied to the
-other end. The displacement $u(x, t)$ of the rod follows the following IBVP:
+other end. The displacement $u(x, t)$ of the rod obeys the following
+IBVP based on the wave equation:
 %
 \begin{equation}\label{eq:pde_mech}
-    \Sigma^{M}(u_0, v_0, h_L) \quad \left \{
+    \Sigma^{M}(u_0, h_L) \quad \left \{
     \begin{aligned}
         \rho \frac{\partial^2 u}{\partial t^2} - E \frac{\partial^2
         u}{\partial x^2} &= 0, \quad \text{on } \Omega \times (0, T) \,, \\
@@ -1129,22 +1180,26 @@ other end. The displacement $u(x, t)$ of the rod follows the following IBVP:
         E \frac{\partial u}{\partial x}(L, t) &= h_L, \quad 
         \forall t \in (0, T) \,, \\
         % u(L, t) &= g_L, \forall t \in (0, T) \\
-        u(x, 0) &= u_0(x), \quad \forall x \in \Omega \,, \\
-        \frac{\partial u}{\partial t}(x, 0) &= v_0(x), \quad \forall x \in \Omega \,.
+        u(x, 0) &= u_0^1(x), \quad \forall x \in \Omega \,, \\
+        \frac{\partial u}{\partial t}(x, 0) &= u_0^2(x), \quad \forall x \in \Omega \,.
     \end{aligned}
     \right.
 \end{equation}
 %
-where $u_0, v_0$ are the initial displacements and velocities, and $\rho, E$ are
+where $u_0^1, u_0^2$ are the initial displacements and velocities
+\footnote{We abuse the notation of the initial value $u_0$, which in this
+case has two components $u_0^1$ and $u_0^2$, and the boundary condition, which
+in this case is a single scalar which we denote by $h_L$}, and $\rho =
+\rho(x), E = E(x)$ are
 the density and Young's modulus of the rod at each point.
 The corresponding FEM system for linear elements is given by:
 %
 \begin{equation}\label{eq:fem_mech}
-    \Sigma^M_{FEM}(u_0, v_0, h_L) \quad \left \{
+    \Sigma^M_{FEM}(u_0, h_L) \quad \left \{
     \begin{aligned}
         M\ddot{d} + K d &= F + F_{nodal}(h_L) \,, \\
-        d_i(0) &= u_0(x_i), \quad i = 1,...,n \,, \\
-        \dot{d}_i(0) &= v_0(x_i), \quad i = 1,...,n \,.
+        d_i(0) &= u_0^1(x_i), \quad i = 1,...,n \,, \\
+        \dot{d}_i(0) &= v_0^2(x_i), \quad i = 1,...,n \,.
     \end{aligned}
     \right.
 \end{equation}
@@ -1175,25 +1230,27 @@ discretization with time interval $\Delta t$.
 
 A classical engineering problem related to the safety of this system is to
 verify that the maximum displacements at all points in the rod do not exceed a
-safe profile. We simultaneously consider the opposite requirement (exceeding a
-target profile at some point in time) in order to show the richness of the
-specification language. The resulting S-STL formula is the following:
+safe profile. Additionally, we require that at some point in time the load
+applied is enough to stretch the rod above a target profile, which may be needed
+as part of a manufacturing process such as forming, where the rod has to undergo a shape change. 
+The resulting S-STL formula is the following:
 %
 \begin{equation}
 \begin{aligned}
     \phi &= & \Event_{[0.0, 0.3]} \big ( & \lnot \exists x \in [35, 55]: u(x) -
-        \mu_1(-1) > 0 \land \\
-    & & &\lnot \exists x \in [65, 90]: u(x) - \mu_2(-1) > 0 \big)
+        \mu_1(1.5) > 0 \land \\
+    & & &\lnot \exists x \in [65, 90]: u(x) - \mu_2(1) > 0 \big)
     \land \\
-    & & \Event_{[0.0, 0.3]} \big ( & \forall x \in [35, 55]: u(x) - \mu_1(1.5) > 0 \land \\
-    & & & \forall x \in [65, 90]: u(x) - \mu_2(1) > 0 \big ) \,,
+    & & \Event_{[0.0, 0.3]} \big ( & \forall x \in [35, 55]: u(x) - \mu_1(-1) > 0 \land \\
+    & & & \forall x \in [65, 90]: u(x) - \mu_2(-1) > 0 \big ) \,,
     \end{aligned}
 \end{equation}
 %
 where $\mu_1(a) = (400x + a) \cdot 10^{-3}$ and $\mu_2(a) = (200x + a) \cdot
 10^{-3}$.
-We solve the verification problem assuming the rod starts at rest ($u_0 = 0,
-v_0 = 0$) and the foce $h_L$ is contained in the set $[\SI{1900}{\newton},
+We solve \cref{pr:stl_bound_set} assuming the rod starts at rest (singleton
+initial value $u_0^1 = 0,
+u_0^2 = 0$) and the force $h_L$ is contained in the set $[\SI{1900}{\newton},
 \SI{2100}{\newton}]$. We show in
 \cref{fig:mech_plots_bounds} the bounds used for $\delta, \eta$ and $\nu$ for a
 uniform mesh of size $h=5$ and time interval $\Delta t = \SI{1}{\milli\second}$. 
@@ -1224,8 +1281,12 @@ specification is satisfied.
     \subfloat[]{\label{fig:mech_plots_bounds}
         \includegraphics[width=0.33\columnwidth]{figures/pert_plot_mech.png}}
         \hfill
-        \caption{Trajectory for $h_L = \SI{2000}{\newton}$ (left) and $\delta$,
-        $\eta$ and $\nu$ bounds (right).}
+        \caption{On the left, trajectory of \cref{eq:pde_mech} for $h_L =
+            \SI{2000}{\newton}$ and $u_0^1 = u_0^2 = 0$, along with the safe
+            profiles ($\mu_1(1.5)$ and $\mu_2(1)$) and target profiles
+            ($\mu_1(-1)$ and $\mu_2(-1)$).
+            On the right, $\delta$, $\eta$ and $\nu$ bounds obtained for $h_L
+            \in [\SI{1900}{\newton}, \SI{2100}{\newton}]$.}
     \label{fig:mech_evolution}
 \end{figure}
 
