@@ -140,8 +140,8 @@ Time Window Temporal Logic (TWTL) \cite{AkVaBe-ICRA-2016} and Signal Temporal Lo
 study of finite systems, although more recently the robotics community has
 developed abstraction procedures to reduce problems with Ordinary
 Differential Equations (ODEs) to finite models (for example through state space
-discretization or mixed-integer linear program (MILP) encodings
-\cite{sadraddini_robust_2015}).
+discretization \cite{kloetzer_fully_2008} or mixed-integer linear program (MILP) encodings
+\cite{raman_model_2014}).
 However, these techniques cannot be immediately applied to the analysis of PDEs.
 In this work, we extend STL to allow
 specifications over the solutions of PDEs in such a way that both temporal and
@@ -249,7 +249,7 @@ reformulation of the specification that follows the same approximation and
 discretization steps. In order to account for the approximation and
 discretization errors, we introduce correction terms in the formula in such a way
 that all trajectories satisfying the corrected formula also satisfy the
-original one. Finally, we encode the resulting problem into a (MILP) 
+original one. Finally, we encode the resulting problem into a MILP 
 following previously established methods.
 
 % It works by subdividing, or
@@ -319,7 +319,7 @@ such that the following initial boundary value problem (IBVP) is satisfied:
     \Sigma^{H}(u_0, g) \quad \left \{
     \begin{aligned}
         \rho c \frac{\partial u}{\partial t} - \kappa \frac{\partial^2
-        u}{\partial^2 x} &= 0, \text{on } \Omega \times (0, T) \,, \\
+        u}{\partial x^2} &= 0, \text{on } \Omega \times (0, T) \,, \\
         u(0, t) &= g_0, \forall t \in (0, T) \,, \\
         u(L, t) &= g_L, \forall t \in (0, T) \,, \\
         u(x, 0) &= u_0(x), \forall x \in \Omega \,.
@@ -415,8 +415,8 @@ where $l_e = x_{e+1} - x_e$. As a simplifying assumption, we consider the lumped
 version of $M$, which is defined as a diagonal matrix resulting from adding all
 elements in each row of $M$. Note that with this assumption, $A$ is a banded
 matrix of bandwidth 3. In general, we will denote a PDE by $\Sigma(u_0, g)$
-and we will call $\Sigma_{FEM}$ the FEM system corresponding to a PDE system
-$\Sigma$.
+and we will call $\Sigma_{FEM}(u_0, g)$ the FEM system corresponding to a PDE system
+$\Sigma(u_0, g)$.
 
 \subsection{Signal Temporal Logic}
 \label{sec:signal_temporal_logic}
@@ -489,7 +489,7 @@ let $\Lambda$ be a set of predicates over
 a set $\bar\Omega$, where each predicate $\lambda \in \Lambda$ is defined as a
 tuple $(Q_\lambda, X_\lambda, \mu_\lambda)$, 
 and represented using the syntax $Q_\lambda x \in X_\lambda : u(x) - \mu_\lambda(x) >
-0$, with:
+0$, where:
 
 \begin{itemize}
     \item $Q_\lambda \in \{\forall, \exists\}$ is the spatial quantifier,
@@ -527,32 +527,32 @@ $r(\lambda,u, t) = \max_{x \in X_\lambda} u(x, t) - \mu_\lambda(x))$ otherwise.
 
 Throughout this paper, we will use the notation $S(s_0, g) \models \psi$ to denote
 that the trajectory of system $S$ (either a PDE system or its corresponding FEM
-system) with initial state $s_0$ and boundary conditions $g$ satisfies formula 
+system) with initial value $s_0$ and boundary conditions $g$ satisfies formula 
 $\psi$ (either in regular STL or in S-STL).
 
 \section{Problem Formulation}
 \label{sec:problem_formulation}
 
-We can formulate now the STL verification problem for a system governed by a
+We can formulate now the S-STL verification problem for a system governed by a
 PDE:
 
-\begin{problem}
+\begin{problem}[singleton verification]
 \label{pr:stl}
-    Given a PDE system $\Sigma(u_0, g)$, with $u_0$ an initial state and $g$
-    the boundary conditions, and an S-STL formula $\psi$ over a set of
+    Given a PDE system $\Sigma(u_0, g)$, with $u_0$ a singleton initial value and $g$
+    a singleton boundary condition, and an S-STL formula $\psi$ over a set of
     predicates $\Lambda$, check whether the trajectory of $\Sigma(u_0, g)$
     satisfies $\psi$.
 \end{problem}
 
-A more general problem can be formulated if we consider the initial state to be
+A more general problem can be formulated if we consider the initial value to be
 in a set:
 
-\begin{problem}
+\begin{problem}[set of initial values verification]
 \label{pr:stl_set}
-    Given a set of initial states $U_0$, where each element $u_0 \in U_0$ is a
+    Given a set of initial values $U_0$, where each element $u_0 \in U_0$ is a
     function over the spatial domain of the PDE, a set of PDE systems
     $\{\Sigma(u_0, g) | u_0 \in U_0\}$, with $g$
-    the boundary conditions, and an S-STL formula $\psi$ over a set of
+    a singleton boundary condition, and an S-STL formula $\psi$ over a set of
     predicates $\Lambda$, check whether the trajectory of $\Sigma(u_0, g)$
     satisfies $\psi$ for all $u_0 \in U_0$.
 \end{problem}
@@ -560,11 +560,11 @@ in a set:
 Finally, we can also formulate a verification problem for PDEs with static
 boundary conditions contained in a set:
 
-\begin{problem}
+\begin{problem}[set of boundary conditions verification]
 \label{pr:stl_bound_set}
     Given a set of boundary conditions $G$, a set of PDE systems
     $\{\Sigma(u_0, g) | g \in G\}$, with $u_0$
-    an initial state, and an S-STL formula $\psi$ over a set of
+    a singleton initial value, and an S-STL formula $\psi$ over a set of
     predicates $\Lambda$, check whether the trajectory of $\Sigma(u_0, g)$
     satisfies $\psi$ for all $g \in G$.
 \end{problem}
@@ -617,8 +617,8 @@ assume the partition $\{x_i\}_{i=1}^m$ is proposition preserving with respect
 to the set of
 regions $\{X_i\}_{i = 1}^{m}$\footnote{This is well defined since the $X_i$ sets are
 closed and there are a finite number of them. In higher dimensions, the
-additional requirement that $X_i$ are polytopes is required}. Suppose we are given
-an a priori bound, $\epsilon(x, t)$, on the pointwise difference between them, i.e., 
+additional requirement that $X_i$ are polytopes is required.}. Suppose we are given
+an a priori bound, $\epsilon(x, t)$, for the pointwise difference between them, i.e., 
 $|u(x, t) - u^d(x, t)| \leq \epsilon(x, t)$.
 
 \begin{definition}
@@ -634,7 +634,7 @@ $|u(x, t) - u^d(x, t)| \leq \epsilon(x, t)$.
 \label{def:delta_perturbation}
     Let $\psi$ be an S-STL formula over $\Lambda$ in negation normal form 
     and let $\delta : \bar\Omega \to \R$ be a continuous function. The
-    conservative perturbation of $\psi$ by $\delta$, $\psi^\delta$, is an S-STL
+    conservative correction of $\psi$ by $\delta$, $\psi^\delta$, is an S-STL
     formula in negation normal form obtained by substituting every predicate
     $\lambda$ that appears in $\psi$ in the following way:
 
@@ -646,7 +646,7 @@ $|u(x, t) - u^d(x, t)| \leq \epsilon(x, t)$.
 
     We will also use $\Lambda^{\delta}$ to refer to the set of all $\delta$ and
     $-\delta$
-    perturbations of predicates in $\Lambda$.
+    corrections of predicates in $\Lambda$.
 \end{definition}
 
 \begin{theorem}
@@ -688,7 +688,7 @@ $|u(x, t) - u^d(x, t)| \leq \epsilon(x, t)$.
     
 \end{example}
 
-\cref{th:epsilon_approximation} gives us a way to conservatively solve
+Theorem~\ref{th:epsilon_approximation} gives us a way to conservatively solve
 \cref{pr:stl} using the approximation obtained from $\Sigma_{FEM}(u_0, g)$.
 However, we still need to deal with continuous functions in continuous time. Our
 next step will be to reformulate the problem into a verification problem over
@@ -844,14 +844,14 @@ the integration algorithm, $\max_k |d_j(k \Delta t) - \tilde d^k_j| \leq
 % \forall j \in [\frac{a}{\Delta t}, \frac{b}{\Delta t}] \cap \N, \tilde d^{k + j} \models
 % \psi$ and similarly with the eventually operator.
 
-We define a conservative perturbation of $\psi^{\delta, \eta}_{FEM}$ by a real
+We define a conservative correction of $\psi^{\delta, \eta}_{FEM}$ by a real
 vector $\nu = (\nu^y, \nu^d)$, $\psi^{\delta, \eta, \nu}_{FEM}$, in a similar
 way to \cref{def:eta_approximation}, noting that the predicate $\gamma_{\lambda, e}$ is perturbed
 using the constant $l_e^y = \Delta t \nu^y_e$ and the predicate $\beta_{\lambda, j}$ is
 perturbed using the constant $l_j^d = \Delta t \nu^d_j$. We abuse the notation
 for STL formulas so that we can consider satisfaction of the discrete time
 signal $\tilde{d}$. In particular, $\tilde{d}[t] \models \mu \iff
-\mu(\tilde{d}^{t / \Delta t}) > 0$.
+\mu(\tilde{d}^{\lfloor t / \Delta t \rfloor}) > 0$.
 
 \begin{theorem}
     \label{th:nu_approximation}
@@ -870,7 +870,7 @@ signal $\tilde{d}$. In particular, $\tilde{d}[t] \models \mu \iff
 
     Continuing with \cref{ex:eta_approx}, assume we discretize $\Sigma_{FEM}(u_0, g)$ using
     the timestep $\Delta t = 0.1$ and let $\nu = (5, 5, ...)$. The final
-    perturbed specification is
+    corrected specification is
     %
     \begin{multline}
         \psi^{\delta, \eta, \nu}_{FEM} = \Always_{[1,10]} \bigl(
@@ -897,9 +897,9 @@ linear systems.
     and $d^0_i = u_0(x_i), i = 1,...,n$, then $\Sigma(u_0, g) \models \psi$.
 \end{theorem}
 
-We can also obtain a bound on the robustness of the
-original specification with respect to the trajectory of $\Sigma(u_0, g)$ by making the
-following observation:
+We can also obtain a bound for the robustness of the
+trajectory of $\Sigma(u_0, g)$ with respect to the original specification 
+by making the following observation:
 
 \begin{theorem}
     \label{th:robustness}
@@ -922,14 +922,14 @@ following observation:
 Note that our previous analysis can be extended to the time-dependent
 boundary conditions case. However, some care must be taken in the
 definition of the correction terms (additional corrections must be made on the
-boundary on the boundary nodes) and the time discretization.
+boundary nodes) and the time discretization.
 
 \section{Verification for Sets of Initial Values and Boundary Conditions}
 \label{sec:verification_of_initial_sets}
 
 In this section we formulate an optimization problem equivalent to
-\cref{pr:stl_set,pr:stl_bound_set} which can be converted to a mixed-integer linear program
-(MILP). This program can then be solved using an off-the-shelf solver such 
+\cref{pr:stl_set,pr:stl_bound_set} which can be converted to a
+MILP. This program can then be solved using an off-the-shelf solver such 
 as Gurobi \cite{gurobi}.
 
 We can reformulate \cref{pr:stl_set} as the following optimization problem:
@@ -969,10 +969,11 @@ problem:
 %
 Again, if $r_m > 0$, then $\psi$ is satisfied for the set of initial values
 $U_0$, solving \cref{pr:stl_bound_set}. In this case, we need $G$ to be 
-polytopic for the previous optimization problem
+a polytope for the previous optimization problem
 to be a MILP. Note that we can combine \cref{eq:stl_set_opt,eq:stl_bound_set_opt} in order to
 solve a problem with both sets of initial states and sets of boundary
 conditions. In general, we can use \cref{eq:stl_bound_set_opt} with any time-independent 
+(and time-dependent with some minor adjustments)
 parameter in the PDE that appears
 as an independent term in the FEM system (with respect to other unknowns). We
 present an example in \cref{sub:linear_elasticity} for a second order PDE.
@@ -1005,7 +1006,7 @@ We ran our implementation in an Intel Core i7 at 2.4GHz and 8GB RAM.
 We consider first \cref{pr:stl} for a heat equation \cref{eq:pde}.
 Consider a rod with parameters\footnote{For simplicity, we consider all
 quantities unitless in this example.} $L = 10, \rho = 1, c =
-1, \kappa = 1, singleton boundary conditions g_0 = 10, g_L = 100$, singleton initial value $u_0(x) = 20.0$
+1, \kappa = 1$, singleton boundary conditions $g_0 = 10, g_L = 100$, singleton initial value $u_0(x) = 20.0$
 for $x \in (0, L)$, $u_0(0) = g_0, u_0(L) = g_L$, and the specification from
 \cref{ex:stl}, which we restate here:
 %
@@ -1053,7 +1054,7 @@ sizes.
         \includegraphics[width=0.48\columnwidth]{pert_plot_N50.png}}
         \hfill
     \caption{Bounds used for $\delta$, $\eta$ and $\nu$ multiplied by their
-    respective coefficients in the perturbation terms. Note that we show $\nu^d_j$ at
+    respective coefficients in the correction terms. Note that we show $\nu^d_j$ at
     $x_j$ and use $\nu_e^y = \frac{\nu^d_j + \nu^d_{j+1}}{2}$.}
     \label{fig:bounds}
 \end{figure}
@@ -1083,7 +1084,7 @@ yield robustness values closer to the true robustness (-2.7).
 \end{table}
 
 We checked the validity of our approach as well as the degree of
-conservativeness that the perturbations add by verifying random initial values
+conservativeness that the corrections add by verifying random initial values
 of the previous form. We used for this example a uniform mesh of size $h = 0.2$
 and the following specification: 
 %
@@ -1095,10 +1096,10 @@ and the following specification:
 \end{multline}
 %
 which reads in natural language: ``Always between 1 and 10 time units, at all
-points in the rod between lengths 1 and 9, the temperature profile is above the
+points $x$ in the rod between lengths 1 and 9, the temperature profile $u(x)$ is above the
 profile $\mu_1(x) = 9x$. Additionally, eventually between 4 and 6 time units,
-there does not exist a point in the rod between lengths 6 and 7 such that the
-temperature profile is above the profile $\mu_2(x) = 9x + 15$." We depict the
+there does not exist a point $x$ in the rod between lengths 6 and 7 such that the
+temperature profile $u(x)$ is above the profile $\mu_2(x) = 9x + 15$." We depict the
 profiles in the specification in \cref{fig:ex2_evolution}, along with two
 trajectories.
 
@@ -1119,12 +1120,11 @@ trajectories.
 We show in \cref{fig:res_diffs} the difference between the true robustness and
 the robustness for our mesh, both with and without the perturbations. Note that
 when we include all perturbations, the computed robustness is less than the true
-robustness, hence we correctly verify as satisfying all examples
-that are satisfying. Regarding the conservatism of the approach, we obtain a
-difference of at most 5.5 degrees in the robustness, which would allow us to verify a
-specification that is satisfied by at least 5.5 degrees at all points in a system
-that ranges through 90 degrees. It took an average of 19.29 seconds with a
-standard deviation of 1.00 to verify the perturbed formula.
+robustness, as required by \cref{th:main}. Regarding the conservatism of the
+approach, we obtained a
+difference of at most 5.5 robustness, which would allow us to verify a
+specification that is satisfied by at least 5.5 units at all points in a system
+that ranges through 90 units. 
 
 \begin{figure}
     \centering
@@ -1136,7 +1136,8 @@ standard deviation of 1.00 to verify the perturbed formula.
 \end{figure}
 
 Finally, we solved \cref{pr:stl_set} for sets of initial values of the
-form $u_0(x) = a x + b$ and the singleton boundary conditions previously stated. Again we use a
+form $u_0(x) = a x + b$ and the singleton boundary conditions previously stated.
+Again, we use a
 mesh of size $h = 0.2$. We summarize our results in \cref{tab:res_sets}. We
 marked as undefined satisfaction the cases in which the minimum robustness is
 negative, since we cannot guarantee their non-satisfaction.
@@ -1199,7 +1200,7 @@ The corresponding FEM system for linear elements is given by:
     \begin{aligned}
         M\ddot{d} + K d &= F + F_{nodal}(h_L) \,, \\
         d_i(0) &= u_0^1(x_i), \quad i = 1,...,n \,, \\
-        \dot{d}_i(0) &= v_0^2(x_i), \quad i = 1,...,n \,.
+        \dot{d}_i(0) &= u_0^2(x_i), \quad i = 1,...,n \,.
     \end{aligned}
     \right.
 \end{equation}
@@ -1306,8 +1307,8 @@ verification problem is encoded as a MILP.
 We implemented our method in Python and used Gurobi to solve the MILP. Our
 results on a simple heat equation show an acceptable level of conservatism that
 would allow us to verify a specification satisfied more robustly than a 6\% of the range of
-the system. We were able to solve verification problems for sets of initial conditions in a
-few minutes on consumer hardware.
+the system. We were able to solve verification problems for sets of initial
+values and boundary conditions in minutes on consumer hardware.
 
 As future work, we want to find the bounds $\delta, \eta$ and $\nu$ in a
 systematic way, either analytically or using a robust statistical method. We
