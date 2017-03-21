@@ -1,3 +1,5 @@
 nusmv/
 doc/**/*.pdf
 .DS_Store
+*.pyc
+*.lp

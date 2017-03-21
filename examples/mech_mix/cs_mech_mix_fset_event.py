@@ -17,6 +17,7 @@ g = [0.0, None]
 f_nodal = np.zeros(N + 1)
 # f_nodal[-1] = 2e6
 dt = min((L / N) / np.sqrt(E_steel / rho_steel), (L / N) / np.sqrt(E_steel / rho_steel))
+fdt_mult = 3
 # u0 = lambda x: 0.0
 # du0 = lambda x: 0.0
 
@@ -56,8 +57,8 @@ ff = lambda x, p: 0.0 if x < L else p[0]
 sosys = mechlinfem.mechlinfem(xpart, rho, E, g, f_nodal, dt)
 # d0, v0 = mechlinfem.state(u0, du0, xpart, g)
 cs = fem.build_cs(sosys, None, g, cregions, cspec, discretize_system=False,
-                  pset=[dset, vset, fset], f=[fd, fv, ff],
-                  eps=None, eta=None, nu=None)
+                  pset=[dset, vset, fset], f=[fd, fv, ff], fdt_mult=fdt_mult,
+                  eps=eps, eta=eta, nu=eta)
 cs.dsystem = cs.system
 
 # print sosys

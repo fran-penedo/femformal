@@ -136,13 +136,14 @@ def _Build_f(p, op, isnode, uderivs):
             return lambda vs: (vs[1] - vs[0] - p) * (-1 if op == stl.LE else 1)
 
 class SysSignal(stl.Signal):
-    def __init__(self, index, op, p, dp, isnode, uderivs):
+    def __init__(self, index, op, p, dp, isnode, uderivs, fdt_mult=1):
         self.index = index
         self.op = op
         self.p = p
         self.dp = dp
         self.isnode = isnode
         self.uderivs = uderivs
+        self.fdt_mult = fdt_mult
 
         if isnode:
             self.labels = [lambda t: milp.label("d", self.index, t)]
@@ -157,6 +158,9 @@ class SysSignal(stl.Signal):
         pert = -eps(self.index, self.isnode, self.dp)
         self.p = self.p + (pert if self.op == stl.LE else -pert)
         self.f = _Build_f(self.p, self.op, self.isnode, self.uderivs)
+
+    def signal(self, model, t):
+        return super(SysSignal, self).signal(model, t * self.fdt_mult)
 
     def __str__(self):
         return "{isnode} {uderivs} {index} {op} {p} {dp}".format(
@@ -178,7 +182,7 @@ def perturb(formula, eps):
     return stl.perturb(formula, eps)
 
 
-def expr_parser():
+def expr_parser(fdt_mult=1):
     num = stl.num_parser()
 
     T_LE = Literal("<")
@@ -188,10 +192,11 @@ def expr_parser():
     isnode = Word(alphas).setParseAction(lambda t: t == "d")
     relation = (T_LE | T_GR).setParseAction(lambda t: stl.LE if t[0] == "<" else stl.GT)
     expr = isnode + integer + integer + relation + num + num
-    expr.setParseAction(lambda t: SysSignal(t[2], t[3], t[4], t[5], t[0], t[1]))
+    expr.setParseAction(lambda t: SysSignal(t[2], t[3], t[4], t[5], t[0], t[1],
+                                            fdt_mult=fdt_mult))
 
     return expr
 
-def stl_parser():
-    stl_parser = MatchFirst(stl.stl_parser(expr_parser(), True))
+def stl_parser(fdt_mult=1):
+    stl_parser = MatchFirst(stl.stl_parser(expr_parser(fdt_mult), True))
     return stl_parser
