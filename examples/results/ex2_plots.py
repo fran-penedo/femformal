@@ -1,4 +1,5 @@
-import examples.heatlinfem as fem
+import fem.heatlinfem as heatlinfem
+import fem.fem_util as fem
 import femformal.util as u
 import femformal.logic as logic
 import numpy as np
@@ -13,7 +14,7 @@ dt = .1
 #                  for x in np.linspace(0, L, N + 1)[1:-1]] + [T[1]]
 #        for (a, b), N in zip(ablist, Ns)]
 # a, b = (8.5, 10.0)
-a, b = (5, 20.0)
+a, b = (8.5, 10.0)
 d0 = [T[0]] + [a * x + b for x in np.linspace(0, L, N + 1)[1:-1]] + [T[1]]
 
 apc1 = logic.APCont([1, 9], -1, lambda x: 9.0 * x)
@@ -24,7 +25,8 @@ cspec = "((G_[1, 10] (A)) & (F_[4, 6] (B)))"
 # t \in [1,10], T = [10, 100], x \in [1, 9], N = [10, 20, 30, 40, 50], L = 10
 eps = 1.0
 
-cs = fem.build_cs(N, L, T, dt, d0, cregions, cspec, eps=eps)
+system = heatlinfem.heatlinfem(N, L, T, dt).to_canon()
+cs = fem.build_cs(system, d0, T, cregions, cspec, eps=eps)
 system = cs.dsystem
 rh_N = cs.rh_N
 spec = cs.spec
@@ -32,13 +34,15 @@ spec = cs.spec
 import femformal.system as fsys
 import matplotlib.pyplot as plt
 
-fsys.draw_system_disc(system, d0, dt, 10, cs.xpart, t0=1, animate=False, allonly=True, hold=True)
+fsys.draw_system_disc(system, d0, 10, t0=1, animate=False,
+                      allonly=True, hold=True, ylabel='Temperature u',
+                      xlabel='Location x')
 fig, ax = plt.gcf(), plt.gca()
 fig.set_size_inches(3,2)
 ax.plot([1, 9], [9 * x for x in [1, 9]], 'b-', lw=1, label='$\mu_1$')
 ax.plot([6, 7], [9 * x + 15 for x in [6, 7]], 'g-', lw=1, label='$\mu_2$')
 ax.legend(loc='upper left')
 # plt.show()
-fig.savefig('ex2_plots{}.png'.format(1))
+fig.savefig('ex2_plots{}.png'.format(0))
 
 print "loaded cs"

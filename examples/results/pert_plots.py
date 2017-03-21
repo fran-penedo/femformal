@@ -86,7 +86,7 @@ matplotlib.rcParams.update({'figure.autolayout': True})
 for i in [1, 4]:
     fig, ax = plt.subplots()
     fig.set_size_inches(3,2)
-    ax.set_xlabel('x')
+    ax.set_xlabel('Location x')
     ax.set_ylim((0, 15))
     x = np.linspace(0, L, Ns[i] + 1)
     line1 = ax.hlines(np.array(eta[i]) / 2  , x[:-1], x[1:], 'r', label='$\eta h / 2$')

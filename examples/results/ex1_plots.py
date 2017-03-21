@@ -1,10 +1,11 @@
-import examples.heatlinfem as fem
+import fem.heatlinfem as heatlinfem
+import fem.fem_util as fem
 import femformal.util as u
 import femformal.logic as logic
 import numpy as np
 
 
-N = 50
+N = 10
 L = 10.0
 T = [10.0, 100.0]
 dt = .1
@@ -23,7 +24,8 @@ cspec = "((G_[1, 10] (A)) & (F_[4, 6] (B)))"
 # t \in [1,10], T = [10, 100], x \in [1, 9], N = [10, 20, 30, 40, 50], L = 10
 eps = 1.0
 
-cs = fem.build_cs(N, L, T, dt, d0, cregions, cspec, eps=eps)
+system = heatlinfem.heatlinfem(N, L, T, dt).to_canon()
+cs = fem.build_cs(system, d0, T, cregions, cspec, eps=eps)
 system = cs.dsystem
 rh_N = cs.rh_N
 spec = cs.spec
@@ -31,7 +33,9 @@ spec = cs.spec
 import femformal.system as fsys
 import matplotlib.pyplot as plt
 
-fsys.draw_system_disc(system, d0, dt, 10, cs.xpart, t0=1, animate=False, allonly=True, hold=True)
+fsys.draw_system_disc(system, d0, 10, t0=1, animate=False,
+                      allonly=True, hold=True, ylabel='Temperature u',
+                      xlabel='Location x')
 fig, ax = plt.gcf(), plt.gca()
 fig.set_size_inches(3,2)
 ax.plot([8, 9], [28 * x - 192 for x in [8, 9]], 'b-', lw=1, label='$\mu$')
