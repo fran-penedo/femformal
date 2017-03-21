@@ -118,6 +118,26 @@ class SOSystem(object):
         return "M:\n{0}\nK:\n{1}\nF:\n{2}".format(self.M, self.K, self.F)
 
 
+
+class ControlSOSystem(SOSystem):
+    def __init__(self, M, K, F, xpart=None, dt=1.0):
+        SOSystem.__init__(self, M, K, F, xpart=None, dt=1.0)
+
+class PWLFunction(object):
+    def __init__(self, xs, ys=None):
+        self.xs = xs
+        self.ys = ys
+
+    def __call__(self, x):
+        if self.ys is None:
+            raise Except("y values not set")
+        # FIXME probable issue with x = xs[-1]
+        if x < xs[0] or x > xs[-1]:
+            raise Except("Argument out of domain. x = {}".format(x))
+        i = bisect_right(xs, x) - 1
+        return self.ys[i] + (self.ys[i+1] - self.ys[i]) * (x - self.xs[i]) / (self.xs[i+1] - self.xs[i])
+
+
 def is_region_invariant(system, region, dist_bounds):
     for facet, normal, dim in facets(region):
         if not is_facet_separating(system, facet, normal, dim, dist_bounds):
