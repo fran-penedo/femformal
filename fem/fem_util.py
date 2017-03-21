@@ -14,6 +14,8 @@ def build_cs(system, d0, g, cregions, cspec,
 
     if discretize_system:
         dsystem = s.cont_to_disc(system, dt)
+        dsystem.dt = dt
+        dsystem.xpart = xpart
     else:
         dsystem = None
 

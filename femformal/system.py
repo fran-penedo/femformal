@@ -338,7 +338,8 @@ def sosys_max_der_diff(sys, x0, tlims):
 
 
 def draw_system_disc(sys, x0, T, t0=0,
-                     prefix=None, animate=True, allonly=False, hold=False):
+                     prefix=None, animate=True, allonly=False, hold=False,
+                     ylabel='Temperature', xlabel='x'):
     dt = sys.dt
     xpart = sys.xpart
 
@@ -347,7 +348,8 @@ def draw_system_disc(sys, x0, T, t0=0,
     x = np.c_[x0[0] * np.ones(x.shape[0]), x, x0[-1] * np.ones(x.shape[0])]
     x = x[int(round(t0/dt)):]
     draw.draw_pde_trajectory(x, xpart, tx, prefix=prefix,
-                             animate=animate, hold=hold, allonly=allonly)
+                             animate=animate, hold=hold, allonly=allonly, ylabel=ylabel,
+                             xlabel=xlabel)
 
 def draw_sosys(sosys, d0, v0, g, T, t0=0,
                prefix=None, animate=True, allonly=False, hold=False,
