@@ -22,8 +22,8 @@ def mechlinfem(xpart, rho, E, g, f_nodal, dt):
     except:
         rho_matrix = np.identity(len(xpart)) * rho
 
-    logger.debug(E_matrix)
-    logger.debug(rho_matrix)
+    # logger.debug(E_matrix)
+    # logger.debug(rho_matrix)
 
     ls = np.diff(xpart)
 
@@ -42,8 +42,8 @@ def mechlinfem(xpart, rho, E, g, f_nodal, dt):
               0.0 if g[-1] is None else g[-1]]
 
     M = np.diag(Mdiag).dot(rho_matrix) / 2.0
-    logger.debug(len(Kdiag))
-    logger.debug(E_matrix.shape)
+    # logger.debug(len(Kdiag))
+    # logger.debug(E_matrix.shape)
     K = (np.diag(Kdiag) +
         np.diag(Koffd, 1) +
         np.diag(Koffd, -1)).dot(E_matrix)

@@ -27,12 +27,14 @@ du0 = lambda x: 0.0
 # apc1 = logic.APCont([35000, 55000], ">", lambda x: 4 * x / 100000.0 - 0.7 , lambda x: 0.0)
 # apc2 = logic.APCont([10000, 25000], ">", lambda x: 2 * x / 100000.0 - 0.7 , lambda x: 0.0)
 # apc3 = logic.APCont([65000, 90000], ">", lambda x: 2 * x / 100000.0 - 0.7 , lambda x: 0.0)
-apc1 = logic.APCont([35000, 55000], ">", lambda x: 4 * x / 100000.0 - 1.0 , lambda x: 0.0)
+# apc1 = logic.APCont([35000, 55000], ">", lambda x: 4 * x / 100000.0 - 1.0 , lambda x: 0.0)
 # apc2 = logic.APCont([10000, 25000], ">", lambda x: 2 * x / 100000.0 - 1.0 , lambda x: 0.0)
-apc3 = logic.APCont([65000, 90000], ">", lambda x: 2 * x / 100000.0 - 1.0 , lambda x: 0.0)
-apc4 = logic.APCont([35000, 55000], "<", lambda x: 4 * x / 100000.0 + 1.5 , lambda x: 0.0)
-apc5 = logic.APCont([65000, 90000], "<", lambda x: 2 * x / 100000.0 + 1.0 , lambda x: 0.0)
-cregions = {'A': apc1, 'B': apc3, 'C': apc4, 'D': apc5}
+# apc3 = logic.APCont([65000, 90000], ">", lambda x: 2 * x / 100000.0 - 1.0 , lambda x: 0.0)
+# apc4 = logic.APCont([35000, 55000], "<", lambda x: 4 * x / 100000.0 + 1.5 , lambda x: 0.0)
+# apc5 = logic.APCont([65000, 90000], "<", lambda x: 2 * x / 100000.0 + 1.0 , lambda x: 0.0)
+apc1 = logic.APCont([35000, 55000], ">", lambda x: 4 * x / 100000.0 - 1.2 , lambda x: 4 / 100000.0)
+apc2 = logic.APCont([35000, 55000], "<", lambda x: 2 * x / 100000.0 + 0.5 , lambda x: 2 / 100000.0)
+cregions = {'A': apc1, 'B': apc2}
 
 # cspec = "((F_[1, 10] (A)) & (G_[1, 10] (B)))"
 # cspec = "(F_[1, 10] (A))"
@@ -44,11 +46,11 @@ sosys = mechlinfem.mechlinfem(xpart, rho, E, g, f_nodal, dt)
 d0, v0 = mechlinfem.state(u0, du0, xpart, g)
 cs = fem.build_cs(sosys, [d0, v0], g, cregions, None, discretize_system=False)
 
-print sosys
-print d0
-print v0
-print cs.spec
-print dt
+# print sosys
+# print d0
+# print v0
+# print cs.spec
+# print dt
 
 import matplotlib.pyplot as plt
 sys.draw_sosys(sosys, d0, v0, g, 0.1, animate=False, allonly=True, hold=True)
@@ -62,8 +64,8 @@ for (key, apc), label in zip(sorted(cregions.items()), labels):
 ax.autoscale()
 ax.legend(loc='upper left', fontsize='6', labelspacing=0.05, handletextpad=0.1)
 ax.set_xticklabels([x / 1000 for x in ax.get_xticks()])
-# plt.show()
-fig.savefig('mech_plots.png')
+plt.show()
+# fig.savefig('mech_plots.png')
 
 dsystem = cs.system
 d0 = cs.d0
