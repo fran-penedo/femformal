@@ -1,5 +1,5 @@
 import numpy as np
-import femformal.system as s
+from .. import system as s
 
 import logging
 logger = logging.getLogger('FEMFORMAL')
