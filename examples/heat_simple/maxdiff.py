@@ -1,6 +1,6 @@
-from fem.heatlinfem import heatlinfem
-import fem.fem_util as fem
-import femformal.system as s
+from core.fem.heatlinfem import heatlinfem
+import core.fem.fem_util as fem
+import core.system as s
 import numpy as np
 
 

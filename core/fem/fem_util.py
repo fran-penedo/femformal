@@ -1,7 +1,7 @@
 import numpy as np
-import femformal.system as s
-import femformal.logic as logic
-import femmilp.system_milp as sysmilp
+from .. import system as s
+from .. import logic as logic
+# from .. import femmilp.system_milp as sysmilp
 
 import logging
 logger = logging.getLogger('FEMFORMAL')
@@ -24,13 +24,13 @@ def build_cs(system, d0, g, cregions, cspec, fdt_mult=1,
                 for label, pred in cregions.items()}
         dspec = logic.subst_spec_labels_disc(cspec, regions)
         try:
-            spec = sysmilp.stl_parser(fdt_mult).parseString(dspec)[0]
+            spec = logic.stl_parser(fdt_mult).parseString(dspec)[0]
         except Exception as e:
             logger.exception("Error while parsing specification:\n{}\n".format(dspec))
             raise e
 
         # if discretize_system:
-        sysmilp.scale_time(spec, dt * fdt_mult)
+        logic.scale_time(spec, dt * fdt_mult)
         md = 0.0
         me = [0.0 for i in range(len(xpart) - 1)]
         mn = [0.0 for i in range(len(xpart) - 1)]
@@ -44,9 +44,9 @@ def build_cs(system, d0, g, cregions, cspec, fdt_mult=1,
         ke = lambda i, isnode, dmu: (me[i] / 2.0) + dmu * (xpart[i+1] - xpart[i]) / 2.0
         kn = lambda i, isnode, dmu: fdt_mult * (mn[i] if isnode else
                                                 ((mn[i] + mn[i+1]) / 2.0))
-        sysmilp.perturb(spec, kd)
-        sysmilp.perturb(spec, ke)
-        sysmilp.perturb(spec, kn)
+        logic.perturb(spec, kd)
+        logic.perturb(spec, ke)
+        logic.perturb(spec, kn)
     else:
         spec = None
         regions = None

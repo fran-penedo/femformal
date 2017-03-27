@@ -1,7 +1,6 @@
-from femformal.verify import verify, verify_input_constrained
-from femmilp.system_milp import rh_system_sat, rh_system_sat_set, csystem_robustness
-import femformal.util as util
-import numpy as np
+from femts.verify import verify, verify_input_constrained
+from femmilp.femmilp import verify_singleton, verify_set
+from core.logic import csystem_robustness
 import argparse
 from timeit import default_timer as timer
 import importlib
@@ -26,7 +25,7 @@ def run_cs_draw(m, args):
 def run_cs_milp(m, args):
     # logger.debug(m.system)
     start = timer()
-    res = rh_system_sat(m.dsystem, m.d0, m.rh_N, m.spec)
+    res = verify_singleton(m.dsystem, m.d0, m.spec)
     finish = timer()
     print 'Res: {}'.format(res)
     print 'Time {}'.format(finish - start)
@@ -34,7 +33,7 @@ def run_cs_milp(m, args):
 def run_cs_milp_set(m, args):
     cs = m.cs
     start = timer()
-    res = rh_system_sat_set(cs.dsystem, cs.pset, cs.f, cs.xpart, cs.rh_N, cs.spec)
+    res = verify_set(cs.dsystem, cs.pset, cs.f, cs.spec)
     finish = timer()
     print 'Res: {}'.format(res)
     print 'Time {}'.format(finish - start)
@@ -49,7 +48,7 @@ def run_cs_milp_batch(m, args):
     for cs, cstrue in zip(m.cslist, m.cstrues):
         print "---- cs"
         start = timer()
-        res.append(rh_system_sat(cs.dsystem, cs.d0, cs.rh_N, cs.spec))
+        res.append(verify_singleton(cs.dsystem, cs.d0, cs.spec))
         end = timer()
         times.append(end - start)
         trues.append(csystem_robustness(cstrue.spec, cstrue.system,

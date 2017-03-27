@@ -1,6 +1,6 @@
-from fem.mechlinfem import mechlinfem
-import fem.fem_util as fem
-import femformal.system as s
+from core.fem.mechlinfem import mechlinfem
+import core.fem.fem_util as fem
+import core.system as s
 import numpy as np
 
 

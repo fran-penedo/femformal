@@ -1,10 +1,11 @@
-import examples.heatlinfem as fem
-import femformal.util as u
-import femformal.logic as logic
+from core.fem.heatlinfem import heatlinfem
+import core.fem.fem_util as fem
+import core.util as u
+import core.logic as logic
 import numpy as np
 
 
-N = 50
+N = 10
 L = 10.0
 T = [10.0, 100.0]
 dt = .1
@@ -23,17 +24,18 @@ cspec = "((G_[1, 10] (A)) & (F_[4, 6] (B)))"
 # t \in [1,10], T = [10, 100], x \in [1, 9], N = [10, 20, 30, 40, 50], L = 10
 eps = 1.0
 
-cs = fem.build_cs(N, L, T, dt, d0, cregions, cspec, eps=eps)
-system = cs.dsystem
+system = heatlinfem(N, L, T, dt)
+cs = fem.build_cs(system.to_canon(), d0, T, cregions, cspec, eps=eps)
+dsystem = cs.dsystem
 rh_N = cs.rh_N
 spec = cs.spec
 
-import femformal.system as fsys
-import matplotlib.pyplot as plt
-
-fsys.draw_system_disc(system, d0, dt, 10, cs.xpart, t0=1, animate=False, allonly=True, hold=True)
-fig, ax = plt.gcf(), plt.gca()
-ax.plot([8, 9], [28 * x - 192 for x in [8, 9]], 'b-', lw=3, label='$\mu$')
-plt.show()
+# import femformal.system as fsys
+# import matplotlib.pyplot as plt
+#
+# fsys.draw_system_disc(system, d0, dt, 10, cs.xpart, t0=1, animate=False, allonly=True, hold=True)
+# fig, ax = plt.gcf(), plt.gca()
+# ax.plot([8, 9], [28 * x - 192 for x in [8, 9]], 'b-', lw=3, label='$\mu$')
+# plt.show()
 
 print "loaded cs"

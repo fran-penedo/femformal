@@ -10,6 +10,14 @@ logger.propagate = False
 
 logger.setLevel(logging.DEBUG)
 
+def label(name, i, j):
+    return name + "_" + str(i) + "_" + str(j)
+
+def unlabel(label):
+    sp = label.split("_")
+    return sp[0], int(sp[1]), int(sp[2])
+
+
 def state_label(l):
     return 's' + '_'.join([str(x) for x in l])
 

@@ -371,6 +371,21 @@ def draw_system_disc(sys, x0, T, t0=0,
                              animate=animate, hold=hold, allonly=allonly, ylabel=ylabel,
                              xlabel=xlabel)
 
+def draw_system_cont(sys, x0, T, t0=0,
+                     prefix=None, animate=True, allonly=False, hold=False,
+                     ylabel='Temperature', xlabel='x'):
+    dt = sys.dt
+    xpart = sys.xpart
+
+    tx = np.linspace(t0, T, int(round((T - t0)/dt)))
+    x = cont_integrate(sys, x0[1:-1], tx)
+    x = np.c_[x0[0] * np.ones(x.shape[0]), x, x0[-1] * np.ones(x.shape[0])]
+    x = x[int(round(t0/dt)):]
+    tx = tx[int(round(t0/dt)):]
+    draw.draw_pde_trajectory(x, xpart, tx, prefix=prefix,
+                             animate=animate, hold=hold, allonly=allonly, ylabel=ylabel,
+                             xlabel=xlabel)
+
 def draw_sosys(sosys, d0, v0, g, T, t0=0,
                prefix=None, animate=True, allonly=False, hold=False,
                ylabel='Displacement', xlabel='x'):
