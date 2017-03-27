@@ -1,7 +1,7 @@
-import fem.mechlinfem as mechlinfem
-import fem.fem_util as fem
-import femformal.system as sys
-import femformal.logic as logic
+import core.fem.mechlinfem as mechlinfem
+import core.fem.fem_util as fem
+import core.system as sys
+import core.logic as logic
 import numpy as np
 
 N = 20
