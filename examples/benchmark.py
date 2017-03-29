@@ -1,5 +1,5 @@
 from femts.verify import verify, verify_input_constrained
-from femmilp.femmilp import verify_singleton, verify_set
+from femmilp.femmilp import verify_singleton, verify_set, synthesize
 from core.logic import csystem_robustness
 import argparse
 from timeit import default_timer as timer
@@ -37,6 +37,15 @@ def run_cs_milp_set(m, args):
     finish = timer()
     print 'Res: {}'.format(res)
     print 'Time {}'.format(finish - start)
+
+def run_cs_milp_synth(m, args):
+    cs = m.cs
+    start = timer()
+    res, synths = synthesize(cs.dsystem, cs.pset, cs.f, cs.spec)
+    finish = timer()
+    print 'Robustness = {}'.format(res)
+    print 'Synthesized parameters = {}'.format(synths)
+    print 'Time = {}'.format(finish - start)
 
 def run_load(m, args):
     pass
@@ -91,10 +100,12 @@ def get_argparser():
         'time', help='Run an example a number of times a show execution times')
     parser_milp = subparsers.add_parser(
         'milp', help='Run an example using MILP')
-    parser_milp = subparsers.add_parser(
+    parser_milp_set = subparsers.add_parser(
         'milp_set', help='Run an example for initial sets using MILP')
     parser_milp_batch = subparsers.add_parser(
         'milp_batch', help='Run several examples in batch using MILP')
+    parser_milp_synth = subparsers.add_parser(
+        'milp_synth', help='Run an example for synthesis using MILP')
     parser_load = subparsers.add_parser(
         'load', help='Load a benchmark file')
     parser.add_argument('module', help='module containing the case study')
@@ -117,6 +128,8 @@ def main():
         run_cs_milp(module, args)
     elif args.action == 'milp_set':
         run_cs_milp_set(module, args)
+    elif args.action == 'milp_synth':
+        run_cs_milp_synth(module, args)
     elif args.action == 'milp_batch':
         run_cs_milp_batch(module, args)
     elif args.action == 'load':

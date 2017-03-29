@@ -38,7 +38,7 @@ vset = np.array([[1, 0], [-1, 0]])
 fset = np.array([[-1, -1.9e3], [1, 2.1e3]])
 fd = lambda x, p: p[0]
 fv = lambda x, p: p[0]
-ff = lambda x, p: 0.0 if x < L else p[0]
+ff = lambda x, t, p: 0.0 if x < L else p[0]
 
 
 sosys = mechlinfem.mechlinfem(xpart, rho, E, g, f_nodal, dt)

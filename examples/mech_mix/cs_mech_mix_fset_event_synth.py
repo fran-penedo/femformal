@@ -48,16 +48,16 @@ nu = [ 0.        ,  0.03420027,  0.05542994,  0.06004345,  0.06031116,
 
 dset = np.array([[1, 0], [-1, 0]])
 vset = np.array([[1, 0], [-1, 0]])
-fset = np.array([[-1, -1.9e3], [1, 2.1e3]])
 fd = lambda x, p: p[0]
 fv = lambda x, p: p[0]
-ff = lambda x, t, p: 0.0 if x < L else p[0]
+pwlf = sys.PWLFunction([0.0, 0.1, 0.2, 0.3], ybounds=[2e3, 3e3], x=L)
+fset = pwlf.pset()
 
 
 sosys = mechlinfem.mechlinfem(xpart, rho, E, g, f_nodal, dt)
 # d0, v0 = mechlinfem.state(u0, du0, xpart, g)
 cs = fem.build_cs(sosys, None, g, cregions, cspec, discretize_system=False,
-                  pset=[dset, vset, fset], f=[fd, fv, ff], fdt_mult=fdt_mult,
+                  pset=[dset, vset, fset], f=[fd, fv, pwlf], fdt_mult=fdt_mult,
                   eps=eps, eta=eta, nu=eta)
 cs.dsystem = cs.system
 

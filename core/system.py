@@ -123,19 +123,36 @@ class ControlSOSystem(SOSystem):
     def __init__(self, M, K, F, xpart=None, dt=1.0):
         SOSystem.__init__(self, M, K, F, xpart=None, dt=1.0)
 
-class PWLFunction(object):
-    def __init__(self, xs, ys=None):
-        self.xs = xs
-        self.ys = ys
 
-    def __call__(self, x):
-        if self.ys is None:
-            raise Except("y values not set")
-        # FIXME probable issue with x = xs[-1]
-        if x < xs[0] or x > xs[-1]:
-            raise Except("Argument out of domain. x = {}".format(x))
-        i = bisect_right(xs, x) - 1
-        return self.ys[i] + (self.ys[i+1] - self.ys[i]) * (x - self.xs[i]) / (self.xs[i+1] - self.xs[i])
+class PWLFunction(object):
+    def __init__(self, ts, ys=None, ybounds=None, x=None):
+        self.x = x
+        self.ts = ts
+        self.ys = ys
+        self.ybounds = ybounds
+
+    def pset(self):
+        left = np.hstack([np.identity(len(self.ts)),
+                             -np.identity(len(self.ts))])
+        right = np.r_[[self.ybounds[1] for x in self.ts],
+                      [-self.ybounds[0] for x in self.ts]]
+        return np.vstack([left, right]).T
+
+    def __call__(self, x, t, p=None):
+        if x != self.x:
+            return 0
+        ts = self.ts
+        if p is None:
+            if self.ys is None:
+                raise Exception("y values not set")
+            ys = self.ys
+            if t < ts[0] or t > ts[-1]:
+                raise Exception("Argument out of domain. t = {}".format(t))
+        else:
+            self.ys = ys = p
+        # FIXME probable issue with t = ts[-1]
+        i = bisect_right(ts, t) - 1
+        return ys[i] + (ys[i+1] - ys[i]) * (t - ts[i]) / (ts[i+1] - ts[i])
 
 
 def is_region_invariant(system, region, dist_bounds):
