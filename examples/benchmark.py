@@ -25,7 +25,7 @@ def run_cs_draw(m, args):
 def run_cs_milp(m, args):
     # logger.debug(m.system)
     start = timer()
-    res = verify_singleton(m.dsystem, m.d0, m.spec)
+    res = verify_singleton(m.dsystem, m.d0, m.spec, cs.fdt_mult)
     finish = timer()
     print 'Res: {}'.format(res)
     print 'Time {}'.format(finish - start)
@@ -33,7 +33,7 @@ def run_cs_milp(m, args):
 def run_cs_milp_set(m, args):
     cs = m.cs
     start = timer()
-    res = verify_set(cs.dsystem, cs.pset, cs.f, cs.spec)
+    res = verify_set(cs.dsystem, cs.pset, cs.f, cs.spec, cs.fdt_mult)
     finish = timer()
     print 'Res: {}'.format(res)
     print 'Time {}'.format(finish - start)
@@ -41,7 +41,7 @@ def run_cs_milp_set(m, args):
 def run_cs_milp_synth(m, args):
     cs = m.cs
     start = timer()
-    res, synths = synthesize(cs.dsystem, cs.pset, cs.f, cs.spec)
+    res, synths = synthesize(cs.dsystem, cs.pset, cs.f, cs.spec, cs.fdt_mult)
     finish = timer()
     print 'Robustness = {}'.format(res)
     print 'Synthesized parameters = {}'.format(synths)

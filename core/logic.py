@@ -129,7 +129,7 @@ class SysSignal(stl.Signal):
             self.labels = [(lambda t, i=i: label("d", self.index + i, t)) for i in range(2)]
 
         self.f = _Build_f(p, op, isnode, uderivs)
-        self.bounds = [-1000, 1000] #FIXME bounds
+        self.bounds = [-10, 10] #FIXME bounds
 
     # eps :: index -> isnode -> d/dx mu -> pert
     def perturb(self, eps):

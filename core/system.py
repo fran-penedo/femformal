@@ -120,8 +120,15 @@ class SOSystem(object):
 
 
 class ControlSOSystem(SOSystem):
-    def __init__(self, M, K, F, xpart=None, dt=1.0):
-        SOSystem.__init__(self, M, K, F, xpart=None, dt=1.0)
+    def __init__(self, M, K, F, f_nodal, xpart=None, dt=1.0):
+        SOSystem.__init__(self, M, K, F, xpart=xpart, dt=dt)
+        self.f_nodal = f_nodal
+
+    @staticmethod
+    def from_sosys(sosys, f_nodal):
+        csosys = ControlSOSystem(
+            sosys.M, sosys.K, sosys.F, f_nodal, sosys.xpart, sosys.dt)
+        return csosys
 
 
 class PWLFunction(object):
@@ -220,6 +227,11 @@ def newm_integrate(sosys, d0, v0, T, dt=.1):
     K = sosys.K[np.ix_(n_e, n_e)]
     F = sosys.F[n_e]
 
+    try:
+        f_nodal = sosys.f_nodal
+    except AttributeError:
+        f_nodal = np.zeros(F.shape)
+
     its = int(round(T / dt))
     d = np.array(d0)
     v = np.array(v0)
@@ -229,12 +241,14 @@ def newm_integrate(sosys, d0, v0, T, dt=.1):
     ds = [d]
     vs = [v]
     for i in range(its):
-        # if i % 20 == 0:
-        #     logger.debug("newmark its: {}/{}".format(i, its))
         tv = v + .5 * dt * a
         # tv[0] = tv[-1] = 0.0
         d = d + dt * tv
-        a[n_e] = la.lu_solve(M_LU, F - K.dot(d[n_e]))
+        try:
+            f_nodal_c = f_nodal(i * dt)[n_e]
+        except TypeError:
+            f_nodal_c = f_nodal
+        a[n_e] = la.lu_solve(M_LU, F + f_nodal_c - K.dot(d[n_e]))
         v = tv + .5 * dt * a
         ds.append(d)
         vs.append(v)

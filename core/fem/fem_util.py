@@ -59,6 +59,7 @@ def build_cs(system, d0, g, cregions, cspec, fdt_mult=1,
         'xpart': xpart,
         'g': g,
         'dt': dt,
+        'fdt_mult': fdt_mult,
         'd0': d0,
         'pset': pset,
         'f': f,
@@ -239,6 +240,7 @@ class CaseStudy(object):
         self.xpart = copy.pop('xpart', None)
         self.g = copy.pop('g', 0)
         self.dt = copy.pop('dt', 0)
+        self.fdt_mult = copy.pop('fdt_mult', 1)
         self.d0 = copy.pop('d0', None)
         self.pset = copy.pop('pset', None)
         self.f = copy.pop('f', None)

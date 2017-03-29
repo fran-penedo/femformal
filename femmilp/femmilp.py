@@ -43,20 +43,20 @@ def _build_and_solve(spec, model_encode_f, spec_obj):
         return m
 
 
-def verify_singleton(system, d0, spec):
-    model_encode_f = lambda m, hd: sys_milp.add_sys_constr_x0(m, "d", system, d0, hd, None)
+def verify_singleton(system, d0, spec, fdt_mult=1):
+    model_encode_f = lambda m, hd: sys_milp.add_sys_constr_x0(m, "d", system, d0, fdt_mult * hd, None)
 
     m = _build_and_solve(spec, model_encode_f, 1.0)
     return m.getVarByName("spec").getAttr("x")
 
-def verify_set(system, pset, f, spec):
-    model_encode_f = lambda m, hd: sys_milp.add_sys_constr_x0_set(m, "d", system, pset, f, hd)
+def verify_set(system, pset, f, spec, fdt_mult=1):
+    model_encode_f = lambda m, hd: sys_milp.add_sys_constr_x0_set(m, "d", system, pset, f, fdt_mult * hd)
 
     m = _build_and_solve(spec, model_encode_f, 1.0)
     return m.getVarByName("spec").getAttr("x")
 
-def synthesize(system, pset, f, spec):
-    model_encode_f = lambda m, hd: sys_milp.add_sys_constr_x0_set(m, "d", system, pset, f, hd)
+def synthesize(system, pset, f, spec, fdt_mult=1):
+    model_encode_f = lambda m, hd: sys_milp.add_sys_constr_x0_set(m, "d", system, pset, f, fdt_mult * hd)
 
     m = _build_and_solve(spec, model_encode_f, -1.0)
     return m.getVarByName("spec").getAttr("x"), [y.getAttr('x') for y in f[-1].ys]
