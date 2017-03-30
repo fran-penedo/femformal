@@ -17,7 +17,8 @@ g = [0.0, None]
 f_nodal = np.zeros(N + 1)
 # f_nodal[-1] = 2e6
 dt = min((L / N) / np.sqrt(E_steel / rho_steel), (L / N) / np.sqrt(E_steel / rho_steel))
-fdt_mult = 2
+fdt_mult = 1
+bounds = [-10, 10]
 # u0 = lambda x: 0.0
 # du0 = lambda x: 0.0
 
@@ -31,7 +32,7 @@ cregions = {'A': apc1, 'B': apc2, 'C': apc3}
 
 # cspec = "((F_[1, 10] (A)) & (G_[1, 10] (B)))"
 # cspec = "(F_[1, 10] (A))"
-cspec = "G_[0.1, 0.2] ((A) & (C))"
+cspec = "G_[0.1, 0.3] ((A) & (C))"
 # cspec = "F_[{}, {}] (B)".format(54 * dt, 54 * dt + 0.002)
 # cspec = "F_[0.001, 0.02] (B)"
 
@@ -50,7 +51,7 @@ dset = np.array([[1, 0], [-1, 0]])
 vset = np.array([[1, 0], [-1, 0]])
 fd = lambda x, p: p[0]
 fv = lambda x, p: p[0]
-pwlf = sys.PWLFunction([0.0, 0.05, 0.1, 0.15, 0.2], ybounds=[0e3, 5e3], x=L)
+pwlf = sys.PWLFunction([0.0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.30], ybounds=[0e3, 5e3], x=L)
 fset = pwlf.pset()
 
 
@@ -58,7 +59,7 @@ sosys = mechlinfem.mechlinfem(xpart, rho, E, g, f_nodal, dt)
 # d0, v0 = mechlinfem.state(u0, du0, xpart, g)
 cs = fem.build_cs(sosys, None, g, cregions, cspec, discretize_system=False,
                   pset=[dset, vset, fset], f=[fd, fv, pwlf], fdt_mult=fdt_mult,
-                  eps=eps, eta=eta, nu=eta)
+                  bounds=bounds, eps=eps, eta=eta, nu=eta)
 cs.dsystem = cs.system
 
 # print sosys

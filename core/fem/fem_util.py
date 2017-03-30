@@ -6,7 +6,7 @@ from .. import logic as logic
 import logging
 logger = logging.getLogger('FEMFORMAL')
 
-def build_cs(system, d0, g, cregions, cspec, fdt_mult=1,
+def build_cs(system, d0, g, cregions, cspec, fdt_mult=1, bounds=None,
              pset=None, f=None, discretize_system=True, cstrue=None,
              eps=None, eta=None, nu=None):
     dt = system.dt
@@ -24,7 +24,7 @@ def build_cs(system, d0, g, cregions, cspec, fdt_mult=1,
                 for label, pred in cregions.items()}
         dspec = logic.subst_spec_labels_disc(cspec, regions)
         try:
-            spec = logic.stl_parser(fdt_mult).parseString(dspec)[0]
+            spec = logic.stl_parser(fdt_mult, bounds).parseString(dspec)[0]
         except Exception as e:
             logger.exception("Error while parsing specification:\n{}\n".format(dspec))
             raise e
@@ -32,16 +32,16 @@ def build_cs(system, d0, g, cregions, cspec, fdt_mult=1,
         # if discretize_system:
         logic.scale_time(spec, dt * fdt_mult)
         md = 0.0
-        me = [0.0 for i in range(len(xpart) - 1)]
         mn = [0.0 for i in range(len(xpart) - 1)]
         if eps is not None:
             md = eps
         if eta is not None:
-            me = eta
+            ke = lambda i, isnode, dmu: (eta[i] / 2.0) + dmu * (xpart[i+1] - xpart[i]) / 2.0
+        else:
+            ke = lambda i, isnode, dmu: 0.0
         if nu is not None:
             mn = nu
         kd = lambda i, isnode, dmu: md
-        ke = lambda i, isnode, dmu: (me[i] / 2.0) + dmu * (xpart[i+1] - xpart[i]) / 2.0
         kn = lambda i, isnode, dmu: fdt_mult * (mn[i] if isnode else
                                                 ((mn[i] + mn[i+1]) / 2.0))
         logic.perturb(spec, kd)
@@ -50,8 +50,6 @@ def build_cs(system, d0, g, cregions, cspec, fdt_mult=1,
     else:
         spec = None
         regions = None
-
-    rh_N = 2
 
     return CaseStudy({
         'system': system,
@@ -65,7 +63,6 @@ def build_cs(system, d0, g, cregions, cspec, fdt_mult=1,
         'f': f,
         'regions': regions,
         'spec': spec,
-        'rh_N': rh_N
     })
 
 

@@ -114,7 +114,7 @@ def _Build_f(p, op, isnode, uderivs):
             return lambda vs: (vs[1] - vs[0] - p) * (-1 if op == stl.LE else 1)
 
 class SysSignal(stl.Signal):
-    def __init__(self, index, op, p, dp, isnode, uderivs, fdt_mult=1):
+    def __init__(self, index, op, p, dp, isnode, uderivs, fdt_mult=1, bounds=None):
         self.index = index
         self.op = op
         self.p = p
@@ -129,7 +129,10 @@ class SysSignal(stl.Signal):
             self.labels = [(lambda t, i=i: label("d", self.index + i, t)) for i in range(2)]
 
         self.f = _Build_f(p, op, isnode, uderivs)
-        self.bounds = [-10, 10] #FIXME bounds
+        if bounds is None:
+            self.bounds = [-1000, 1000]
+        else:
+            self.bounds = bounds
 
     # eps :: index -> isnode -> d/dx mu -> pert
     def perturb(self, eps):
@@ -150,7 +153,7 @@ class SysSignal(stl.Signal):
         return self.__str__()
 
 
-def expr_parser(fdt_mult=1):
+def expr_parser(fdt_mult=1, bounds=None):
     num = stl.num_parser()
 
     T_LE = Literal("<")
@@ -161,12 +164,12 @@ def expr_parser(fdt_mult=1):
     relation = (T_LE | T_GR).setParseAction(lambda t: stl.LE if t[0] == "<" else stl.GT)
     expr = isnode + integer + integer + relation + num + num
     expr.setParseAction(lambda t: SysSignal(t[2], t[3], t[4], t[5], t[0], t[1],
-                                            fdt_mult=fdt_mult))
+                                            fdt_mult=fdt_mult, bounds=bounds))
 
     return expr
 
-def stl_parser(fdt_mult=1):
-    stl_parser = MatchFirst(stl.stl_parser(expr_parser(fdt_mult), True))
+def stl_parser(fdt_mult=1, bounds=None):
+    stl_parser = MatchFirst(stl.stl_parser(expr_parser(fdt_mult, bounds), True))
     return stl_parser
 
 
