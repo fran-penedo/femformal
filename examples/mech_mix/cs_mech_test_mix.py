@@ -53,7 +53,7 @@ cs = fem.build_cs(sosys, [d0, v0], g, cregions, None, discretize_system=False)
 # print dt
 
 import matplotlib.pyplot as plt
-sys.draw_sosys(sosys, d0, v0, g, 0.1, animate=False, allonly=True, hold=True)
+sys.draw_sosys(sosys, d0, v0, g, 0.3, animate=False, allonly=False, hold=True)
 fig = plt.gcf()
 fig.set_size_inches(3,2)
 ax = plt.gcf().get_axes()[0]
@@ -62,7 +62,7 @@ for (key, apc), label in zip(sorted(cregions.items()), labels):
     print key, label
     ax.plot(apc.A, [apc.p(x) for x in apc.A], lw=1, label=label)
 ax.autoscale()
-ax.legend(loc='upper left', fontsize='6', labelspacing=0.05, handletextpad=0.1)
+ax.legend(loc='lower left', fontsize='6', labelspacing=0.05, handletextpad=0.1)
 ax.set_xticklabels([x / 1000 for x in ax.get_xticks()])
 plt.show()
 # fig.savefig('mech_plots.png')

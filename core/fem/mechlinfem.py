@@ -11,42 +11,36 @@ def mechlinfem(xpart, rho, E, g, f_nodal, dt):
     n = xpart.shape[0] - 2
 
     try:
-        E_matrix = np.diag([E(x) for x in xpart])
-        E_0, E_1 = E(xpart[0]), E(xpart[-1])
-    except:
-        E_matrix = np.identity(len(xpart)) * E
-        E_0 = E_1 = E
+        Ev = [E(x) for x in xpart]
+    except TypeError:
+        Ev = [E for x in xpart]
 
     try:
-        rho_matrix = np.diag([rho(x) for x in xpart])
+        rhov = [rho(x) for x in xpart]
     except:
-        rho_matrix = np.identity(len(xpart)) * rho
-
-    # logger.debug(E_matrix)
-    # logger.debug(rho_matrix)
+        rhov = [rho for x in xpart]
 
     ls = np.diff(xpart)
 
-    Mdiag = [ls[0] if g[0] is None else 0.0] + \
-        [ls[i] + ls[i + 1] for i in range(n)] + \
-        [ls[-1] if g[1] is None else 0.0]
+    Mdiag = [rhov[0] * ls[0] if g[0] is None else 0.0] + \
+        [rhov[i] * ls[i] + rhov[i + 1] * ls[i + 1] for i in range(n)] + \
+        [rhov[-1] * ls[-1] if g[1] is None else 0.0]
 
-    Koffd = [-1.0 / ls[0] if g[0] is None else 0.0] + \
-        [-1.0 / ls[i] for i in range(1, n)] + \
-        [-1.0/ ls[-1] if g[1] is None else 0.0]
-    Kdiag = [1.0 / ls[0] if g[0] is None else 1.0 / E_0] + \
-        [1.0 / ls[i - 1] + 1.0 / ls[i] for i in range(1, n + 1)] + \
-        [1.0 / ls[-1] if g[1] is None else 1.0 / E_1]
+    Koffd = [-Ev[0] / ls[0] if g[0] is None else 0.0] + \
+        [-Ev[i] / ls[i] for i in range(1, n)] + \
+        [-Ev[-1] / ls[-1] if g[1] is None else 0.0]
+    Kdiag = [Ev[0] / ls[0] if g[0] is None else 1.0] + \
+        [Ev[i - 1] / ls[i - 1] + Ev[i] / ls[i] for i in range(1, n + 1)] + \
+        [Ev[-1] / ls[-1] if g[1] is None else 1.0]
     F = np.r_[0.0 if g[0] is None else g[0],
-              E_0 * gg[0] / ls[0], [0 for i in range(n - 2)], E_1 * gg[1] / ls[n],
+              Ev[0] * gg[0] / ls[0], [0 for i in range(n - 2)],
+              Ev[-1] * gg[1] / ls[n],
               0.0 if g[-1] is None else g[-1]]
 
-    M = np.diag(Mdiag).dot(rho_matrix) / 2.0
+    M = np.diag(Mdiag) / 2.0
     # logger.debug(len(Kdiag))
     # logger.debug(E_matrix.shape)
-    K = (np.diag(Kdiag) +
-        np.diag(Koffd, 1) +
-        np.diag(Koffd, -1)).dot(E_matrix)
+    K = np.diag(Kdiag) + np.diag(Koffd, 1) + np.diag(Koffd, -1)
     F = F + f_nodal
 
     # print M.shape
