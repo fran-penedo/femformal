@@ -6,10 +6,22 @@ import matplotlib.animation as animation
 from matplotlib.widgets import Slider
 import matplotlib.colors as colors
 import matplotlib.cm as cmx
-from bisect import bisect_left
+from bisect import bisect_left, bisect_right
 
 _figcounter = 0
 _holds = []
+
+def draw_linear(ys, xs, ylabel='y', xlabel='x'):
+    matplotlib.rcParams.update({'font.size': 8})
+    matplotlib.rcParams.update({'figure.autolayout': True})
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    # ax.set_xlim(xs[0], xs[-1])
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    ax.set_ylim(-100, 6e3)
+    ax.plot(xs, ys, '-')
+
 
 def draw_ts(ts, prefix=None):
     global _figcounter
@@ -45,6 +57,48 @@ def draw_ts_2D(ts, partition, prefix=None):
         _figcounter += 1
     else:
         plt.show()
+
+def draw_pde_trajectories(dss, xss, tss, ylabel="u", xlabel="x"):
+    global _holds
+
+    d_min, d_max = np.amin([np.amin(ds) for ds in dss]), np.amax([np.amax(ds) for ds in dss])
+    x_min, x_max = np.amin(np.hstack(xss)), np.amax(np.hstack(xss))
+    t_finer_index = np.argmin([ts[1] - ts[0] for ts in tss])
+
+    matplotlib.rcParams.update({'font.size': 8})
+    matplotlib.rcParams.update({'figure.autolayout': True})
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    ax.set_xlim(x_min, x_max)
+    ax.set_ylim(d_min, d_max)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+
+    ls = []
+    for ds in dss:
+        l, = ax.plot([], [], 'b-')
+        ls.append(l)
+    time_text = ax.text(.02, .95, '', transform=ax.transAxes)
+
+    cmap = plt.get_cmap('autumn')
+    cnorm = colors.Normalize(ts[0], ts[-1])
+    scalarmap = cmx.ScalarMappable(norm=cnorm, cmap=cmap)
+    scalarmap.set_array(tss[t_finer_index])
+    def update_line(i):
+        next_t = tss[t_finer_index][i]
+        for j in range(len(ls)):
+            k = bisect_right(tss[j], next_t) - 1
+            ls[j].set_data(xss[j], dss[j][k])
+            ls[j].set_color(scalarmap.to_rgba(next_t))
+        time_text.set_text('t = {}'.format(ts[i]))
+        return tuple(ls) + (time_text,)
+
+    frames = len(tss[t_finer_index])
+    line_ani = animation.FuncAnimation(
+        fig, update_line, frames=frames, interval=5000/frames, blit=True)
+    _holds.append(line_ani)
+
+    _render(fig, None, False)
 
 
 def draw_pde_trajectory(ds, xs, ts,

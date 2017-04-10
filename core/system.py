@@ -110,6 +110,9 @@ class SOSystem(object):
     def n(self):
         return len(self.M)
 
+    def add_f_nodal(self, f_nodal):
+        self.F = self.F + f_nodal
+
     def copy(self):
         return SOSystem(self.M.copy(), self.K.copy(), self.F.copy(),
                         self.xpart.copy(), self.dt)
@@ -124,11 +127,19 @@ class ControlSOSystem(SOSystem):
         SOSystem.__init__(self, M, K, F, xpart=xpart, dt=dt)
         self.f_nodal = f_nodal
 
+    def add_f_nodal(self, f_nodal):
+        self.f_nodal = f_nodal
+
     @staticmethod
     def from_sosys(sosys, f_nodal):
         csosys = ControlSOSystem(
             sosys.M, sosys.K, sosys.F, f_nodal, sosys.xpart, sosys.dt)
         return csosys
+
+    def copy(self):
+        return ControlSOSystem.from_sosys(
+            super(ControlSOSystem, self).copy(), self.f_nodal)
+
 
 
 class PWLFunction(object):
@@ -320,11 +331,13 @@ def sosys_diff(xsys, ysys, x0, y0, tlims, xlims, plot=False):
     if plot:
         ttx = np.linspace(0, T, int(round(T / dtx)))
         tty = np.linspace(0, T, int(round(T / dty)))
-        draw.draw_pde_trajectory(x, xpart, ttx, hold=True)
-        draw.draw_pde_trajectory(y, ypart, tty, hold=True)
+        # draw.draw_pde_trajectory(x, xpart, ttx, hold=True)
+        # draw.draw_pde_trajectory(y, ypart, tty, hold=True)
+        draw.draw_pde_trajectories([x, y], [xpart, ypart], [ttx, tty])
         for xlim, dif in absdif:
             yl = bisect_left(ypart, xlim[0])
             yr = bisect_right(ypart, xlim[1]) - 1
+            print yl, yr
             draw.draw_pde_trajectory(dif, ypart[yl:yr], ttx, hold=True)
         draw.plt.show()
     return absdif
@@ -430,5 +443,5 @@ def draw_sosys(sosys, d0, v0, g, T, t0=0,
                              animate=animate, hold=hold, allonly=allonly,
                              ylabel=ylabel, xlabel=xlabel)
 
-
-
+def draw_pwlf(pwlf, ylabel='Force $u_L$', xlabel='Time t'):
+    draw.draw_linear(pwlf.ys, pwlf.ts, ylabel, xlabel)

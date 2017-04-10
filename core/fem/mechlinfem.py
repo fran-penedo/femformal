@@ -9,18 +9,18 @@ def mechlinfem(xpart, rho, E, g, f_nodal, dt):
     gg = [x if x is not None else 0.0 for x in g]
     # Number of equations for n_g = 2
     n = xpart.shape[0] - 2
-
-    try:
-        Ev = [E(x) for x in xpart]
-    except TypeError:
-        Ev = [E for x in xpart]
-
-    try:
-        rhov = [rho(x) for x in xpart]
-    except:
-        rhov = [rho for x in xpart]
-
+    xmids = (xpart[:-1] + xpart[1:]) / 2.0
     ls = np.diff(xpart)
+
+    try:
+        Ev = [E(x) for x in xmids]
+    except TypeError:
+        Ev = [E for x in xmids]
+
+    try:
+        rhov = [rho(x) for x in xmids]
+    except:
+        rhov = [rho for x in xmids]
 
     Mdiag = [rhov[0] * ls[0] if g[0] is None else 0.0] + \
         [rhov[i] * ls[i] + rhov[i + 1] * ls[i + 1] for i in range(n)] + \

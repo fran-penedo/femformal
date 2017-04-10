@@ -31,25 +31,35 @@ cregions = {'A': apc1, 'B': apc2}
 
 sosys = mechlinfem.mechlinfem(xpart, rho, E, g, f_nodal, dt)
 d0, v0 = mechlinfem.state(u0, du0, xpart, g)
-pwlf = sys.PWLFunction([0.0, 0.05, 0.1, 0.15, 0.20],
-                       [0e3, 2.5e3, 5e3, 5e3, 5e3], x=L)
+pwlf = sys.PWLFunction([0.0, 0.05, 0.1, 0.15, 0.20, 0.25, 0.3],
+                       [2.5e3, 2.3e3, 4.9e3, 5e3, 4.9e3, 5e3, 5e3], x=L)
+
 def f_nodal_control(t):
     f = np.zeros(N + 1)
     f[-1] = pwlf(L, t)
     return f
+
+
 csosys = sys.ControlSOSystem.from_sosys(sosys, f_nodal_control)
 
 import matplotlib.pyplot as plt
-sys.draw_sosys(csosys, d0, v0, g, 0.2, animate=False, allonly=False, hold=True)
+sys.draw_sosys(csosys, d0, v0, g, 0.3, animate=False, allonly=True, hold=True)
 fig = plt.gcf()
 fig.set_size_inches(3,2)
 ax = plt.gcf().get_axes()[0]
-labels = ['$\mu_1(-1)$', '$\mu_2(-1)$', '$\mu_1(1.5)$', '$\mu_2(1)$']
+labels = ['$\mu_1$', '$\mu_2$', '$\mu_1(1.5)$', '$\mu_2(1)$']
 for (key, apc), label in zip(sorted(cregions.items()), labels):
     print key, label
     ax.plot(apc.A, [apc.p(x) for x in apc.A], lw=1, label=label)
 ax.autoscale()
 ax.legend(loc='lower left', fontsize='6', labelspacing=0.05, handletextpad=0.1)
 ax.set_xticklabels([x / 1000 for x in ax.get_xticks()])
-plt.show()
-# fig.savefig('mech_plots.png')
+# plt.show()
+fig.savefig('fig2.png')
+plt.close(fig)
+
+sys.draw_pwlf(pwlf)
+fig = plt.gcf()
+fig.set_size_inches(3,2)
+fig.savefig('fig2force.png')
+# plt.show()

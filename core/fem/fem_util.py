@@ -132,8 +132,12 @@ def max_diff(sys, g, tlims, xlims, sys_true,
         if sample_f is not None:
             f_nodal_x, f_nodal_y = sample_f(bounds_f, g, sys.xpart, sys_true.xpart)
             sys_x, sys_y = sys.copy(), sys_true.copy()
-            sys_x.F = sys_x.F + f_nodal_x
-            sys_y.F = sys_y.F + f_nodal_y
+            try:
+                sys_x.add_f_nodal(f_nodal_x)
+                sys_y.add_f_nodal(f_nodal_y)
+            except AttributeError:
+                raise Exception("Can't sample f_nodal for this kind of system:"
+                                "sysx: {}, sysy: {}".format(type(sys_x), type(sys_y)))
         x0, y0 = sample_ic(bounds_ic, g, sys_x.xpart, sys_y.xpart)
 
         diff = s.sys_max_diff(sys_x, sys_y, x0, y0, tlims, xlims, plot=False)
@@ -160,8 +164,11 @@ def max_xdiff(sys, g, tlims, bounds, sample=None, n=50, log=True):
             logger.debug("Iteration: {}, mdiff = {}".format(i, mdiff))
         if sample_f is not None:
             f_nodal = sample_f(bounds_f, g, sys.xpart)
-            sys_x = sys.copy()
-            sys_x.F = sys_x.F + f_nodal
+            try:
+                sys_x = sys.copy()
+                sys_x.add_f_nodal(f_nodal)
+            except AttributeError:
+                raise Exception("Can't sample f_nodal for this kind of system")
         x0 = sample_ic(bounds_ic, g, sys_x.xpart)
         dx = s.sys_max_xdiff(sys_x, x0, tlims[0], tlims[1])
         mdiff = np.max([mdiff, dx], axis=0)
@@ -187,8 +194,11 @@ def max_tdiff(sys, dt, xpart, g, tlims, bounds, sample=None, n=50, log=True):
             logger.debug("Iteration: {}, mdiff = {}".format(i, mdiff))
         if sample_f is not None:
             f_nodal = sample_f(bounds_f, g, sys.xpart)
-            sys_x = sys.copy()
-            sys_x.F = sys_x.F + f_nodal
+            try:
+                sys_x = sys.copy()
+                sys_x.add_f_nodal(f_nodal)
+            except AttributeError:
+                raise Exception("Can't sample f_nodal for this kind of system")
         x0 = sample_ic(bounds_ic, g, sys_x.xpart)
         dx = s.sys_max_tdiff(sys_x, x0, tlims[0], tlims[1])
         mdiff = np.max([mdiff, dx], axis=0)
@@ -216,8 +226,11 @@ def max_der_diff(sys, g, tlims, bounds, sample, n=50, log=True):
             logger.debug("Iteration: {}, mdiff_t = {}".format(i, mdiff_t))
         if sample_f is not None:
             f_nodal = sample_f(bounds_f, g, sys.xpart)
-            sys_x = sys.copy()
-            sys_x.F = sys_x.F + f_nodal
+            try:
+                sys_x = sys.copy()
+                sys_x.add_f_nodal(f_nodal)
+            except AttributeError:
+                raise Exception("Can't sample f_nodal for this kind of system")
         x0 = sample_ic(bounds_ic, g, sys_x.xpart)
         dx, dtx = s.sosys_max_der_diff(sys_x, x0, tlims)
         mdiff_x = np.max([mdiff_x, dx], axis=0)
