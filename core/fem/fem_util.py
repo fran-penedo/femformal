@@ -34,7 +34,11 @@ def build_cs(system, d0, g, cregions, cspec, fdt_mult=1, bounds=None,
         md = 0.0
         mn = [0.0 for i in range(len(xpart) - 1)]
         if eps is not None:
-            md = eps
+            if isinstance(eps, list):
+                kd = lambda i, isnode, dmu: (eps[i] if not isnode else
+                    (max(eps[i], eps[i+1]) if i > 0 and i < len(eps) - 1 else eps[i]))
+            else:
+                kd = lambda i, isnode, dmu: eps
         if eta is not None:
             ke = lambda i, isnode, dmu: (eta[i] / 2.0) + dmu * (xpart[i+1] - xpart[i]) / 2.0
         else:
@@ -112,7 +116,7 @@ def id_sample(bounds, g, xpart_x, xpart_y=None):
 
 
 def max_diff(sys, g, tlims, xlims, sys_true,
-             bounds, sample=None, n=50, log=True):
+             bounds, sample=None, pw=False, n=50, log=True):
     if sample is None:
         sample_ic = lin_sample
         sample_f = None
@@ -122,7 +126,7 @@ def max_diff(sys, g, tlims, xlims, sys_true,
     bounds_ic, bounds_f = bounds
     sys_x = sys
     sys_y = sys_true
-    mdiff = 0.0
+    mdiff = None
     if log:
         logger.debug("Starting max_diff")
     for i in range(n):
@@ -140,12 +144,20 @@ def max_diff(sys, g, tlims, xlims, sys_true,
                                 "sysx: {}, sysy: {}".format(type(sys_x), type(sys_y)))
         x0, y0 = sample_ic(bounds_ic, g, sys_x.xpart, sys_y.xpart)
 
-        diff = s.sys_max_diff(sys_x, sys_y, x0, y0, tlims, xlims, plot=False)
-        mdiff = max(mdiff, diff)
+        diff = s.sys_max_diff(sys_x, sys_y, x0, y0, tlims, xlims, pw=pw, plot=True)
+        if mdiff is None:
+            mdiff = diff
+        else:
+            mdiff = np.amax([mdiff, diff], axis=0)
 
+    ratio = float(len(sys_true.xpart)) / len(sys.xpart)
+    cover = int(np.ceil(ratio))
+    mdiffgrouped = np.amax(
+        [mdiff[int(np.floor(i * ratio)):int(np.floor(i * ratio) + cover + 1)]
+         for i in range(len(sys.xpart) - 1)], axis=1)
     if log:
-        logger.debug("mdiff = {}".format(mdiff))
-    return mdiff
+        logger.debug("mdiff = {}".format(mdiffgrouped))
+    return mdiffgrouped
 
 def max_xdiff(sys, g, tlims, bounds, sample=None, n=50, log=True):
     if sample is None:

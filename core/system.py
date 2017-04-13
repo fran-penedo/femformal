@@ -323,7 +323,7 @@ def sosys_diff(xsys, ysys, x0, y0, tlims, xlims, plot=False):
     x = x[int(round(t0/dtx)):]
     y = y[int(round(t0/dty)):]
     if any(isinstance(xlim, list) for xlim in xlims):
-        absdif = [(xlim, diff(x, y, dtx, dty, xpart, ypart, xlim[0], xlim[1]))
+        absdif = [diff(x, y, dtx, dty, xpart, ypart, xlim[0], xlim[1])
                for xlim in xlims]
     else:
         xl, xr = xlims
@@ -334,15 +334,18 @@ def sosys_diff(xsys, ysys, x0, y0, tlims, xlims, plot=False):
         # draw.draw_pde_trajectory(x, xpart, ttx, hold=True)
         # draw.draw_pde_trajectory(y, ypart, tty, hold=True)
         draw.draw_pde_trajectories([x, y], [xpart, ypart], [ttx, tty])
-        for xlim, dif in absdif:
-            yl = bisect_left(ypart, xlim[0])
-            yr = bisect_right(ypart, xlim[1]) - 1
-            print yl, yr
-            draw.draw_pde_trajectory(dif, ypart[yl:yr], ttx, hold=True)
-        draw.plt.show()
+        yl = bisect_left(ypart, xlims[0])
+        yr = bisect_right(ypart, xlims[1]) - 1
+        draw.draw_pde_trajectory(absdif, ypart[yl:yr], tty)
+        # for xlim, dif in absdif:
+        #     yl = bisect_left(ypart, xlim[0])
+        #     yr = bisect_right(ypart, xlim[1]) - 1
+        #     print yl, yr
+        #     draw.draw_pde_trajectory(dif, ypart[yl:yr], ttx, hold=True)
+        # draw.plt.show()
     return absdif
 
-def sys_max_diff(xsys, ysys, x0, y0, tlims, xlims, plot=False):
+def sys_max_diff(xsys, ysys, x0, y0, tlims, xlims, pw=False, plot=False):
     if isinstance(xsys, SOSystem):
         diff_f = sosys_diff
     elif isinstance(xsys, FOSystem):
@@ -354,9 +357,10 @@ def sys_max_diff(xsys, ysys, x0, y0, tlims, xlims, plot=False):
 
     absdif = diff_f(xsys, ysys, x0, y0, tlims, xlims, plot)
     if isinstance(absdif, list):
-        return np.max([np.max(dif) for xlim, dif in absdif])
+        pwdiff = [np.amax(dif, axis=0) for dif in absdif]
+        return pwdiff if pw else np.amax(pwdiff)
     else:
-        return np.max(absdif)
+        return np.max(absdif, axis=0 if pw else None)
 
 def sys_max_xdiff(sys, x0, t0, T):
     dt = sys.dt
@@ -396,6 +400,8 @@ def sosys_max_der_diff(sys, x0, tlims):
     dtx = np.abs(np.diff(x, axis=0))
     mdx = np.max(dx, axis=0)
     mdtx = np.max(dtx, axis=0)
+    # logger.debug("dx = \n{}".format(dx[:,0]))
+    # logger.debug("mdx = \n{}".format(mdx))
 
     return mdx, mdtx
 
