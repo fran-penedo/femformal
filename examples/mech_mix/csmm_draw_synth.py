@@ -19,9 +19,10 @@ dt = min((L / N) / np.sqrt(E_steel / rho_steel), (L / N) / np.sqrt(E_steel / rho
 u0 = lambda x: 0.0
 du0 = lambda x: 0.0
 
-apc1 = logic.APCont([35000, 55000], ">", lambda x: 4 * x / 100000.0 - 1.0 , lambda x: 4 / 100000.0)
-apc2 = logic.APCont([65000, 90000], "<", lambda x: 2 * x / 100000.0 - 1.0 , lambda x: 2 / 100000.0)
-cregions = {'A': apc1, 'B': apc2}
+apc1 = logic.APCont([30000, 60000], ">", lambda x: 4 * x / 100000.0 - 1.7 , lambda x: 4 / 100000.0)
+apc2 = logic.APCont([60000, 90000], ">", lambda x: 2 * x / 100000.0 - 0.3 , lambda x: 2 / 100000.0)
+apc3 = logic.APCont([30000, 60000], "<", lambda x: 0 * x / 100000.0 - .5 , lambda x: 0.0)
+cregions = {'A': apc1, 'B': apc2, 'C': apc3}
 
 # cspec = "((F_[1, 10] (A)) & (G_[1, 10] (B)))"
 # cspec = "(F_[1, 10] (A))"
@@ -31,8 +32,9 @@ cregions = {'A': apc1, 'B': apc2}
 
 sosys = mechlinfem.mechlinfem(xpart, rho, E, g, f_nodal, dt)
 d0, v0 = mechlinfem.state(u0, du0, xpart, g)
-pwlf = sys.PWLFunction([0.0, 0.05, 0.1, 0.15, 0.20, 0.25, 0.3],
-                       [2.5e3, 2.3e3, 4.9e3, 5e3, 4.9e3, 5e3, 5e3], x=L)
+pwlf = sys.PWLFunction(np.linspace(0, 0.55, 55/5 + 1),
+                       [-72.65567723137839, 146.7141767525155, 3549.7143976258585, 5000.0, 4099.154336041715, 4373.835495768179, 3389.069760612807, -983.4393233484677, 1745.9676272778236, 5000.0, 4346.830236004789, 2820.8350764217453],
+                       x=L)
 
 def f_nodal_control(t):
     f = np.zeros(N + 1)
@@ -43,23 +45,23 @@ def f_nodal_control(t):
 csosys = sys.ControlSOSystem.from_sosys(sosys, f_nodal_control)
 
 import matplotlib.pyplot as plt
-sys.draw_sosys(csosys, d0, v0, g, 0.3, animate=False, allonly=True, hold=True)
+sys.draw_sosys(csosys, d0, v0, g, 0.55, animate=False, allonly=False, hold=True)
 fig = plt.gcf()
 fig.set_size_inches(3,2)
 ax = plt.gcf().get_axes()[0]
-labels = ['$\mu_1$', '$\mu_2$', '$\mu_1(1.5)$', '$\mu_2(1)$']
+labels = ['A', 'B', 'C']
 for (key, apc), label in zip(sorted(cregions.items()), labels):
     print key, label
     ax.plot(apc.A, [apc.p(x) for x in apc.A], lw=1, label=label)
 ax.autoscale()
 ax.legend(loc='lower left', fontsize='6', labelspacing=0.05, handletextpad=0.1)
 ax.set_xticklabels([x / 1000 for x in ax.get_xticks()])
-# plt.show()
-fig.savefig('fig2.png')
+plt.show()
+# fig.savefig('fig2.png')
 plt.close(fig)
 
 sys.draw_pwlf(pwlf)
 fig = plt.gcf()
 fig.set_size_inches(3,2)
-fig.savefig('fig2force.png')
+# fig.savefig('fig2force.png')
 # plt.show()

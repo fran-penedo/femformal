@@ -54,12 +54,12 @@ def f_unif_sample(bounds, g, xpart_x, xpart_y=None):
 
 dt = dts[-1]
 tlims = [int(round(0.0 / dt)) * dt, int(round(0.3 / dt)) * dt]
-xlims = [[10000.0, 25000.0], [35000, 55000], [65000, 90000]]
+xlims = [0, 100000]
 bounds = {'xs' : np.linspace(0, 0.3, 7),
           'ybounds' : [0, 5e3]}
 mds = [fem.max_diff(system, g, tlims, xlims, systrue,
                     ([u0, v0], bounds),
-                     [fem.id_sample, f_unif_sample], n=500)
+                     [fem.id_sample, f_unif_sample], n=500, pw=True)
        for system in sosys_list]
 
 mdxs, mdtxs = zip(*[fem.max_der_diff(system, g, tlims,
