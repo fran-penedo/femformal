@@ -38,9 +38,7 @@ def _build_and_solve(spec, model_encode_f, spec_obj):
 
     if m.status != milp.GRB.status.OPTIMAL:
         logger.warning("MILP returned status: {}".format(m.status))
-        return False
-    else:
-        return m
+    return m
 
 
 def verify_singleton(system, d0, spec, fdt_mult=1):
