@@ -22,14 +22,14 @@ bounds = [-10, 10]
 # u0 = lambda x: 0.0
 # du0 = lambda x: 0.0
 
-apc1 = logic.APCont([30000, 60000], ">", lambda x: 4 * x / 100000.0 - 1.7 , lambda x: 4 / 100000.0)
-apc2 = logic.APCont([60000, 90000], ">", lambda x: 2 * x / 100000.0 - 0.3 , lambda x: 2 / 100000.0)
-apc3 = logic.APCont([30000, 60000], "<", lambda x: 0 * x / 100000.0 - .5 , lambda x: 0.0)
+apc1 = logic.APCont([30000, 60000], "<", lambda x: 4e-5 , lambda x: 0.0)
+apc2 = logic.APCont([30000, 60000], ">", lambda x: 2e-5, lambda x: 0.0)
+apc3 = logic.APCont([30000, 35000], ">", lambda x: 4e-5 , lambda x: 0.0)
 cregions = {'A': apc1, 'B': apc2, 'C': apc3}
 
 # cspec = "((F_[1, 10] (A)) & (G_[1, 10] (B)))"
 # cspec = "(F_[1, 10] (A))"
-cspec = "((G_[0.1, 0.3] ((A) & (B))) & (F_[0.3, 0.4] (C)) & ((G_[0.4, 0.5] (C) | G_[0.4, 0.5] (A))) & (F_[0.5, 0.52] (A)))"
+cspec = "((G_[0, 0.3] (A)) & (G_[0.1, 0.3] (B)) & (F_[0.3, 0.5] (C)))"
 # cspec = "F_[{}, {}] (B)".format(54 * dt, 54 * dt + 0.002)
 # cspec = "F_[0.001, 0.02] (B)"
 

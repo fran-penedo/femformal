@@ -52,21 +52,32 @@ def f_unif_sample(bounds, g, xpart_x, xpart_y=None):
         return f_x
 
 
+n = 5
 dt = dts[-1]
 tlims = [int(round(0.0 / dt)) * dt, int(round(0.3 / dt)) * dt]
 xlims = [0, 100000]
-bounds = {'xs' : np.linspace(0, 0.3, 7),
-          'ybounds' : [0, 5e3]}
-mds = [fem.max_diff(system, g, tlims, xlims, systrue,
+bounds = {'xs' : np.linspace(0, 0.55, 55/5 + 1),
+          'ybounds' : [-5e3, 5e3]}
+# mds = [fem.max_diff(system, g, tlims, xlims, systrue,
+#                     ([u0, v0], bounds),
+#                      [fem.id_sample, f_unif_sample], n=n, pw=True)
+#        for system in sosys_list]
+mds_xderiv = [fem.max_diff(system, g, tlims, xlims, systrue,
                     ([u0, v0], bounds),
-                     [fem.id_sample, f_unif_sample], n=500, pw=True)
+                     [fem.id_sample, f_unif_sample], n=n, pw=True, xderiv=True)
        for system in sosys_list]
 
 mdxs, mdtxs = zip(*[fem.max_der_diff(system, g, tlims,
                     ([u0, v0], bounds),
-                     [fem.id_sample, f_unif_sample], n=500)
+                     [fem.id_sample, f_unif_sample], n=n)
+       for system in sosys_list])
+mdxs_xderiv, mdtxs_xderiv = zip(*[fem.max_der_diff(system, g, tlims,
+                    ([u0, v0], bounds),
+                     [fem.id_sample, f_unif_sample], n=n, xderiv=True)
        for system in sosys_list])
 
-print mds
-print mdxs
-print mdtxs
+print "eps = {}".format(mds[0].tolist())
+print "eps_xderiv = {}".format(mds_xderiv[0].tolist())
+print "eta = {}".format(mdxs[0].tolist())
+print "nu = {}".format(mdtxs[0].tolist())
+print "nu_xderiv = {}".format(mdtxs_xderiv[0].tolist())

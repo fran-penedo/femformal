@@ -278,17 +278,29 @@ def linterx(d, xpart):
                     (xpart[i] - xpart[i-1])
     return u
 
-def diff(x, y, dtx, dty, xpart, ypart, xl, xr):
+def pwcx(d, xpart):
+    def u(x):
+        i = bisect_left(xpart, x) - 1
+        return d[:, i]
+    return u
+
+def diff(x, y, dtx, dty, xpart, ypart, xl, xr, pwc=False):
     if dty > dtx:
         x, y = y, x
         dtx, dty = dty, dtx
 
     yy = y[::int(round(dtx / dty))]
-    xinter = linterx(x, xpart)
-    yinter = linterx(yy, ypart)
     yl = bisect_left(ypart, xl)
-    yr = bisect_right(ypart, xr) - 1
-    d = np.array([xinter(z) - yinter(z) for z in ypart[yl:yr]]).T
+    yr = bisect_right(ypart, xr)
+    if pwc:
+        xinter = pwcx(x, xpart)
+        yinter = pwcx(yy, ypart)
+        d = np.array([xinter(z) - yinter(z) for z in
+                      (ypart[yl + 1:yr] + ypart[yl:yr - 1]) / 2.0]).T
+    else:
+        xinter = linterx(x, xpart)
+        yinter = linterx(yy, ypart)
+        d = np.array([xinter(z) - yinter(z) for z in ypart[yl:yr]]).T
     return d
 
 def sys_diff(xsys, ysys, x0, y0, tlims, xlims, plot=False):
@@ -314,7 +326,7 @@ def sys_diff(xsys, ysys, x0, y0, tlims, xlims, plot=False):
         draw.draw_pde_trajectory(absdif, ypart[yl:yr], ttx, hold=False)
     return absdif
 
-def sosys_diff(xsys, ysys, x0, y0, tlims, xlims, plot=False):
+def sosys_diff(xsys, ysys, x0, y0, tlims, xlims, xderiv=False, plot=False):
     dtx, dty = xsys.dt, ysys.dt
     xpart, ypart = xsys.xpart, ysys.xpart
     t0, T = tlims
@@ -322,18 +334,26 @@ def sosys_diff(xsys, ysys, x0, y0, tlims, xlims, plot=False):
     y = newm_integrate(ysys, y0[0], y0[1], T, dty)[0]
     x = x[int(round(t0/dtx)):]
     y = y[int(round(t0/dty)):]
+    # draw.draw_pde_trajectory(x, xpart, np.linspace(0, T, (int(round(T / dtx)))), animate=False)
+    if xderiv:
+        x = np.true_divide(np.diff(x), np.diff(xpart))
+        y = np.true_divide(np.diff(y), np.diff(ypart))
+        pwc = True
+    else:
+        pwc = False
+
     if any(isinstance(xlim, list) for xlim in xlims):
-        absdif = [diff(x, y, dtx, dty, xpart, ypart, xlim[0], xlim[1])
+        absdif = [diff(x, y, dtx, dty, xpart, ypart, xlim[0], xlim[1], pwc)
                for xlim in xlims]
     else:
         xl, xr = xlims
-        absdif = np.abs(diff(x, y, dtx, dty, xpart, ypart, xl, xr))
-    if plot:
+        absdif = np.abs(diff(x, y, dtx, dty, xpart, ypart, xl, xr, pwc))
+    if True:
         ttx = np.linspace(0, T, int(round(T / dtx)))
         tty = np.linspace(0, T, int(round(T / dty)))
         # draw.draw_pde_trajectory(x, xpart, ttx, hold=True)
         # draw.draw_pde_trajectory(y, ypart, tty, hold=True)
-        draw.draw_pde_trajectories([x, y], [xpart, ypart], [ttx, tty])
+        draw.draw_pde_trajectories([x, y], [xpart, ypart], [ttx, tty], pwc=pwc)
         yl = bisect_left(ypart, xlims[0])
         yr = bisect_right(ypart, xlims[1]) - 1
         draw.draw_pde_trajectory(absdif, ypart[yl:yr], tty)
@@ -345,7 +365,7 @@ def sosys_diff(xsys, ysys, x0, y0, tlims, xlims, plot=False):
         # draw.plt.show()
     return absdif
 
-def sys_max_diff(xsys, ysys, x0, y0, tlims, xlims, pw=False, plot=False):
+def sys_max_diff(xsys, ysys, x0, y0, tlims, xlims, xderiv=False, pw=False, plot=False):
     if isinstance(xsys, SOSystem):
         diff_f = sosys_diff
     elif isinstance(xsys, FOSystem):
@@ -355,7 +375,7 @@ def sys_max_diff(xsys, ysys, x0, y0, tlims, xlims, pw=False, plot=False):
     else:
         diff_f = sys_diff
 
-    absdif = diff_f(xsys, ysys, x0, y0, tlims, xlims, plot)
+    absdif = diff_f(xsys, ysys, x0, y0, tlims, xlims, xderiv, plot)
     if isinstance(absdif, list):
         pwdiff = [np.amax(dif, axis=0) for dif in absdif]
         return pwdiff if pw else np.amax(pwdiff)
@@ -392,9 +412,12 @@ def sys_max_tdiff(sys, x0, t0, T):
 
     return mdtx
 
-def sosys_max_der_diff(sys, x0, tlims):
+def sosys_max_der_diff(sys, x0, tlims, xderiv=False):
     x, vx = newm_integrate(sys, x0[0], x0[1], tlims[1], sys.dt)
     x = x[int(round(tlims[0]/sys.dt)):]
+    # draw.draw_pde_trajectory(x, sys.xpart, np.linspace(0, tlims[1], (int(round(tlims[1] / sys.dt)))), animate=False)
+    if xderiv:
+        x = np.true_divide(np.diff(x), np.diff(sys.xpart))
 
     dx = np.abs(np.diff(x))
     dtx = np.abs(np.diff(x, axis=0))
