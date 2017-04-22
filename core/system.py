@@ -90,7 +90,7 @@ class SOSystem(object):
 
     def __init__(self, M, K, F, xpart=None, dt=1.0):
         self.M = M
-        self.K = K
+        self._K = K
         self.F = F
         self.xpart = xpart
         self.dt = dt
@@ -109,6 +109,14 @@ class SOSystem(object):
     @property
     def n(self):
         return len(self.M)
+
+    @property
+    def K(self):
+        return self._K
+
+    # @K.setter
+    # def K(self, value):
+    #     self._K = value
 
     def add_f_nodal(self, f_nodal):
         self.F = self.F + f_nodal
@@ -142,9 +150,50 @@ class ControlSOSystem(SOSystem):
 
 
 
+class MatrixFunction(object):
+    def __init__(self, f):
+        self.f = f
+        self.keys = []
+
+    def __getitem__(self, key):
+        self.keys.append(key)
+
+    def __call__(self, u):
+        val = self.f(u)
+        for k in self.keys:
+            val = val[k]
+        return val
+
+
+class HybridSOSystem(SOSystem):
+    @property
+    def K(self):
+        return MatrixFunction(self.K_global)
+
+    def K_global(self, u):
+        k_els = [self._K[i](xpart[i:i+2], u[i:i+2]) for i in range(len(self._K))]
+        K = np.zeros(self.M.shape)
+        for i in range(k_els):
+            K[i:i+2,i:i+2] += k_els[i]
+        return K
+
+class ControlHybridSOSystem(HybridSOSystem, ControlSOSystem):
+    def __init__(self, M, K, F, f_nodal, xpart=None, dt=1.0):
+        ControlSOSystem.__init__(self, M, K, F, f_nodal, xpart=xpart, dt=dt)
+
+    @staticmethod
+    def from_hysosys(sosys, f_nodal):
+        csosys = ControlHybridSOSystem(
+            sosys.M, sosys.K, sosys.F, f_nodal, sosys.xpart, sosys.dt)
+        return csosys
+
+    def copy(self):
+        return HybridControlSOSystem.from_hysosys(
+            super(HybridControlSOSystem, self).copy(), self.f_nodal)
+
+
 class PWLFunction(object):
-    def __init__(self, ts, ys=None, ybounds=None, x=None):
-        self.x = x
+    def __init__(self, ts, ys=None, ybounds=None):
         self.ts = ts
         self.ys = ys
         self.ybounds = ybounds
@@ -156,9 +205,7 @@ class PWLFunction(object):
                       [-self.ybounds[0] for x in self.ts]]
         return np.vstack([left, right]).T
 
-    def __call__(self, x, t, p=None):
-        if x != self.x:
-            return 0
+    def __call__(self, t, p=None):
         ts = self.ts
         if p is None:
             if self.ys is None:
@@ -248,7 +295,11 @@ def newm_integrate(sosys, d0, v0, T, dt=.1):
     v = np.array(v0)
     a = np.zeros(d.shape[0])
     M_LU = la.lu_factor(M)
-    a[n_e] = la.lu_solve(M_LU, F - K.dot(d[n_e]))
+    try:
+        K_cur = K(d)
+    except TypeError:
+        K_cur = K
+    a[n_e] = la.lu_solve(M_LU, F - K_cur.dot(d[n_e]))
     ds = [d]
     vs = [v]
     for i in range(its):
@@ -259,7 +310,11 @@ def newm_integrate(sosys, d0, v0, T, dt=.1):
             f_nodal_c = f_nodal(i * dt)[n_e]
         except TypeError:
             f_nodal_c = f_nodal
-        a[n_e] = la.lu_solve(M_LU, F + f_nodal_c - K.dot(d[n_e]))
+        try:
+            K_cur = K(d)
+        except TypeError:
+            K_cur = K
+        a[n_e] = la.lu_solve(M_LU, F + f_nodal_c - K_cur.dot(d[n_e]))
         v = tv + .5 * dt * a
         ds.append(d)
         vs.append(v)

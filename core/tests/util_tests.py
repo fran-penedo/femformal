@@ -6,7 +6,7 @@ import itertools as it
 import logging
 logger = logging.getLogger('FEMFORMAL')
 
-def labels_test():
+def test_label():
     x = [1, -1, 2, 3]
     l_exp = 's1_-1_2_3'
     l = u.state_label(x)

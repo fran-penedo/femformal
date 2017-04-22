@@ -1,4 +1,4 @@
-import core.fem.mechlinfem as mechlinfem
+import core.fem.mechnlfem as mechnlfem
 import core.fem.fem_util as fem
 import core.system as sys
 import core.logic as logic
@@ -9,6 +9,9 @@ L = 100000
 rho_steel = 8e-6
 rho_brass = 8.5e-6
 E_steel = 200e6
+def E_steel(x, u):
+    du = np.diff(u) / np.diff(x)
+
 E_brass = 100e6
 rho = lambda x: rho_steel if x < 30000 or x > 60000 else rho_brass
 E = lambda x: E_steel if x < 30000 or x > 60000 else E_brass
@@ -33,11 +36,12 @@ cregions = {'A': apc1, 'B': apc2, 'C': apc3}
 sosys = mechlinfem.mechlinfem(xpart, rho, E, g, f_nodal, dt)
 d0, v0 = mechlinfem.state(u0, du0, xpart, g)
 pwlf = sys.PWLFunction(np.linspace(0, 0.55, 55/5 + 1),
-                       [-72.65567723137839, 146.7141767525155, 3549.7143976258585, 5000.0, 4099.154336041715, 4373.835495768179, 3389.069760612807, -983.4393233484677, 1745.9676272778236, 5000.0, 4346.830236004789, 2820.8350764217453])
+                       [-72.65567723137839, 146.7141767525155, 3549.7143976258585, 5000.0, 4099.154336041715, 4373.835495768179, 3389.069760612807, -983.4393233484677, 1745.9676272778236, 5000.0, 4346.830236004789, 2820.8350764217453],
+                       x=L)
 
 def f_nodal_control(t):
     f = np.zeros(N + 1)
-    f[-1] = pwlf(t)
+    f[-1] = pwlf(L, t)
     return f
 
 
