@@ -5,9 +5,9 @@ try:
     from cStringIO import StringIO
 except:
     from StringIO import StringIO
-from core.util import state_label, label_state
-from core.logic import subst_spec_labels
-from core.system import is_facet_separating
+from femformal.core.util import state_label, label_state
+from femformal.core.logic import subst_spec_labels
+from femformal.core.system import is_facet_separating
 
 import logging
 logger = logging.getLogger('FEMFORMAL')

@@ -1,5 +1,5 @@
 import stlmilp.stl as stl
-import core.system as sys
+from . import system as sys
 import numpy as np
 import itertools as it
 from bisect import bisect_left, bisect_right

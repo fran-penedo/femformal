@@ -1,9 +1,11 @@
+import logging
+
 import stlmilp.milp_util as milp
 import stlmilp.stl_milp_encode as stl_milp
-import core.system_milp_encode as sys_milp
-import core.system as sys
 
-import logging
+import femformal.core.system_milp_encode as sys_milp
+
+
 logger = logging.getLogger('FEMMILP')
 handler = logging.StreamHandler()
 formatter = logging.Formatter('%(levelname)s %(module)s:%(lineno)d:%(funcName)s: %(message)s')
