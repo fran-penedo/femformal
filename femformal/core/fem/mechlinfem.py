@@ -1,5 +1,5 @@
 import numpy as np
-from .. import system as s
+from .. import system as sys
 
 import logging
 logger = logging.getLogger('FEMFORMAL')
@@ -46,7 +46,7 @@ def mechlinfem(xpart, rho, E, g, f_nodal, dt):
     # print M.shape
     # print K.shape
     # print F.shape
-    sosys = s.SOSystem(M, K, F, xpart, dt)
+    sosys = sys.SOSystem(M, K, F, xpart, dt)
     # system = sosys.to_fosystem()
 
     return sosys

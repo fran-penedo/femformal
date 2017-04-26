@@ -1,5 +1,5 @@
 import numpy as np
-from .. import system as s
+from .. import system as sys
 
 import logging
 logger = logging.getLogger('FEMFORMAL')
@@ -16,7 +16,7 @@ def heatlinfem(N, L, T, dt):
     # F.shape = (n - 1, 1)
 
     xpart = np.linspace(0, L, N + 1)
-    system = s.FOSystem(M, K, F, xpart, dt)
+    system = sys.FOSystem(M, K, F, xpart, dt)
     tpart = [np.arange(5, 115, 10.0).tolist() for i in range(n-1)]
 
     return system

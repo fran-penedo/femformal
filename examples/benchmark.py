@@ -1,13 +1,13 @@
-from femts.verify import verify, verify_input_constrained
-from femmilp.femmilp import verify_singleton, verify_set, synthesize
-from core.logic import csystem_robustness
 import argparse
-from timeit import default_timer as timer
 import importlib
-
-import cProfile
-
 import logging
+from timeit import default_timer as timer
+
+from femformal.core.logic import csystem_robustness
+from femformal.femmilp.femmilp import verify_singleton, verify_set, synthesize
+from femformal.femts.verify import verify, verify_input_constrained
+
+
 logger = logging.getLogger('FEMFORMAL')
 
 def run_cs_draw(m, args):

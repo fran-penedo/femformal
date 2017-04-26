@@ -1,6 +1,6 @@
-import core.system as sys
+from . import system as sys
 import gurobipy as g
-from util import label
+from .util import label
 
 import logging
 logger = logging.getLogger('FEMFORMAL')

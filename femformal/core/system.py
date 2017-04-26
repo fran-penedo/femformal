@@ -3,7 +3,7 @@ from scipy.optimize import linprog
 from scipy.integrate import odeint
 import scipy.linalg as la
 from bisect import bisect_left, bisect_right
-import draw_util as draw
+from . import draw_util as draw
 
 import logging
 logger = logging.getLogger('FEMFORMAL')

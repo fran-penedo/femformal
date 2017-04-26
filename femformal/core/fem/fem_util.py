@@ -1,5 +1,5 @@
 import numpy as np
-from .. import system as s
+from .. import system as sys
 from .. import logic as logic
 # from .. import femmilp.system_milp as sysmilp
 
@@ -13,7 +13,7 @@ def build_cs(system, d0, g, cregions, cspec, fdt_mult=1, bounds=None,
     xpart = system.xpart
 
     if discretize_system:
-        dsystem = s.cont_to_disc(system, dt)
+        dsystem = sys.cont_to_disc(system, dt)
         dsystem.dt = dt
         dsystem.xpart = xpart
     else:
@@ -144,7 +144,7 @@ def max_diff(sys, g, tlims, xlims, sys_true,
                                 "sysx: {}, sysy: {}".format(type(sys_x), type(sys_y)))
         x0, y0 = sample_ic(bounds_ic, g, sys_x.xpart, sys_y.xpart)
 
-        diff = s.sys_max_diff(sys_x, sys_y, x0, y0, tlims, xlims, pw=pw,
+        diff = sys.sys_max_diff(sys_x, sys_y, x0, y0, tlims, xlims, pw=pw,
                               xderiv=xderiv, plot=False)
         if mdiff is None:
             mdiff = diff
@@ -189,7 +189,7 @@ def max_xdiff(sys, g, tlims, bounds, sample=None, n=50, log=True):
             except AttributeError:
                 raise Exception("Can't sample f_nodal for this kind of system")
         x0 = sample_ic(bounds_ic, g, sys_x.xpart)
-        dx = s.sys_max_xdiff(sys_x, x0, tlims[0], tlims[1])
+        dx = sys.sys_max_xdiff(sys_x, x0, tlims[0], tlims[1])
         mdiff = np.max([mdiff, dx], axis=0)
 
     if log:
@@ -219,7 +219,7 @@ def max_tdiff(sys, dt, xpart, g, tlims, bounds, sample=None, n=50, log=True):
             except AttributeError:
                 raise Exception("Can't sample f_nodal for this kind of system")
         x0 = sample_ic(bounds_ic, g, sys_x.xpart)
-        dx = s.sys_max_tdiff(sys_x, x0, tlims[0], tlims[1])
+        dx = sys.sys_max_tdiff(sys_x, x0, tlims[0], tlims[1])
         mdiff = np.max([mdiff, dx], axis=0)
 
     if log:
@@ -252,7 +252,7 @@ def max_der_diff(sys, g, tlims, bounds, sample, xderiv=False, n=50, log=True):
             except AttributeError:
                 raise Exception("Can't sample f_nodal for this kind of system")
         x0 = sample_ic(bounds_ic, g, sys_x.xpart)
-        dx, dtx = s.sosys_max_der_diff(sys_x, x0, tlims, xderiv=xderiv)
+        dx, dtx = sys.sosys_max_der_diff(sys_x, x0, tlims, xderiv=xderiv)
         mdiff_x = np.max([mdiff_x, dx], axis=0)
         mdiff_t = np.max([mdiff_t, dtx], axis=0)
 
