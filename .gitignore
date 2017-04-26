@@ -3,3 +3,6 @@ doc/**/*.pdf
 .DS_Store
 *.pyc
 *.lp
+.srclist
+.tmuxp.yaml
+tags
