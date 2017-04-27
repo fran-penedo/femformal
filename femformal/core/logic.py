@@ -173,6 +173,8 @@ def stl_parser(fdt_mult=1, bounds=None):
     return stl_parser
 
 
+# TS approach functions
+
 def project_apdisc(apdisc, indices, tpart):
     state_indices = []
     for i in indices:
