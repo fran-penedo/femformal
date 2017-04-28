@@ -71,9 +71,14 @@ class FOSystem(object):
         self.dt = dt
 
     def to_canon(self):
-        A = np.linalg.solve(self.M, -self.K)
-        b = np.linalg.solve(self.M, self.F)
+        M, K, F, n_e = ns_sys_matrices(self)
+
+        A = np.identity(self.n)
+        A[np.ix_(n_e, n_e)] = np.linalg.solve(M, -K)
+        b = np.zeros(self.n)
+        b[n_e] = np.linalg.solve(M, F)
         C = np.empty(shape=(0,0))
+
         system = System(A, b, C, self.xpart, self.dt)
 
         return system
@@ -129,6 +134,14 @@ class SOSystem(object):
         return "M:\n{0}\nK:\n{1}\nF:\n{2}".format(self.M, self.K, self.F)
 
 
+def ns_sys_matrices(system):
+    n_e = np.nonzero(~np.all(system.M == 0, axis=1))[0]
+    M = system.M[np.ix_(n_e, n_e)]
+    K = system.K[np.ix_(n_e, n_e)]
+    F = system.F[n_e]
+
+    return M, K, F, n_e
+
 
 class ControlSOSystem(SOSystem):
     def __init__(self, M, K, F, f_nodal, xpart=None, dt=1.0):
@@ -149,7 +162,6 @@ class ControlSOSystem(SOSystem):
             super(ControlSOSystem, self).copy(), self.f_nodal)
 
 
-
 class MatrixFunction(object):
     def __init__(self, f):
         self.f = f
@@ -157,6 +169,7 @@ class MatrixFunction(object):
 
     def __getitem__(self, key):
         self.keys.append(key)
+        return self
 
     def __call__(self, u):
         val = self.f(u)
@@ -171,11 +184,12 @@ class HybridSOSystem(SOSystem):
         return MatrixFunction(self.K_global)
 
     def K_global(self, u):
-        k_els = [self._K[i](xpart[i:i+2], u[i:i+2]) for i in range(len(self._K))]
+        k_els = [self._K[i](u[i:i+2]) for i in range(len(self._K))]
         K = np.zeros(self.M.shape)
-        for i in range(k_els):
+        for i in range(len(k_els)):
             K[i:i+2,i:i+2] += k_els[i]
         return K
+
 
 class ControlHybridSOSystem(HybridSOSystem, ControlSOSystem):
     def __init__(self, M, K, F, f_nodal, xpart=None, dt=1.0):
@@ -193,6 +207,8 @@ class ControlHybridSOSystem(HybridSOSystem, ControlSOSystem):
 
 
 class PWLFunction(object):
+    ''' Right continuous piecewise linear function
+    '''
     def __init__(self, ts, ys=None, ybounds=None):
         self.ts = ts
         self.ys = ys
@@ -216,8 +232,11 @@ class PWLFunction(object):
         else:
             self.ys = ys = p
         # FIXME probable issue with t = ts[-1]
-        i = bisect_right(ts, t) - 1
-        return ys[i] + (ys[i+1] - ys[i]) * (t - ts[i]) / (ts[i+1] - ts[i])
+        if t == ts[-1]:
+            return ys[-1]
+        else:
+            i = bisect_right(ts, t) - 1
+            return ys[i] + (ys[i+1] - ys[i]) * (t - ts[i]) / (ts[i+1] - ts[i])
 
 
 def is_region_invariant(system, region, dist_bounds):
@@ -280,10 +299,7 @@ def disc_integrate(system, x0, t):
     return np.array(xs)
 
 def newm_integrate(sosys, d0, v0, T, dt=.1):
-    n_e = np.nonzero(~np.all(sosys.M == 0, axis=1))[0]
-    M = sosys.M[np.ix_(n_e, n_e)]
-    K = sosys.K[np.ix_(n_e, n_e)]
-    F = sosys.F[n_e]
+    M, K, F, n_e = ns_sys_matrices(sosys)
 
     try:
         f_nodal = sosys.f_nodal
@@ -296,10 +312,14 @@ def newm_integrate(sosys, d0, v0, T, dt=.1):
     a = np.zeros(d.shape[0])
     M_LU = la.lu_factor(M)
     try:
+        f_nodal_c = f_nodal(0)[n_e]
+    except TypeError:
+        f_nodal_c = f_nodal
+    try:
         K_cur = K(d)
     except TypeError:
         K_cur = K
-    a[n_e] = la.lu_solve(M_LU, F - K_cur.dot(d[n_e]))
+    a[n_e] = la.lu_solve(M_LU, F + f_nodal_c - K_cur.dot(d[n_e]))
     ds = [d]
     vs = [v]
     for i in range(its):
@@ -307,7 +327,7 @@ def newm_integrate(sosys, d0, v0, T, dt=.1):
         # tv[0] = tv[-1] = 0.0
         d = d + dt * tv
         try:
-            f_nodal_c = f_nodal(i * dt)[n_e]
+            f_nodal_c = f_nodal((i+1) * dt)[n_e]
         except TypeError:
             f_nodal_c = f_nodal
         try:
@@ -482,7 +502,6 @@ def sosys_max_der_diff(sys, x0, tlims, xderiv=False):
     # logger.debug("mdx = \n{}".format(mdx))
 
     return mdx, mdtx
-
 
 
 def draw_system_disc(sys, x0, T, t0=0,
