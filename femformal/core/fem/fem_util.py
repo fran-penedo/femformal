@@ -115,7 +115,7 @@ def id_sample(bounds, g, xpart_x, xpart_y=None):
         return [x0, vx0]
 
 
-def max_diff(sys, g, tlims, xlims, sys_true,
+def max_diff(system, g, tlims, xlims, sys_true,
              bounds, sample=None, pw=False, xderiv=False, n=50, log=True):
     if sample is None:
         sample_ic = lin_sample
@@ -124,7 +124,7 @@ def max_diff(sys, g, tlims, xlims, sys_true,
         sample_ic, sample_f = sample
 
     bounds_ic, bounds_f = bounds
-    sys_x = sys
+    sys_x = system
     sys_y = sys_true
     mdiff = None
     if log:
@@ -134,8 +134,8 @@ def max_diff(sys, g, tlims, xlims, sys_true,
             logger.debug("Iteration: {}, mdiff = {}".format(i, mdiff))
 
         if sample_f is not None:
-            f_nodal_x, f_nodal_y = sample_f(bounds_f, g, sys.xpart, sys_true.xpart)
-            sys_x, sys_y = sys.copy(), sys_true.copy()
+            f_nodal_x, f_nodal_y = sample_f(bounds_f, g, system.xpart, sys_true.xpart)
+            sys_x, sys_y = system.copy(), sys_true.copy()
             try:
                 sys_x.add_f_nodal(f_nodal_x)
                 sys_y.add_f_nodal(f_nodal_y)
@@ -145,17 +145,17 @@ def max_diff(sys, g, tlims, xlims, sys_true,
         x0, y0 = sample_ic(bounds_ic, g, sys_x.xpart, sys_y.xpart)
 
         diff = sys.sys_max_diff(sys_x, sys_y, x0, y0, tlims, xlims, pw=pw,
-                              xderiv=xderiv, plot=False)
+                              xderiv=xderiv, plot=True)
         if mdiff is None:
             mdiff = diff
         else:
             mdiff = np.amax([mdiff, diff], axis=0)
 
     if xderiv:
-        xpart = (sys.xpart[1:] + sys.xpart[:-1] ) / 2.0
+        xpart = (system.xpart[1:] + system.xpart[:-1] ) / 2.0
         xpart_true = (sys_true.xpart[1:] + sys_true.xpart[:-1] ) / 2.0
     else:
-        xpart = sys.xpart
+        xpart = system.xpart
         xpart_true = sys_true.xpart
     ratio = float(len(xpart_true)) / len(xpart)
     cover = int(np.ceil(ratio))
@@ -166,7 +166,7 @@ def max_diff(sys, g, tlims, xlims, sys_true,
         logger.debug("mdiff = {}".format(mdiffgrouped))
     return mdiffgrouped
 
-def max_xdiff(sys, g, tlims, bounds, sample=None, n=50, log=True):
+def max_xdiff(system, g, tlims, bounds, sample=None, n=50, log=True):
     if sample is None:
         sample_ic = lin_sample
         sample_f = None
@@ -174,7 +174,7 @@ def max_xdiff(sys, g, tlims, bounds, sample=None, n=50, log=True):
         sample_ic, sample_f = sample
 
     bounds_ic, bounds_f = bounds
-    sys_x = sys
+    sys_x = system
     mdiff = np.zeros((len(sys.xpart) - 1,))
     if log:
         logger.debug("Starting max_xdiff")
@@ -182,9 +182,9 @@ def max_xdiff(sys, g, tlims, bounds, sample=None, n=50, log=True):
         if log and i % 10 == 0:
             logger.debug("Iteration: {}, mdiff = {}".format(i, mdiff))
         if sample_f is not None:
-            f_nodal = sample_f(bounds_f, g, sys.xpart)
+            f_nodal = sample_f(bounds_f, g, system.xpart)
             try:
-                sys_x = sys.copy()
+                sys_x = system.copy()
                 sys_x.add_f_nodal(f_nodal)
             except AttributeError:
                 raise Exception("Can't sample f_nodal for this kind of system")
@@ -196,7 +196,7 @@ def max_xdiff(sys, g, tlims, bounds, sample=None, n=50, log=True):
         logger.debug("mdiff = {}".format(mdiff))
     return mdiff
 
-def max_tdiff(sys, dt, xpart, g, tlims, bounds, sample=None, n=50, log=True):
+def max_tdiff(system, dt, xpart, g, tlims, bounds, sample=None, n=50, log=True):
     if sample is None:
         sample_ic = lin_sample
         sample_f = None
@@ -204,17 +204,17 @@ def max_tdiff(sys, dt, xpart, g, tlims, bounds, sample=None, n=50, log=True):
         sample_ic, sample_f = sample
 
     bounds_ic, bounds_f = bounds
-    sys_x = sys
-    mdiff = np.zeros((len(sys.xpart),))
+    sys_x = system
+    mdiff = np.zeros((len(system.xpart),))
     if log:
         logger.debug("Starting max_tdiff")
     for i in range(n):
         if log and i % 10 == 0:
             logger.debug("Iteration: {}, mdiff = {}".format(i, mdiff))
         if sample_f is not None:
-            f_nodal = sample_f(bounds_f, g, sys.xpart)
+            f_nodal = sample_f(bounds_f, g, system.xpart)
             try:
-                sys_x = sys.copy()
+                sys_x = system.copy()
                 sys_x.add_f_nodal(f_nodal)
             except AttributeError:
                 raise Exception("Can't sample f_nodal for this kind of system")
@@ -226,7 +226,7 @@ def max_tdiff(sys, dt, xpart, g, tlims, bounds, sample=None, n=50, log=True):
         logger.debug("mdiff = {}".format(mdiff))
     return mdiff
 
-def max_der_diff(sys, g, tlims, bounds, sample, xderiv=False, n=50, log=True):
+def max_der_diff(system, g, tlims, bounds, sample, xderiv=False, n=50, log=True):
     if sample is None:
         sample_ic = lin_sample
         sample_f = None
@@ -234,10 +234,10 @@ def max_der_diff(sys, g, tlims, bounds, sample, xderiv=False, n=50, log=True):
         sample_ic, sample_f = sample
 
     bounds_ic, bounds_f = bounds
-    sys_x = sys
+    sys_x = system
     xderiv_correct = -1 if xderiv else 0
-    mdiff_x = np.zeros((len(sys.xpart) - 1 + xderiv_correct,))
-    mdiff_t = np.zeros((len(sys.xpart) + xderiv_correct,))
+    mdiff_x = np.zeros((len(system.xpart) - 1 + xderiv_correct,))
+    mdiff_t = np.zeros((len(system.xpart) + xderiv_correct,))
     if log:
         logger.debug("Starting max_der_diff")
     for i in range(n):
@@ -245,9 +245,9 @@ def max_der_diff(sys, g, tlims, bounds, sample, xderiv=False, n=50, log=True):
             logger.debug("Iteration: {}, mdiff_x = {}".format(i, mdiff_x))
             logger.debug("Iteration: {}, mdiff_t = {}".format(i, mdiff_t))
         if sample_f is not None:
-            f_nodal = sample_f(bounds_f, g, sys.xpart)
+            f_nodal = sample_f(bounds_f, g, system.xpart)
             try:
-                sys_x = sys.copy()
+                sys_x = system.copy()
                 sys_x.add_f_nodal(f_nodal)
             except AttributeError:
                 raise Exception("Can't sample f_nodal for this kind of system")
