@@ -176,11 +176,45 @@ class TestComplexSystem(unittest.TestCase):
         np.testing.assert_array_equal(vc[int(1/dt):], v2)
 
 
+class TestHybridSystem(unittest.TestCase):
+    def setUp(self):
+        pass
 
+    def test_matrix_function(self):
+        f = lambda u: np.arange(25).reshape(5,5)
+        mf = sys.MatrixFunction(f)
+        u = 10
+        np.testing.assert_array_equal(mf(u), f(u))
+        np.testing.assert_array_equal(mf[1:3, 2:4](u), f(u)[1:3, 2:4])
+        np.testing.assert_array_equal(mf[1:3, 2:4][1,1](u), f(u)[1:3, 2:4][1,1])
 
+    def test_hybrid_k_global(self):
+        M = np.identity(3)
+        K = [lambda u, i=i: (i+1) * np.array([[u[0], -u[0]], [-u[1], u[1]]]) for i in range(2)]
+        F = np.zeros(3)
+        hsos = sys.HybridSOSystem(M, K, F)
+        np.testing.assert_array_equal(
+            hsos.K_global([2,3,4]),
+            np.array([[2, -2, 0], [-3, 9, -6], [0, -8, 8]]))
 
+    def test_hybrid_simple(self):
+        M = np.identity(2)
+        K = [lambda u: np.zeros((2,2)) if u[0] < 0.5 else np.identity(2)]
+        F = np.array([1,1])
+        hsos = sys.HybridSOSystem(M, K, F)
+        d0 = [0.0, 0.0]
+        v0 = [0.0, 0.0]
+        dt = 0.1
 
+        d, v = sys.newm_integrate(hsos, d0, v0, 2, dt)
+        K1 = np.zeros((2,2))
+        K2 = np.identity(2)
+        sos1 = sys.SOSystem(M, K1, F)
+        sos2 = sys.SOSystem(M, K2, F)
+        d1, v1 = sys.newm_integrate(sos1, d0, v0, 1, dt)
+        d2, v2 = sys.newm_integrate(sos2, d1[-1], v[int(1/dt)], 1, dt)
 
-
-
-
+        np.testing.assert_array_equal(d[:int(1/dt) + 1], d1)
+        np.testing.assert_array_equal(v[:int(1/dt)], v1[:-1])
+        np.testing.assert_array_equal(d[int(1/dt):], d2)
+        np.testing.assert_array_equal(v[int(1/dt):], v2)

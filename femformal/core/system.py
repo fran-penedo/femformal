@@ -168,11 +168,12 @@ class MatrixFunction(object):
         self.keys = []
 
     def __getitem__(self, key):
-        self.keys.append(key)
-        return self
+        mf = MatrixFunction(self.f)
+        mf.keys = self.keys + [key]
+        return mf
 
-    def __call__(self, u):
-        val = self.f(u)
+    def __call__(self, *args):
+        val = self.f(*args)
         for k in self.keys:
             val = val[k]
         return val
