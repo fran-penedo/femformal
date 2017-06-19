@@ -29,14 +29,16 @@ def _build_and_solve(spec, model_encode_f, spec_obj):
     # m.params.outputflag = 0
     # m.params.numericfocus = 3
     m.update()
-    # m.write("out.lp")
+    m.write("out.lp")
     logger.debug(
         "Optimizing MILP with {} variables ({} binary) and {} constraints".format(
             m.numvars, m.numbinvars, m.numconstrs))
     m.optimize()
     logger.debug("Finished optimizing")
-    # for v in m.getVars():
-    #     print v
+    f = open("out_vars.txt", "w")
+    for v in m.getVars():
+        print >> f, v
+    f.close()
 
     if m.status != milp.GRB.status.OPTIMAL:
         logger.warning("MILP returned status: {}".format(m.status))
