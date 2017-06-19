@@ -218,3 +218,18 @@ class TestHybridSystem(unittest.TestCase):
         np.testing.assert_array_equal(v[:int(1/dt)], v1[:-1])
         np.testing.assert_array_equal(d[int(1/dt):], d2)
         np.testing.assert_array_equal(v[int(1/dt):], v2)
+
+    def test_hybrid_parameter(self):
+        par = sys.HybridParameter([
+            lambda p: (np.array([[1, -1]]) / np.diff(p), np.array([1])),
+            lambda p: (np.array([[-1, 1]]) / np.diff(p), np.array([-1]))],
+            [1, -1], p=[2.0, 1.0])
+
+        self.assertEqual(par(np.array([3, 1])), 1)
+        self.assertEqual(par(np.array([-1, 1])), -1)
+        self.assertEqual(par(np.array([2, 1])), 1)
+
+        invs = par.invariants
+        reprs = par.invariant_representatives()
+        for inv, rep in zip(invs, reprs):
+            self.assertTrue(np.all(inv[0].dot(rep) <= inv[1]))

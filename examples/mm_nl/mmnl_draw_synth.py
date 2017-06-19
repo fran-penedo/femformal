@@ -13,15 +13,11 @@ rho_steel = 8e-6
 E_steel = 200e6
 sigma_yield_steel = 350e3
 yield_point_steel = sigma_yield_steel / E_steel
-def E_steel_hybrid(x, u):
 
-    du = np.diff(u) / np.diff(x)
-    # if du < yield_point_steel or not (x[0] > 50000 and x[0] < 60000):
-    if du < yield_point_steel:
-        return E_steel
-    else:
-        return - E_steel / 2.0
-
+E_steel_hybrid = sys.HybridParameter([
+    lambda p: (np.array([1, -1]) / np.diff(p), yield_point_steel),
+    lambda p: (np.array([-1, 1]) / np.diff(p), -yield_point_steel)],
+    [E_steel, E_steel / 2.0])
 
 # E_brass = 100e6
 # rho = lambda x: rho_steel if x < 30000 or x > 60000 else rho_brass
@@ -50,7 +46,7 @@ sosys = mechnlfem.mechnlfem(xpart, rho, E, g, f_nodal, dt)
 d0, v0 = mechnlfem.state(u0, du0, xpart, g)
 # pwlf = sys.PWLFunction(np.linspace(0, 0.55, 55/5 + 1),
 #                        [-72.65567723137839, 146.7141767525155, 354900.7143976258585, 500000.0, 409900.154336041715, 437300.835495768179, 338900.069760612807, -98300.4393233484677, 174500.9676272778236, 500000.0, 434600.830236004789, 282000.8350764217453])
-pwlf = sys.PWLFunction([0, 0.15, 0.15, 1.0], [1.4e5, 1.4e5, 0.0, 0.0])
+pwlf = sys.PWLFunction([0, 0.15, 0.15, 1.0], [0.0, 1.4e5, 0.0, 0.0])
 
 def f_nodal_control(t):
     f = np.zeros(N + 1)
@@ -59,7 +55,8 @@ def f_nodal_control(t):
 
 
 csosys = sys.ControlSOSystem.from_sosys(sosys, f_nodal_control)
-sys.draw_sosys(csosys, d0, v0, g, 1.0, animate=False, allonly=False, hold=True)
+(fig, ) = sys.draw_sosys(csosys, d0, v0, g, 1.0, animate=False, allonly=False, hold=True)
+fig.canvas.set_window_title('i3_7')
 # fig = plt.gcf()
 # fig.set_size_inches(3,2)
 # ax = plt.gcf().get_axes()[0]
@@ -74,8 +71,8 @@ plt.show()
 # fig.savefig('fig2.png')
 plt.close(fig)
 
-sys.draw_pwlf(pwlf)
-fig = plt.gcf()
-fig.set_size_inches(3,2)
+# sys.draw_pwlf(pwlf)
+# fig = plt.gcf()
+# fig.set_size_inches(3,2)
 # fig.savefig('fig2force.png')
 # plt.show()

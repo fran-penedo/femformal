@@ -12,10 +12,10 @@ def mechnlfem(xpart, rho, E, g, f_nodal, dt):
     xmids = (xpart[:-1] + xpart[1:]) / 2.0
     ls = np.diff(xpart)
 
-    try:
-        Ev = [E(x) for x in xmids]
-    except TypeError:
-        Ev = [E for x in xmids]
+    Ev = [E for x in xmids]
+
+    for i in range(len(Ev)):
+        Ev[i].p = xpart[i:i+2]
 
     try:
         rhov = [rho(x) for x in xmids]
@@ -34,12 +34,19 @@ def mechnlfem(xpart, rho, E, g, f_nodal, dt):
     #     [Ev[-1] / ls[-1] if g[1] is None else 1.0]
 
     Ks = [np.array([[1, -1], [-1, 1]]) / l for l in ls]
-    K = [lambda u, i=i: Ev[i](xpart[i:i+2], u) * Ks[i]
-          for i in range(len(Ks))]
+    K = [sys.HybridParameter(Ev[i].invariants,
+                             [Ks[i] * v for v in Ev[i].values])
+         for i in range(len(Ks))]
+    # K = [lambda u, i=i: Ev[i](u) * Ks[i]
+    #       for i in range(len(Ks))]
     if g[0] is not None:
-        K[0] = lambda u: np.diag([1.0, Ev[0](xpart[:2], u) / ls[0]])
+        K[0] = sys.HybridParameter(Ev[0].invariants,
+                            [np.diag([1.0, v / ls[0]]) for v in Ev[0].values])
+        # lambda u: np.diag([1.0, Ev[0](u) / ls[0]])
     if g[1] is not None:
-        K[-1] = lambda u: np.diag([Ev[-1](xpart[-2:], u) / ls[-1], 1.0])
+        K[-1] = sys.HybridParameter(Ev[-1].invariants,
+                            [np.diag([v / ls[-1], 1.0]) for v in Ev[-1].values])
+        # K[-1] = lambda u: np.diag([Ev[-1](u) / ls[-1], 1.0])
 
     if np.all(np.isclose(gg, 0)):
         F = np.r_[0.0 if g[0] is None else g[0],

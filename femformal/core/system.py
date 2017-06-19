@@ -179,6 +179,37 @@ class MatrixFunction(object):
         return val
 
 
+class HybridParameter(object):
+    def __init__(self, invariants, values, p=None):
+        self._invariants = invariants
+        self.values = values
+        self.p = p
+
+    @property
+    def invariants(self):
+        try:
+            return [inv(self.p) for inv in self._invariants]
+        except TypeError:
+            return self._invariants
+
+    @invariants.setter
+    def invariants(self, value):
+        self._invariants = value
+
+    def invariant_representatives(self):
+        return [la.lstsq(inv[0], inv[1] - np.abs(inv[1]) * 1e-3)[0]
+                for inv in self.invariants]
+
+    def _get_value(self, u):
+        for (A, b), v in zip(self.invariants, self.values):
+            if A.dot(u) <= b:
+                return v
+        raise Exception("Input not covered in any invariant")
+
+    def __call__(self, args):
+        return self._get_value(args)
+
+
 class HybridSOSystem(SOSystem):
     @property
     def K(self):
