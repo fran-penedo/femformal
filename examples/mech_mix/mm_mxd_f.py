@@ -16,7 +16,7 @@ xparts = [np.linspace(0, L, N + 1) for N in Ns]
 g = [0.0, None]
 fs_nodal = [np.zeros(N + 1) for N in Ns]
 dts = [min((L / N) / np.sqrt(E_steel / rho_steel),
-           (L / N) / np.sqrt(E_steel / rho_steel)) for N in Ns]
+           (L / N) / np.sqrt(E_brass / rho_brass)) for N in Ns]
 u0 = lambda x: 0.0
 v0 = lambda x: 0.0
 
@@ -37,34 +37,34 @@ def f_unif_sample(bounds, g, xpart_x, xpart_y=None):
     xs = bounds['xs']
     ybounds = bounds['ybounds']
     ys = [np.random.rand() * (ybounds[1] - ybounds[0]) + ybounds[0] for x in xs]
-    pwlf = s.PWLFunction(xs, ys, x=0)
+    pwlf = s.PWLFunction(xs, ys)
     def f_x(t):
         f = np.zeros(len(xpart_x))
-        f[-1] = pwlf(0, t)
+        f[-1] = pwlf(t)
         return f
     if xpart_y is not None:
         def f_y(t):
             f = np.zeros(len(xpart_y))
-            f[-1] = pwlf(0, t)
+            f[-1] = pwlf(t)
             return f
         return f_x, f_y
     else:
         return f_x
 
 
-n = 5
+n = 100
 dt = dts[-1]
 tlims = [int(round(0.0 / dt)) * dt, int(round(0.3 / dt)) * dt]
 xlims = [0, 100000]
 bounds = {'xs' : np.linspace(0, 0.55, 55/5 + 1),
           'ybounds' : [-5e3, 5e3]}
-# mds = [fem.max_diff(system, g, tlims, xlims, systrue,
-#                     ([u0, v0], bounds),
-#                      [fem.id_sample, f_unif_sample], n=n, pw=True)
-#        for system in sosys_list]
+mds = [fem.max_diff(system, g, tlims, xlims, systrue,
+                    ([u0, v0], bounds),
+                     [fem.id_sample, f_unif_sample], n=n, pw=True, log=False)
+       for system in sosys_list]
 mds_xderiv = [fem.max_diff(system, g, tlims, xlims, systrue,
                     ([u0, v0], bounds),
-                     [fem.id_sample, f_unif_sample], n=n, pw=True, xderiv=True)
+                     [fem.id_sample, f_unif_sample], n=n, pw=True, xderiv=True, log=False)
        for system in sosys_list]
 
 mdxs, mdtxs = zip(*[fem.max_der_diff(system, g, tlims,
@@ -73,7 +73,7 @@ mdxs, mdtxs = zip(*[fem.max_der_diff(system, g, tlims,
        for system in sosys_list])
 mdxs_xderiv, mdtxs_xderiv = zip(*[fem.max_der_diff(system, g, tlims,
                     ([u0, v0], bounds),
-                     [fem.id_sample, f_unif_sample], n=n, xderiv=True)
+                     [fem.id_sample, f_unif_sample], n=n, xderiv=True, log=False)
        for system in sosys_list])
 
 print "eps = {}".format(mds[0].tolist())
