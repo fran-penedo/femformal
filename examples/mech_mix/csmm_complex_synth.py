@@ -25,9 +25,9 @@ du0 = lambda x: 0.0
 # apc1 = logic.APCont([30000, 60000], ">", lambda x: 4 * x / 100000.0 - 2.4 , lambda x: 4 / 100000.0)
 # apc2 = logic.APCont([60000, 90000], ">", lambda x: 2 * x / 100000.0 - 0.9 , lambda x: 2 / 100000.0)
 # apc3 = logic.APCont([60000, 90000], "<", lambda x: 0 * x / 100000.0 - .0 , lambda x: 0.0)
-apc1 = logic.APCont([30000, 60000], ">", lambda x: 4 * x / 100000.0 - 2.0 , lambda x: 4 / 100000.0)
-apc2 = logic.APCont([60000, 90000], ">", lambda x: 2 * x / 100000.0 - 0.5 , lambda x: 2 / 100000.0)
-apc3 = logic.APCont([60000, 90000], "<", lambda x: 0 * x / 100000.0 - .0 , lambda x: 0.0)
+apc1 = logic.APCont([30000, 60000], ">", lambda x: 4 * x / 100000.0 - 1.5 , lambda x: 4 / 100000.0)
+apc2 = logic.APCont([60000, 90000], ">", lambda x: 2 * x / 100000.0 - 0 , lambda x: 2 / 100000.0)
+apc3 = logic.APCont([60000, 90000], "<", lambda x: 0 * x / 100000.0 - .5 , lambda x: 0.0)
 cregions = {'A': apc1, 'B': apc2, 'C': apc3}
 
 cspec = "((G_[0.1, 0.3] ((A) & (B))) & (F_[0.3, 0.4] (C)) & ((G_[0.45, 0.5] (C) | G_[0.45, 0.5] (B))) & (F_[0.5, 0.52] (B)))"
