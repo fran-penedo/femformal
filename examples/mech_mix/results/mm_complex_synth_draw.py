@@ -1,9 +1,7 @@
 import femformal.core.fem.mechlinfem as mechlinfem
-import femformal.core.fem.fem_util as fem
 import femformal.core.system as sys
 import femformal.core.logic as logic
 import numpy as np
-from bisect import bisect_left
 
 N = 20
 L = 100000
@@ -84,7 +82,7 @@ for fig, t in zip(figs, ts):
     # ax.autoscale()
     ax.legend(loc='lower left', fontsize='6', labelspacing=0.05, handletextpad=0.1)
     ax.set_xticklabels([x / 1000 for x in ax.get_xticks()])
-    fig.savefig('synth_snaps_t{}.png'.format(t))
+    fig.savefig('synth_snaps_t{}.png'.format(str(t).replace('.','_')))
 
 # plt.show()
 for fig in figs: plt.close(fig)

@@ -147,11 +147,11 @@ def set_traj_line(ax, ds, xs, ts, hlines=False, xlabel='x', ylabel='u', scalarma
     d_min, d_max = np.amin(ds), np.amax(ds)
     ax.set_ylim(d_min, d_max)
     time_text = ax.text(.02, .95, '', transform=ax.transAxes)
-    if scalarmap is None:
-        cmap = plt.get_cmap('autumn')
-        cnorm = colors.Normalize(ts[0], ts[-1])
-        scalarmap = cmx.ScalarMappable(norm=cnorm, cmap=cmap)
-        scalarmap.set_array(ts)
+    # if scalarmap is None:
+    #     cmap = plt.get_cmap('autumn')
+    #     cnorm = colors.Normalize(ts[0], ts[-1])
+    #     scalarmap = cmx.ScalarMappable(norm=cnorm, cmap=cmap)
+    #     scalarmap.set_array(ts)
 
     if hlines:
         l = ax.add_collection(LineCollection([]))
@@ -160,7 +160,10 @@ def set_traj_line(ax, ds, xs, ts, hlines=False, xlabel='x', ylabel='u', scalarma
             l.set_segments([np.array([[xs[j], ds[i][j]], [xs[j+1], ds[i][j]]])
                             for j in range(len(xs) - 1)])
             # l[j].set_data(xs[j:j+2], [ds[i][j], ds[i][j]])
-            l.set_color(scalarmap.to_rgba(ts[i]))
+            if scalarmap is not None:
+                l.set_color(scalarmap.to_rgba(ts[i]))
+            else:
+                l.set_color('black')
             time_text.set_text('t = {}'.format(ts[i]))
             return l, time_text
 
@@ -170,7 +173,10 @@ def set_traj_line(ax, ds, xs, ts, hlines=False, xlabel='x', ylabel='u', scalarma
 
         def update_line(i, l=l):
             l.set_data(xs, ds[i])
-            l.set_color(scalarmap.to_rgba(ts[i]))
+            if scalarmap is not None:
+                l.set_color(scalarmap.to_rgba(ts[i]))
+            else:
+                l.set_color('black')
             time_text.set_text('t = {}'.format(ts[i]))
             return l, time_text
 
@@ -239,12 +245,12 @@ def draw_pde_trajectory(ds, xs, ts, animate=True, prefix=None, hold=False,
     fig, axes = plt.subplots(2, 2, sharex=False, sharey=False)
     ((ax_tl, ax_tr), (ax_bl, ax_br)) = axes
     line_tl = set_traj_line(ax_tl, ds, xs, ts, xlabel=xlabel, ylabel=ylabel,
-                            scalarmap=scalarmap)
+                            scalarmap=None)
     line_bl = set_traj_line(ax_bl, ds, xs, ts, xlabel=xlabel, ylabel=ylabel,
                             scalarmap=scalarmap)
     dds = np.true_divide(np.diff(ds), np.diff(xs))
     line_tr = set_traj_line(ax_tr, dds, xs, ts, hlines=True, xlabel=xlabel,
-                            ylabel="$\\frac{d}{d x}$" + ylabel, scalarmap=scalarmap)
+                            ylabel="$\\frac{d}{d x}$" + ylabel, scalarmap=None)
     line_br = set_traj_line(ax_br, dds, xs, ts, hlines=True, xlabel=xlabel,
                             ylabel="$\\frac{d}{d x}$" + ylabel, scalarmap=scalarmap)
 
@@ -281,6 +287,19 @@ def draw_pde_trajectory(ds, xs, ts, animate=True, prefix=None, hold=False,
 
     _render(fig, savefun, hold)
 
+def draw_pde_snapshot(xs, ds, t, ylabel, xlabel, ylims=None, hold=False):
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    if ylims is not None:
+        ax.set_ylim(ylims)
+
+    ax.text(.02, .90, 't = {}'.format(t), transform=ax.transAxes)
+    ax.plot(xs, ds, 'k-')
+
+    _render(fig, None, hold)
+
 
 def _render(fig, savefun, hold):
     global _holds
@@ -298,6 +317,11 @@ def _render(fig, savefun, hold):
     _holds.append(fig)
     _figcounter += 1
 
+def pop_holds():
+    global _holds
+    h = _holds
+    _holds = []
+    return h
 
 def _draw_edge(e, partition, ax):
     f = label_state(e[0])

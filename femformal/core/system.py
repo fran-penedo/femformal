@@ -551,6 +551,26 @@ def draw_sosys(sosys, d0, v0, g, T, t0=0,
     draw.draw_pde_trajectory(d, xpart, tx, prefix=prefix,
                              animate=animate, hold=hold, allonly=allonly,
                              ylabel=ylabel, xlabel=xlabel)
+    if hold:
+        return draw.pop_holds()
 
 def draw_pwlf(pwlf, ylabel='Force $u_L$', xlabel='Time t', axes=None):
     draw.draw_linear(pwlf.ys, pwlf.ts, ylabel, xlabel, axes=axes)
+
+def draw_sosys_snapshots(sosys, d0, v0, g, ts,
+               prefix=None, animate=True, allonly=False, hold=False,
+               ylabel='Displacement', xlabel='x', ylims=None):
+    dt = sosys.dt
+    xpart = sosys.xpart
+
+    t0, T = min(ts), max(ts)
+    tx = np.linspace(t0, T, int(round((T - t0)/dt)))
+    d, v = newm_integrate(sosys, d0, v0, T, dt)
+    for t in ts:
+        index = bisect_right(tx, t) -1
+        draw.draw_pde_snapshot(xpart, d[index], t, ylabel, xlabel, hold=hold, ylims=ylims)
+
+    if hold:
+        return draw.pop_holds()
+
+
