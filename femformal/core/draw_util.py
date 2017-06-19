@@ -12,11 +12,14 @@ from bisect import bisect_left, bisect_right
 _figcounter = 0
 _holds = []
 
-def draw_linear(ys, xs, ylabel='y', xlabel='x'):
+def draw_linear(ys, xs, ylabel='y', xlabel='x', axes=None):
     matplotlib.rcParams.update({'font.size': 8})
     matplotlib.rcParams.update({'figure.autolayout': True})
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
+    if axes is None:
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+    else:
+        ax = axes
     # ax.set_xlim(xs[0], xs[-1])
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
@@ -94,7 +97,8 @@ def draw_pde_trajectories(dss, xss, tss, pwc=False, ylabel="u", xlabel="x"):
                 ls[j].set_segments([np.array([[xss[j][k], dss[j][ii][k]],
                                           [xss[j][k+1], dss[j][ii][k]]])
                                 for k in range(len(xss[j]) - 1)])
-                ls[j].set_color(scalarmap.to_rgba(next_t))
+                # ls[j].set_color(scalarmap.to_rgba(next_t))
+                ls[j].set_color(['blue','red','green'][j])
             time_text.set_text('t = {}'.format(ts[i]))
             return tuple(ls) + (time_text,)
 
@@ -108,7 +112,8 @@ def draw_pde_trajectories(dss, xss, tss, pwc=False, ylabel="u", xlabel="x"):
             for j in range(len(ls)):
                 k = bisect_right(tss[j], next_t) - 1
                 ls[j].set_data(xss[j], dss[j][k])
-                ls[j].set_color(scalarmap.to_rgba(next_t))
+                # ls[j].set_color(scalarmap.to_rgba(next_t))
+                ls[j].set_color(['blue','red','green'][j])
             time_text.set_text('t = {}'.format(ts[i]))
             return tuple(ls) + (time_text,)
 
