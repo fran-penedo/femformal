@@ -4,7 +4,7 @@ from .. import system as sys
 import logging
 logger = logging.getLogger('FEMFORMAL')
 
-def mechlinfem(xpart, rho, E, g, f_nodal, dt):
+def mechnlfem(xpart, rho, E, g, f_nodal, dt):
     # n_g = len([x for x in g if x is not None])
     gg = [x if x is not None else 0.0 for x in g]
     # Number of equations for n_g = 2
@@ -16,9 +16,6 @@ def mechlinfem(xpart, rho, E, g, f_nodal, dt):
         Ev = [E(x) for x in xmids]
     except TypeError:
         Ev = [E for x in xmids]
-    for i in [0, -1]:
-        if g[i] is not None:
-            Ev[i] = lambda x, u: ls[i]
 
     try:
         rhov = [rho(x) for x in xmids]
@@ -37,12 +34,22 @@ def mechlinfem(xpart, rho, E, g, f_nodal, dt):
     #     [Ev[-1] / ls[-1] if g[1] is None else 1.0]
 
     Ks = [np.array([[1, -1], [-1, 1]]) / l for l in ls]
-    K = [(lambda x, u: Ev(x, u) * k) for k in Ks]
+    K = [lambda u, i=i: Ev[i](xpart[i:i+2], u) * Ks[i]
+          for i in range(len(Ks))]
+    if g[0] is not None:
+        K[0] = lambda u: np.diag([1.0, Ev[0](xpart[:2], u) / ls[0]])
+    if g[1] is not None:
+        K[-1] = lambda u: np.diag([Ev[-1](xpart[-2:], u) / ls[-1], 1.0])
 
-    F = np.r_[0.0 if g[0] is None else g[0],
-              Ev[0] * gg[0] / ls[0], [0 for i in range(n - 2)],
-              Ev[-1] * gg[1] / ls[n],
-              0.0 if g[-1] is None else g[-1]]
+    if np.all(np.isclose(gg, 0)):
+        F = np.r_[0.0 if g[0] is None else g[0],
+                [0 for i in range(n)],
+                0.0 if g[-1] is None else g[-1]]
+    else:
+        F = np.r_[0.0 if g[0] is None else g[0],
+                Ev[0] * gg[0] / ls[0], [0 for i in range(n - 2)],
+                Ev[-1] * gg[1] / ls[n],
+                0.0 if g[-1] is None else g[-1]]
 
     M = np.diag(Mdiag) / 2.0
     F = F + f_nodal
