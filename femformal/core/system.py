@@ -210,10 +210,11 @@ class ControlHybridSOSystem(HybridSOSystem, ControlSOSystem):
 class PWLFunction(object):
     ''' Right continuous piecewise linear function
     '''
-    def __init__(self, ts, ys=None, ybounds=None):
+    def __init__(self, ts, ys=None, ybounds=None, x=None):
         self.ts = ts
         self.ys = ys
         self.ybounds = ybounds
+        self.x = x
 
     def pset(self):
         left = np.hstack([np.identity(len(self.ts)),
@@ -222,7 +223,9 @@ class PWLFunction(object):
                       [-self.ybounds[0] for x in self.ts]]
         return np.vstack([left, right]).T
 
-    def __call__(self, t, p=None):
+    def __call__(self, t, p=None, x=None):
+        if x != self.x:
+            return 0.0
         ts = self.ts
         if p is None:
             if self.ys is None:
@@ -424,9 +427,11 @@ def sosys_diff(xsys, ysys, x0, y0, tlims, xlims, xderiv=False, plot=False):
     else:
         xl, xr = xlims
         absdif = np.abs(diff(x, y, dtx, dty, xpart, ypart, xl, xr, pwc))
-    if True:
-        ttx = np.linspace(0, T, int(round(T / dtx)))
-        tty = np.linspace(0, T, int(round(T / dty)))
+    if plot:
+        # ttx = np.linspace(0, T, int(round(T / dtx)))
+        # tty = np.linspace(0, T, int(round(T / dty)))
+        ttx = np.arange(0, T + dtx / 2.0, dtx)
+        tty = np.arange(0, T + dty / 2.0, dty)
         # draw.draw_pde_trajectory(x, xpart, ttx, hold=True)
         # draw.draw_pde_trajectory(y, ypart, tty, hold=True)
         draw.draw_pde_trajectories([x, y], [xpart, ypart], [ttx, tty], pwc=pwc)
@@ -547,5 +552,5 @@ def draw_sosys(sosys, d0, v0, g, T, t0=0,
                              animate=animate, hold=hold, allonly=allonly,
                              ylabel=ylabel, xlabel=xlabel)
 
-def draw_pwlf(pwlf, ylabel='Force $u_L$', xlabel='Time t'):
-    draw.draw_linear(pwlf.ys, pwlf.ts, ylabel, xlabel)
+def draw_pwlf(pwlf, ylabel='Force $u_L$', xlabel='Time t', axes=None):
+    draw.draw_linear(pwlf.ys, pwlf.ts, ylabel, xlabel, axes=axes)

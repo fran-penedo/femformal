@@ -123,7 +123,7 @@ def add_newmark_constr_x0_set(m, l, system, pset, f, N):
         m.addConstr(x[label(l, i, 0)] == fd(xpart[i], pd))
         m.addConstr(x[label('d' + l, i, 0)] == fv(xpart[i], pv))
         for j in range(N):
-            m.addConstr(x[label('f', i, j)] == ff(xpart[i], j * system.dt, pf))
+            m.addConstr(x[label('f', i, j)] == ff(j * system.dt, pf, xpart[i]))
 
     return x
 
