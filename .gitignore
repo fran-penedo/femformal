@@ -6,3 +6,4 @@ doc/**/*.pdf
 .srclist
 .tmuxp.yaml
 tags
+*.egg-info
