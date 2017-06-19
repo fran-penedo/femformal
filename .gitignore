@@ -7,3 +7,4 @@ doc/**/*.pdf
 .tmuxp.yaml
 tags
 *.egg-info
+out_vars.txt
