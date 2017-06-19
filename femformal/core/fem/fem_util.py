@@ -8,7 +8,7 @@ logger = logging.getLogger('FEMFORMAL')
 
 def build_cs(system, d0, g, cregions, cspec, fdt_mult=1, bounds=None,
              pset=None, f=None, discretize_system=True, cstrue=None,
-             eps=None, eta=None, nu=None):
+             eps=None, eta=None, nu=None, eps_xderiv=None, nu_xderiv=None):
     dt = system.dt
     xpart = system.xpart
 
@@ -31,23 +31,32 @@ def build_cs(system, d0, g, cregions, cspec, fdt_mult=1, bounds=None,
 
         # if discretize_system:
         logic.scale_time(spec, dt * fdt_mult)
-        md = 0.0
-        mn = [0.0 for i in range(len(xpart) - 1)]
         if eps is not None:
+            eps_list = [eps, eps_xderiv]
             if isinstance(eps, list):
-                kd = lambda i, isnode, dmu: (eps[i] if not isnode else
-                    (max(eps[i], eps[i+1]) if i > 0 and i < len(eps) - 1 else eps[i]))
+                kd = lambda i, isnode, dmu, uderivs: (
+                    eps_list[uderivs][i] if not isnode else
+                    (max(eps_list[uderivs][i], eps_list[uderivs][i+1])
+                     if i > 0 and i < len(eps_list[uderivs]) - 1 else eps_list[uderivs][i]))
             else:
-                kd = lambda i, isnode, dmu: eps
-        if eta is not None:
-            ke = lambda i, isnode, dmu: (eta[i] / 2.0) + dmu * (xpart[i+1] - xpart[i]) / 2.0
+                kd = lambda i, isnode, dmu, uderivs: eps_list[uderivs]
         else:
-            ke = lambda i, isnode, dmu: 0.0
-        if nu is not None:
-            mn = nu
-        kd = lambda i, isnode, dmu: md
-        kn = lambda i, isnode, dmu: fdt_mult * (mn[i] if isnode else
-                                                ((mn[i] + mn[i+1]) / 2.0))
+            kd = lambda i, isnode, dmu, uderivs: 0.0
+        if eta is not None:
+            ke = lambda i, isnode, dmu, uderivs: (
+                (eta[i] / 2.0 if uderivs == 0 else 0.0)
+                + dmu * (xpart[i+1] - xpart[i]) / 2.0)
+        else:
+            ke = lambda i, isnode, dmu, uderivs: 0.0
+
+        if nu is not None and nu_xderiv is not None:
+            mn = [nu, nu_xderiv]
+        else:
+            mn = [[0.0 for i in range(len(xpart) - 1)] for i in range(2)]
+
+        kn = lambda i, isnode, dmu, uderivs: (
+            fdt_mult * (mn[uderivs][i] if isnode else
+                        ((mn[uderivs][i] + mn[uderivs][i+1]) / 2.0)))
         logic.perturb(spec, kd)
         logic.perturb(spec, ke)
         logic.perturb(spec, kn)
@@ -145,7 +154,7 @@ def max_diff(system, g, tlims, xlims, sys_true,
         x0, y0 = sample_ic(bounds_ic, g, sys_x.xpart, sys_y.xpart)
 
         diff = sys.sys_max_diff(sys_x, sys_y, x0, y0, tlims, xlims, pw=pw,
-                              xderiv=xderiv, plot=True)
+                              xderiv=xderiv, plot=False)
         if mdiff is None:
             mdiff = diff
         else:
