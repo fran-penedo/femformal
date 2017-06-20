@@ -1,6 +1,9 @@
 from . import system as sys
-import gurobipy as g
+import stlmilp.milp_util as milp_util
 from .util import label
+
+import numpy as np
+import gurobipy as g
 
 import logging
 logger = logging.getLogger('FEMFORMAL')
@@ -137,18 +140,98 @@ def add_newmark_constr_x0(m, l, system, x0, N, xhist=None):
     for i in range(system.n):
         m.addConstr(x[label(l, i, 0)] == d0[i])
         m.addConstr(x[label('d' + l, i, 0)] == v0[i])
+        for j in range(N):
+            m.addConstr(x[label('f', i, j)] == 0)
     return x
 
 def add_newmark_constr(m, l, system, N, xhist=None):
     if xhist is None:
         xhist = []
-    M, K, F, dt = system.M, system.K, system.F, system.dt
+    M, F, dt = system.M, system.F, system.dt
 
     # Decision variables
+    x = add_sosys_variables(m, l, M.shape[0], N, len(xhist))
+
+    if hasattr(system, "K_global"):
+        deltas = add_hybrid_K_deltas(m, system.K_els(), x, l, N, system.bigN)
+        el_int_forces = [
+            [element_int_force(m, l, "elintf_{}".format(k),
+                              system.K_els()[k], x, deltas[time][k], time, system.bigN)
+             for k in range(len(system.K_els()))]
+            for time in range(N)]
+    else:
+        el_int_forces = None
+
+    # Dynamics
+    logger.debug("Adding dynamics")
+    for i in range(M.shape[0]):
+        logger.debug("Adding row {}".format(i))
+        for j in range(-len(xhist), N):
+            if j < 0:
+                m.addConstr(x[label(l, i, j)] == xhist[len(xhist) + j][i])
+            elif j == 0:
+                # M a = F - Kd
+                if M[i,i] == 0:
+                    m.addConstr(x[label('dd' + l, i, j)] == 0)
+                else:
+                    m.addConstr(g.quicksum(M[i, k] * x[label('dd' + l, k, j)]
+                                        for k in range(M.shape[0])) ==
+                                x[label('f', i, j)] + F[i] -
+                                int_force(system, x, i, j, l, el_int_forces))
+            elif j > 0:
+                # tv = v + .5 * dt * a
+                m.addConstr(x[label('td' + l, i, j)] == x[label('d' + l, i, j - 1)] +
+                            .5 * dt * x[label('dd' + l, i, j - 1)])
+                # d = d + dt * tv
+                m.addConstr(x[label(l, i, j)] == x[label(l, i, j - 1)] +
+                            dt * x[label('td' + l, i, j)])
+                # M a = F - Kd
+                if M[i,i] == 0:
+                    m.addConstr(x[label('dd' + l, i, j)] == 0)
+                else:
+                    m.addConstr(g.quicksum(M[i, k] * x[label('dd' + l, k, j)]
+                                        for k in range(M.shape[0])) ==
+                                x[label('f', i, j)] + F[i] -
+                                int_force(system, x, i, j, l, el_int_forces))
+                # v = tv + .5 * dt * a
+                m.addConstr(x[label('d' + l, i, j)] == x[label('td' + l, i, j)] +
+                            .5 * dt * x[label('dd' + l, i, j)])
+    m.update()
+
+    return x
+
+def element_int_force(m, l, l_f, kel, x, delta, time, bigN):
+    fs = []
+    for i in range(kel.values[0].shape[0]):
+        v1 = g.quicksum(kel.values[0][i][j] * x[label(l, i, time)])
+        v2 = g.quicksum(kel.values[1][i][j] * x[label(l, i, time)])
+        bigNN = bigN * np.max(np.abs(kel.values))
+        f = milp_util.add_binary_switch(
+            m, l_f + "_{}_{}".format(time, i), v1, v2, delta, bigNN)
+        fs.append(f)
+
+    return fs
+
+def int_force(system, x, row, time, l, el_int_forces=None):
+    if el_int_forces is None:
+        f = g.quicksum(system.K[row, k] * x[label(l, k, time)]
+                        for k in range(system.K.shape[0]))
+    else:
+        if row == 0:
+            f = el_int_forces[0][0]
+        elif row == system.M.shape[0] - 1:
+            f = el_int_forces[-1][1]
+        else:
+            f = el_int_forces[row - 1][1] + el_int_forces[row][0]
+
+    return f
+
+
+def add_sosys_variables(m, l, nvars, horlen, histlen):
     logger.debug("Adding decision variables")
     x = {}
-    for i in range(M.shape[0]):
-        for j in range(-len(xhist), N):
+    for i in range(nvars):
+        for j in range(-histlen, horlen):
             labelf = label('f', i, j)
             x[labelf] = m.addVar(
                 obj=0, lb=-g.GRB.INFINITY, ub=g.GRB.INFINITY, name=labelf)
@@ -166,45 +249,23 @@ def add_newmark_constr(m, l, system, N, xhist=None):
                 obj=0, lb=-g.GRB.INFINITY, ub=g.GRB.INFINITY, name=labela)
 
     m.update()
-
-    # Dynamics
-    logger.debug("Adding dynamics")
-    for i in range(M.shape[0]):
-        logger.debug("Adding row {}".format(i))
-        for j in range(-len(xhist), N):
-            if j < 0:
-                m.addConstr(x[label(l, i, j)] == xhist[len(xhist) + j][i])
-            elif j == 0:
-                # M a = F - Kd
-                if M[i,i] == 0:
-                    m.addConstr(x[label('dd' + l, i, j)] == 0)
-                else:
-                    m.addConstr(g.quicksum(M[i, k] * x[label('dd' + l, k, j)]
-                                        for k in range(M.shape[0])) ==
-                                x[label('f', i, j)] + F[i] -
-                                g.quicksum(K[i, k] * x[label(l, k, j)]
-                                                for k in range(K.shape[0])))
-            elif j > 0:
-                # tv = v + .5 * dt * a
-                m.addConstr(x[label('td' + l, i, j)] == x[label('d' + l, i, j - 1)] +
-                            .5 * dt * x[label('dd' + l, i, j - 1)])
-                # d = d + dt * tv
-                m.addConstr(x[label(l, i, j)] == x[label(l, i, j - 1)] +
-                            dt * x[label('td' + l, i, j)])
-                # M a = F - Kd
-                if M[i,i] == 0:
-                    m.addConstr(x[label('dd' + l, i, j)] == 0)
-                else:
-                    m.addConstr(g.quicksum(M[i, k] * x[label('dd' + l, k, j)]
-                                        for k in range(M.shape[0])) ==
-                                x[label('f', i, j)] + F[i] -
-                                g.quicksum(K[i, k] * x[label(l, k, j)]
-                                                for k in range(K.shape[0])))
-                # v = tv + .5 * dt * a
-                m.addConstr(x[label('d' + l, i, j)] == x[label('td' + l, i, j)] +
-                            .5 * dt * x[label('dd' + l, i, j)])
-    m.update()
-
     return x
 
+def add_hybrid_K_deltas(m, Ks, x, l, N, bigN):
+    deltas = []
+    for t in range(N):
+        deltast = []
+        for i in range(len(Ks)):
+            delta = milp_util.add_set_flag(m, "K_{}_{}_delta".format(t, i),
+                                   [x[label(l, a, t)] for a in range(i, i+2)],
+                                   Ks[i].invariants[0][0], Ks[i].invariants[0][1],
+                                           bigN)
+            deltast.append(delta)
+        deltas.append(deltast)
 
+    return deltas
+
+def get_trajectory_from_model(m, l, T, system):
+    return np.array([
+        [m.getVarByName(label(l, i, j)).x for i in range(system.n)]
+        for j in range(T)])

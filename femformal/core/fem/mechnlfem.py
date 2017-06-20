@@ -40,12 +40,10 @@ def mechnlfem(xpart, rho, E, g, f_nodal, dt):
     # K = [lambda u, i=i: Ev[i](u) * Ks[i]
     #       for i in range(len(Ks))]
     if g[0] is not None:
-        K[0] = sys.HybridParameter(Ev[0].invariants,
-                            [np.diag([1.0, v / ls[0]]) for v in Ev[0].values])
+        K[0].values = [np.diag([1.0, v / ls[0]]) for v in Ev[0].values]
         # lambda u: np.diag([1.0, Ev[0](u) / ls[0]])
     if g[1] is not None:
-        K[-1] = sys.HybridParameter(Ev[-1].invariants,
-                            [np.diag([v / ls[-1], 1.0]) for v in Ev[-1].values])
+        K[-1].values = [np.diag([v / ls[-1], 1.0]) for v in Ev[-1].values]
         # K[-1] = lambda u: np.diag([Ev[-1](u) / ls[-1], 1.0])
 
     if np.all(np.isclose(gg, 0)):

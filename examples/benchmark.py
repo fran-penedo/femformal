@@ -25,7 +25,7 @@ def run_cs_draw(m, args):
 def run_cs_milp(m, args):
     # logger.debug(m.system)
     start = timer()
-    res = verify_singleton(m.dsystem, m.d0, m.spec, cs.fdt_mult)
+    res = verify_singleton(m.dsystem, m.d0, m.spec, m.fdt_mult)
     finish = timer()
     print 'Res: {}'.format(res)
     print 'Time {}'.format(finish - start)

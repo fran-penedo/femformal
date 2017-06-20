@@ -17,15 +17,19 @@ logger.setLevel(logging.DEBUG)
 
 def _build_and_solve(spec, model_encode_f, spec_obj):
     # print spec
-    hd = max(0, spec.horizon())
+    if spec is not None:
+        hd = max(0, spec.horizon())
+    else:
+        hd = 0
 
     m = milp.create_milp("rhc_system")
     logger.debug("Adding affine system constraints")
     model_encode_f(m, hd)
     # sys_milp.add_sys_constr_x0(m, "d", system, d0, hd, None)
-    logger.debug("Adding STL constraints")
-    fvar, vbds = stl_milp.add_stl_constr(m, "spec", spec)
-    fvar.setAttr("obj", spec_obj)
+    if spec is not None:
+        logger.debug("Adding STL constraints")
+        fvar, vbds = stl_milp.add_stl_constr(m, "spec", spec)
+        fvar.setAttr("obj", spec_obj)
     # m.params.outputflag = 0
     # m.params.numericfocus = 3
     m.update()
@@ -62,3 +66,9 @@ def synthesize(system, pset, f, spec, fdt_mult=1):
 
     m = _build_and_solve(spec, model_encode_f, -1.0)
     return m.getVarByName("spec").getAttr("x"), [y.getAttr('x') for y in f[-1].ys]
+
+def simulate_trajectory(system, d0, T):
+    model_encode_f = lambda m, hd: sys_milp.add_sys_constr_x0(m, "d", system, d0, T + 1, None)
+
+    m = _build_and_solve(None, model_encode_f, 1.0)
+    return sys_milp.get_trajectory_from_model(m, "d", T + 1, system)
