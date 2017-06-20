@@ -202,7 +202,7 @@ class HybridParameter(object):
 
     def _get_value(self, u):
         for (A, b), v in zip(self.invariants, self.values):
-            if A.dot(u) <= b:
+            if np.all(A.dot(u) <= b):
                 return v
         raise Exception("Input not covered in any invariant")
 
@@ -217,11 +217,16 @@ class HybridSOSystem(SOSystem):
 
     def K_global(self, u):
         k_els = [self._K[i](u[i:i+2]) for i in range(len(self._K))]
+        return self.K_build_global(k_els)
+
+    def K_build_global(self, k_els):
         K = np.zeros(self.M.shape)
         for i in range(len(k_els)):
-            K[i:i+2,i:i+2] += k_els[i]
+            K[i:i+2,i:i+2] = K[i:i+2,i:i+2] + k_els[i]
         return K
 
+    def K_els(self):
+        return self._K
 
 class ControlHybridSOSystem(HybridSOSystem, ControlSOSystem):
     def __init__(self, M, K, F, f_nodal, xpart=None, dt=1.0):
