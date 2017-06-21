@@ -26,7 +26,6 @@ def draw_linear(ys, xs, ylabel='y', xlabel='x', axes=None):
     ax.set_ylim(-100, 6e3)
     ax.plot(xs, ys, '-')
 
-
 def draw_ts(ts, prefix=None):
     global _figcounter
 
@@ -38,7 +37,6 @@ def draw_ts(ts, prefix=None):
         _figcounter += 1
     else:
         plt.show()
-
 
 def draw_ts_2D(ts, partition, prefix=None):
     global _figcounter
@@ -61,6 +59,7 @@ def draw_ts_2D(ts, partition, prefix=None):
         _figcounter += 1
     else:
         plt.show()
+
 
 def draw_pde_trajectories(dss, xss, tss, pwc=False, ylabel="u", xlabel="x"):
     global _holds
@@ -133,6 +132,7 @@ def draw_pde_trajectories(dss, xss, tss, pwc=False, ylabel="u", xlabel="x"):
     _holds.append(line_ani)
 
     _render(fig, None, False)
+
 
 def _der_lines(ax, xs):
     return [ax.plot([], [], 'b-')[0] for x in xs[:-1]]
@@ -287,6 +287,7 @@ def draw_pde_trajectory(ds, xs, ts, animate=True, prefix=None, hold=False,
 
     _render(fig, savefun, hold)
 
+
 def draw_pde_snapshot(xs, ds, t, ylabel, xlabel, ylims=None, hold=False):
     fig = plt.figure()
     ax = fig.add_subplot(111)
@@ -353,3 +354,19 @@ def _draw_grid(partition, ax):
             data[i][0] = data[i][1] = x
             ax.plot(data[0], data[1], color='k', linestyle='--', linewidth=2)
 
+
+def draw_predicates(apcs, labels, xpart, ax, perts=None):
+    if perts is not None:
+        mids = (xpart[:-1] + xpart[1:]) / 2.0
+
+    for i, apc in enumerate(apcs):
+        (l,) = ax.plot(apc.A, [apc.p(x) for x in apc.A], lw=1, label=labels[i])
+        if perts is not None:
+            mids_in_domain = [x for x in mids if x >= apc.A[0] and x <= apc.A[1]]
+            if len(mids_in_domain) > 1:
+                ax.plot(mids_in_domain, [perts[i](x) for x in mids_in_domain],
+                        lw=1, ls='--', c=l.get_c())
+            else:
+                ax.plot(mids_in_domain, [perts[i](x) for x in mids_in_domain],
+                        marker='_', markersize=3, c=l.get_c())
+    ax.legend(loc='lower left', fontsize='6', labelspacing=0.05, handletextpad=0.1)

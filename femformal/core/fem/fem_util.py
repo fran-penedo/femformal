@@ -3,6 +3,7 @@ from .. import system as sys
 from .. import logic as logic
 # from .. import femmilp.system_milp as sysmilp
 
+from bisect import bisect_left
 import logging
 logger = logging.getLogger('FEMFORMAL')
 
@@ -270,6 +271,33 @@ def max_der_diff(system, g, tlims, bounds, sample, xderiv=False, n=50, log=True)
         logger.debug("mdiff_t = {}".format(mdiff_t))
     return mdiff_x, mdiff_t
 
+
+def _perturb_profile_eps(p, eps, xpart, direction):
+    def pp(x):
+        i = bisect_left(xpart, x) - 1
+        return p(x) + direction * eps[i]
+    return pp
+
+def _perturb_profile_eta(p, dp, eta, xpart, direction):
+    def pp(x):
+        i = bisect_left(xpart, x) - 1
+        return p(x) + direction * (
+            eta[i] / 2.0 + dp(x) * (xpart[i + 1] - xpart[i]) / 2.0)
+    return pp
+
+def _perturb_profile_nu(p, nu, xpart, fdt_mult, direction):
+    def pp(x):
+        i = bisect_left(xpart, x) - 1
+        return p(x) + direction * (fdt_mult * (nu[i + 1] + nu[i]) / 2.0)
+    return pp
+
+
+def perturb_profile(apc, eps, eta, nu, xpart, fdt_mult):
+    direction = -1 * apc.r
+    eps_p = _perturb_profile_eps(apc.p, eps[apc.uderivs], xpart, direction)
+    eta_p = _perturb_profile_eta(eps_p, apc.dp, eta[apc.uderivs], xpart, direction)
+    nu_p = _perturb_profile_nu(eta_p, nu[apc.uderivs], xpart, fdt_mult, direction)
+    return nu_p
 
 class CaseStudy(object):
     def __init__(self, dic):
