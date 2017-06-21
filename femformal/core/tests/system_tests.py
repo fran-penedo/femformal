@@ -178,7 +178,11 @@ class TestComplexSystem(unittest.TestCase):
 
 class TestHybridSystem(unittest.TestCase):
     def setUp(self):
-        pass
+        self.M = np.array([[0, 0, 0, 0], [0, 3, 0, 0], [0, 0, 3, 0], [0, 0, 0, 3]]) / 6.0
+        self.K = np.array([[1.0, 0, 0, 0], [0, 2.0, -1.0, 0], [0, -1.0, 2.0, -1.0],
+                      [0, 0, -1.0, 1.0]])
+        self.F = np.array([0, 0, 0, 1.0])
+        self.xpart = [0.0, 1.0, 2.0, 3.0]
 
     def test_matrix_function(self):
         f = lambda u: np.arange(25).reshape(5,5)
@@ -233,3 +237,25 @@ class TestHybridSystem(unittest.TestCase):
         reprs = par.invariant_representatives()
         for inv, rep in zip(invs, reprs):
             self.assertTrue(np.all(inv[0].dot(rep) <= inv[1]))
+
+    def test_hybrid_system_trajectory_nonhybrid(self):
+        invariants = [(np.array([[1.0, 1.0]]), np.array([5e6])),
+                      (-np.array([[1.0, 1.0]]), -np.array([5e6]))]
+        values = [np.array([[1.0, -1.0],[-1.0, 1.0]]),
+                  np.array([[1.0, -1.0], [-1.0, 1.0]]) * 0.5]
+
+        K = [sys.HybridParameter(invariants, values) for i in range(3)]
+        K[0].values = [np.identity(2) for i in range(2)]
+        dt = 0.1
+        its = 100
+        hysys = sys.HybridSOSystem(self.M, K, self.F, self.xpart, dt)
+        sosys = sys.SOSystem(self.M, self.K, self.F, self.xpart, dt)
+        d0 = np.array([1.0, 0.5, -0.5, -1.0])
+        v0 = np.array([0.0, 0.0, 0.0, 0.0])
+
+        np.testing.assert_array_almost_equal(hysys.K_global(d0), sosys.K)
+        d_sosys, _ = sys.newm_integrate(sosys, d0, v0, its * dt, dt)
+        d_hyb, _ = sys.newm_integrate(hysys, d0, v0, its * dt, dt)
+
+        np.testing.assert_array_almost_equal(d_hyb, d_sosys)
+

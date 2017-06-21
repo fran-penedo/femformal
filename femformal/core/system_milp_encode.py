@@ -154,10 +154,8 @@ def add_newmark_constr(m, l, system, N, xhist=None):
 
     if hasattr(system, "K_global"):
         deltas = add_hybrid_K_deltas(m, system.K_els(), x, l, N, system.bigN)
-        el_int_forces = [
-            [element_int_force(m, l, "elintf_{}".format(k),
-                              system.K_els()[k], x, deltas[time][k], time, system.bigN)
-             for k in range(len(system.K_els()))]
+        el_int_forces = [elements_int_force(
+            m, l, system.K_els(), x, deltas, time, system.bigN)
             for time in range(N)]
     else:
         el_int_forces = None
@@ -200,15 +198,25 @@ def add_newmark_constr(m, l, system, N, xhist=None):
 
     return x
 
-def element_int_force(m, l, l_f, kel, x, delta, time, bigN):
+def elements_int_force(m, l, kels, x, deltas, time, bigN):
     fs = []
-    for i in range(kel.values[0].shape[0]):
-        v1 = g.quicksum(kel.values[0][i][j] * x[label(l, i, time)])
-        v2 = g.quicksum(kel.values[1][i][j] * x[label(l, i, time)])
-        bigNN = bigN * np.max(np.abs(kel.values))
-        f = milp_util.add_binary_switch(
-            m, l_f + "_{}_{}".format(time, i), v1, v2, delta, bigNN)
-        fs.append(f)
+    for n_el in range(len(kels)):
+        el_fs = []
+        kel = kels[n_el]
+        n = kel.values[0].shape[0]
+        for i in range(n):
+            v1 = g.quicksum(
+                kel.values[0][i][j] * x[label(l, n_el * (n - 1) + j, time)]
+                for j in range(n))
+            v2 = g.quicksum(
+                kel.values[1][i][j] * x[label(l, n_el * (n - 1) + j, time)]
+                for j in range(n))
+            bigNN = bigN * np.max(np.abs(kel.values))
+            f = milp_util.add_binary_switch(
+                m, "elintf_{}_{}_{}".format(n_el, i, time), v1, v2,
+                deltas[time][n_el], bigNN)
+            el_fs.append(f)
+        fs.append(el_fs)
 
     return fs
 
@@ -218,11 +226,11 @@ def int_force(system, x, row, time, l, el_int_forces=None):
                         for k in range(system.K.shape[0]))
     else:
         if row == 0:
-            f = el_int_forces[0][0]
+            f = el_int_forces[time][0][0]
         elif row == system.M.shape[0] - 1:
-            f = el_int_forces[-1][1]
+            f = el_int_forces[time][-1][1]
         else:
-            f = el_int_forces[row - 1][1] + el_int_forces[row][0]
+            f = el_int_forces[time][row - 1][1] + el_int_forces[time][row][0]
 
     return f
 
