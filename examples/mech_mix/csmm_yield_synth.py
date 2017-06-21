@@ -22,9 +22,9 @@ bounds = [-10, 10]
 # u0 = lambda x: 0.0
 # du0 = lambda x: 0.0
 
-apc1 = logic.APCont([30000, 60000], "<", lambda x: 20e-5 * L / N, lambda x: 0.0, uderivs=1)
-apc2 = logic.APCont([30000, 60000], ">", lambda x: 2e-5 * L / N, lambda x: 0.0, uderivs=1)
-apc3 = logic.APCont([30000, 35000], ">", lambda x: 20e-5 * L / N, lambda x: 0.0, uderivs=1)
+apc1 = logic.APCont([30000, 60000], "<", lambda x: 20e-5, lambda x: 0.0, uderivs=1)
+apc2 = logic.APCont([30000, 60000], ">", lambda x: 2e-5, lambda x: 0.0, uderivs=1)
+apc3 = logic.APCont([30000, 35000], ">", lambda x: 20e-5, lambda x: 0.0, uderivs=1)
 cregions = {'A': apc1, 'B': apc2, 'C': apc3}
 
 cspec = "((G_[0, 0.2] (A)) & (G_[0.1, 0.2] (B)) & (F_[0.2, 0.25] (C)))"
@@ -41,7 +41,7 @@ dset = np.array([[1, 0], [-1, 0]])
 vset = np.array([[1, 0], [-1, 0]])
 fd = lambda x, p: p[0]
 fv = lambda x, p: p[0]
-pwlf = sys.PWLFunction(np.linspace(0, 0.50, 50/5 + 1), ybounds=[-5e3, 5e3], x=L)
+pwlf = sys.PWLFunction(np.linspace(0, 0.30, 30/5 + 1), ybounds=[-5e3, 5e3], x=L)
 fset = pwlf.pset()
 
 
@@ -65,4 +65,8 @@ print cs.spec
 # for apc in cregions.values():
 #     ax.plot(apc.A, [apc.p(x) for x in apc.A], 'b-', lw=1)
 # plt.show()
+
+# Robustness = -0.294379406924
+# Synthesized parameters = [5000.0, 5000.0, 2414.1472437589305, 438.54491269514176, 5000.0, 5000.0, -5000.000000000002]
+# Time = 121.263049126
 

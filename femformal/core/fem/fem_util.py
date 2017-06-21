@@ -24,7 +24,7 @@ def build_cs(system, d0, g, cregions, cspec, fdt_mult=1, bounds=None,
                 for label, pred in cregions.items()}
         dspec = logic.subst_spec_labels_disc(cspec, regions)
         try:
-            spec = logic.stl_parser(fdt_mult, bounds).parseString(dspec)[0]
+            spec = logic.stl_parser(xpart, fdt_mult, bounds).parseString(dspec)[0]
         except Exception as e:
             logger.exception("Error while parsing specification:\n{}\n".format(dspec))
             raise e

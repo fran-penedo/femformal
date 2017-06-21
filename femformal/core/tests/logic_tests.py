@@ -14,9 +14,9 @@ class test_logic(unittest.TestCase):
         self.xpart = np.linspace(0, 5, 11)
         self.apd1_string = "((y 1 1 < 5.0 10.0) & (y 1 2 < 6.0 10.0))"
         self.form = "G_[0, 1] ({})".format(self.apd1_string)
-        self.signal1 = logic.SysSignal(1, stl.GT, 5.0, 10.0, False, 1, 2, [-1000, 1000])
-        self.signal2 = logic.SysSignal(1, stl.LE, 5.0, 10.0, False, 0, 2, [-1000, 1000])
-        self.signal3 = logic.SysSignal(1, stl.LE, 5.0, 10.0, True, 0, 2, [-1000, 1000])
+        self.signal1 = logic.SysSignal(1, stl.GT, 5.0, 10.0, False, 1, self.xpart, 2, [-1000, 1000])
+        self.signal2 = logic.SysSignal(1, stl.LE, 5.0, 10.0, False, 0, self.xpart, 2, [-1000, 1000])
+        self.signal3 = logic.SysSignal(1, stl.LE, 5.0, 10.0, True, 0, self.xpart, 2, [-1000, 1000])
 
 
     def test_apc_to_apd(self):
@@ -42,7 +42,7 @@ class test_logic(unittest.TestCase):
     def test_expr_parser(self):
         fdt_mult = 2
         bounds = [-1000, 1000]
-        parser = logic.stl_parser(fdt_mult, bounds)
+        parser = logic.stl_parser(self.xpart, fdt_mult, bounds)
         form = parser.parseString(self.apd1_string)[0]
         s1, s2 = [f.args[0] for f in form.args]
 
@@ -57,14 +57,14 @@ class test_logic(unittest.TestCase):
     def test_syssignal(self):
         self.assertEqual(self.signal1.labels[0](5), "d_1_5")
         self.assertEqual(self.signal1.labels[1](5), "d_2_5")
-        self.assertEqual(self.signal1.f([2.0, 4.0]), -3.0)
+        self.assertEqual(self.signal1.f([2.0, 4.0]), -1.0)
         self.assertEqual(self.signal2.f([2.0, 4.0]), 2.0)
         self.assertEqual(self.signal3.f([2.0]), 3.0)
 
 
     def test_signal_perturb(self):
         self.signal1.perturb(lambda a, b, c, d: 1.0)
-        self.assertEqual(self.signal1.f([2.0, 4.0]), -4.0)
+        self.assertEqual(self.signal1.f([2.0, 4.0]), -2.0)
         self.signal2.perturb(lambda a, b, c, d: 1.0)
         self.assertEqual(self.signal2.f([2.0, 4.0]), 1.0)
 
@@ -72,7 +72,7 @@ class test_logic(unittest.TestCase):
     def test_scale_time(self):
         fdt_mult = 2
         bounds = [-1000, 1000]
-        parser = logic.stl_parser(fdt_mult, bounds)
+        parser = logic.stl_parser(self.xpart, fdt_mult, bounds)
         form = parser.parseString(self.form)[0]
         dt = .5
         logic.scale_time(form, dt)
