@@ -63,9 +63,9 @@ class test_logic(unittest.TestCase):
 
 
     def test_signal_perturb(self):
-        self.signal1.perturb(lambda a, b, c: 1.0)
+        self.signal1.perturb(lambda a, b, c, d: 1.0)
         self.assertEqual(self.signal1.f([2.0, 4.0]), -4.0)
-        self.signal2.perturb(lambda a, b, c: 1.0)
+        self.signal2.perturb(lambda a, b, c, d: 1.0)
         self.assertEqual(self.signal2.f([2.0, 4.0]), 1.0)
 
 

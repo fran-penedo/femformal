@@ -37,7 +37,7 @@ class TestFemmilp(unittest.TestCase):
         K = [sys.HybridParameter(invariants, values) for i in range(3)]
         K[0].values = [np.identity(2) for i in range(2)]
         dt = 0.1
-        its = 100
+        its = 30
         hysys = sys.HybridSOSystem(self.M, K, self.F, self.xpart, dt)
         hysys.bigN = 1e7
         d0 = np.array([1.0, 0.5, -0.5, -1.0])
@@ -58,7 +58,7 @@ class TestFemmilp(unittest.TestCase):
         K = [sys.HybridParameter(invariants, values) for i in range(3)]
         K[0].values = [np.identity(2) for i in range(2)]
         dt = 0.1
-        its = 100
+        its = 30
         hysys = sys.HybridSOSystem(self.M, K, self.F, self.xpart, dt)
         hysys.bigN = 10000
         d0 = np.array([1.0, 0.5, -0.5, -1.0])
@@ -68,4 +68,3 @@ class TestFemmilp(unittest.TestCase):
         d_true, _ = sys.newm_integrate(hysys, d0, v0, its * dt, dt)
 
         np.testing.assert_array_almost_equal(d, d_true)
-

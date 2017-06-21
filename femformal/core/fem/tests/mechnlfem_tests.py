@@ -4,28 +4,24 @@ import numpy as np
 
 import femformal.core.fem.mechnlfem as mechnl
 import femformal.core.fem.mechlinfem as mechlin
+import femformal.core.system as sys
 
 class TestMechNLFem(unittest.TestCase):
-    def test_lin_equiv(self):
+    def test_linear_equivalent(self):
         N = 5
         L = 100000
         rho_steel = 8e-6
         E_steel = 200e6
         sigma_yield_steel = 350e3
         yield_point_steel = sigma_yield_steel / E_steel
-        def E_steel_hybrid(x, u):
-            du = np.diff(u) / np.diff(x)
-            if du < yield_point_steel:
-                return E_steel
-            else:
-                return E_steel / 2.0
+        E_steel_hybrid = sys.HybridParameter([
+            lambda p: (np.array([[-1, 1]]) / np.diff(p), np.array([yield_point_steel])),
+            lambda p: (np.array([[1, -1]]) / np.diff(p), np.array([-yield_point_steel]))],
+            [E_steel, E_steel / 2.0])
+        E_steel_hybrid.p = np.array([0, 1.0])
 
-        self.assertEqual(E_steel_hybrid(
-            np.array([0, 1]), np.array([0, 2*yield_point_steel])),
-            E_steel / 2.0)
-        self.assertEqual(E_steel_hybrid(
-            np.array([0, 1]), np.array([0, .5*yield_point_steel])),
-            E_steel)
+        self.assertEqual(E_steel_hybrid(np.array([0, 2*yield_point_steel])), E_steel / 2.0)
+        self.assertEqual(E_steel_hybrid(np.array([0, .5*yield_point_steel])), E_steel)
 
 
         xpart = np.linspace(0, L, N + 1)

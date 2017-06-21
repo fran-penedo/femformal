@@ -1,4 +1,5 @@
 import numpy as np
+import femformal.core.util
 from scipy.optimize import linprog
 from scipy.integrate import odeint
 import scipy.linalg as la

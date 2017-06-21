@@ -6,14 +6,7 @@ import stlmilp.stl_milp_encode as stl_milp
 import femformal.core.system_milp_encode as sys_milp
 
 
-logger = logging.getLogger('FEMMILP')
-handler = logging.StreamHandler()
-formatter = logging.Formatter('%(levelname)s %(module)s:%(lineno)d:%(funcName)s: %(message)s')
-handler.setFormatter(formatter)
-logger.addHandler(handler)
-logger.propagate = False
-
-logger.setLevel(logging.DEBUG)
+logger = logging.getLogger('FEMFORMAL')
 
 def _build_and_solve(spec, model_encode_f, spec_obj):
     # print spec
