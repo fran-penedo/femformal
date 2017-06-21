@@ -355,11 +355,12 @@ def _draw_grid(partition, ax):
             ax.plot(data[0], data[1], color='k', linestyle='--', linewidth=2)
 
 
-def draw_predicates(apcs, labels, xpart, ax, perts=None):
+def draw_predicates(apcs, labels, xpart, axs, perts=None):
     if perts is not None:
         mids = (xpart[:-1] + xpart[1:]) / 2.0
 
     for i, apc in enumerate(apcs):
+        ax = axs[apc.uderivs]
         (l,) = ax.plot(apc.A, [apc.p(x) for x in apc.A], lw=1, label=labels[i])
         if perts is not None:
             mids_in_domain = [x for x in mids if x >= apc.A[0] and x <= apc.A[1]]
@@ -369,4 +370,5 @@ def draw_predicates(apcs, labels, xpart, ax, perts=None):
             else:
                 ax.plot(mids_in_domain, [perts[i](x) for x in mids_in_domain],
                         marker='_', markersize=3, c=l.get_c())
-    ax.legend(loc='lower left', fontsize='6', labelspacing=0.05, handletextpad=0.1)
+    for ax in axs:
+        ax.legend(loc='lower left', fontsize='6', labelspacing=0.05, handletextpad=0.1)

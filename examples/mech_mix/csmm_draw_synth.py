@@ -65,13 +65,15 @@ import matplotlib.pyplot as plt
 (fig, ) = sys.draw_sosys(csosys, d0, v0, g, 0.30, animate=False, allonly=False, hold=True)
 fig.set_size_inches(3,2)
 fig.canvas.set_window_title("i3_7")
-ax = plt.gcf().get_axes()[1]
+axs = plt.gcf().get_axes()[0:2]
+print axs
 labels = ['A', 'B', 'C']
 apcs = zip(*sorted(cregions.items()))[1]
 perts = [fem.perturb_profile(apc, epss, etas, nus, xpart, fdt_mult) for apc in apcs]
-draw.draw_predicates(apcs, labels, xpart, ax, perts=perts)
-ax.set_ylim([-10e-5, 35e-5])
-fig.get_axes()[0].set_xticklabels([x / 1000 for x in ax.get_xticks()])
+draw.draw_predicates(apcs, labels, xpart, axs, perts=perts)
+axs[1].set_ylim([-10e-5, 35e-5])
+axs[0].set_xticklabels([x / 1000 for x in axs[0].get_xticks()])
+axs[1].set_xticklabels([x / 1000 for x in axs[1].get_xticks()])
 plt.show()
 # fig.savefig('fig2.png')
 plt.close(fig)
