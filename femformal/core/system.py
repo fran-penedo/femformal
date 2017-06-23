@@ -264,13 +264,13 @@ class PWLFunction(object):
         if x != self.x:
             return 0.0
         ts = self.ts
-        if p is None:
-            if self.ys is None:
-                raise Exception("y values not set")
+        if self.ys is not None:
             ys = self.ys
             if t < ts[0] or t > ts[-1]:
                 raise Exception("Argument out of domain. t = {}".format(t))
         else:
+            if p is None:
+                raise Exception("y values not set")
             self.ys = ys = p
         # FIXME probable issue with t = ts[-1]
         if t == ts[-1]:
