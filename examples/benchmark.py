@@ -159,8 +159,8 @@ def run_draw_snapshots(m, args):
     else:
         for fig_pair, t in zip(figs_grouped, ts):
             figa, figb = fig_pair
-            figa.savefig(_fix_filename(prefix + "_disp_{}".format(t)) + ".png")
-            figb.savefig(_fix_filename(prefix + "_strain_{}".format(t)) + ".png")
+            figa.savefig(_fix_filename(prefix + "_disp_t{}".format(t)) + ".png")
+            figb.savefig(_fix_filename(prefix + "_strain_t{}".format(t)) + ".png")
 
 def _fix_filename(s):
     return s.replace('.', '_')

@@ -8,7 +8,7 @@ import logging
 logger = logging.getLogger('FEMFORMAL')
 
 def build_cs(system, d0, g, cregions, cspec, fdt_mult=1, bounds=None,
-             pset=None, f=None, discretize_system=True, cstrue=None,
+             pset=None, f=None, discretize_system=True, cstrue=None, error_bounds=None,
              eps=None, eta=None, nu=None, eps_xderiv=None, nu_xderiv=None):
     dt = system.dt
     xpart = system.xpart
@@ -33,6 +33,9 @@ def build_cs(system, d0, g, cregions, cspec, fdt_mult=1, bounds=None,
         T = max(spec.horizon(), 0)
         # if discretize_system:
         logic.scale_time(spec, dt * fdt_mult)
+        if error_bounds is not None:
+            ((eps, eps_xderiv), (eta, eta_xderiv), (nu, nu_xderiv)) = error_bounds
+
         if eps is not None:
             eps_list = [eps, eps_xderiv]
             if isinstance(eps, list):
@@ -299,6 +302,7 @@ def perturb_profile(apc, eps, eta, nu, xpart, fdt_mult):
     eps_p = _perturb_profile_eps(apc.p, eps[apc.uderivs], xpart, direction)
     eta_p = _perturb_profile_eta(eps_p, apc.dp, eta[apc.uderivs], xpart, direction)
     nu_p = _perturb_profile_nu(eta_p, nu[apc.uderivs], xpart, fdt_mult, direction)
+
     return nu_p
 
 class CaseStudy(object):
