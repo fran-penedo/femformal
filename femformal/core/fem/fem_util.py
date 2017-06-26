@@ -30,6 +30,7 @@ def build_cs(system, d0, g, cregions, cspec, fdt_mult=1, bounds=None,
             logger.exception("Error while parsing specification:\n{}\n".format(dspec))
             raise e
 
+        T = max(spec.horizon(), 0)
         # if discretize_system:
         logic.scale_time(spec, dt * fdt_mult)
         if eps is not None:
@@ -77,6 +78,7 @@ def build_cs(system, d0, g, cregions, cspec, fdt_mult=1, bounds=None,
         'f': f,
         'regions': regions,
         'spec': spec,
+        'T': T
     })
 
 
@@ -315,6 +317,7 @@ class CaseStudy(object):
         self.spec = copy.pop('spec', None)
         self.rh_N = copy.pop('rh_N', None)
         self.thunk = copy.pop('thunk', None)
+        self.T = copy.pop('T', 0)
 
         if len(copy) > 0:
             raise Exception('Undefined parameters in CaseStudy: {}'.format(copy))

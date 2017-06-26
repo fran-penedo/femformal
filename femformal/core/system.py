@@ -575,6 +575,8 @@ def draw_system_cont(sys, x0, T, t0=0,
     draw.draw_pde_trajectory(x, xpart, tx, prefix=prefix,
                              animate=animate, hold=hold, allonly=allonly, ylabel=ylabel,
                              xlabel=xlabel)
+    if hold:
+        return draw.pop_holds()
 
 def draw_sosys(sosys, d0, v0, g, T, t0=0,
                prefix=None, animate=True, allonly=False, hold=False,
@@ -591,8 +593,19 @@ def draw_sosys(sosys, d0, v0, g, T, t0=0,
     if hold:
         return draw.pop_holds()
 
+def draw_system(sys, d0, g, T, t0=0, **kargs):
+    if isinstance(sys, FOSystem):
+        return draw_system_cont(sys, d0, g, T, t0, **kargs)
+    elif isinstance(sys, SOSystem):
+        return draw_sosys(sys, d0[0], d0[1], g, T, t0, **kargs)
+    else:
+        raise NotImplementedError(
+            "Not implemented for this class of system: {}".format(
+                sys.__class__.__name__))
+
+
 def draw_pwlf(pwlf, ylabel='Force $u_L$', xlabel='Time t', axes=None):
-    draw.draw_linear(pwlf.ys, pwlf.ts, ylabel, xlabel, axes=axes)
+    return draw.draw_linear(pwlf.ys, pwlf.ts, ylabel, xlabel, axes=axes)
 
 def draw_sosys_snapshots(sosys, d0, v0, g, ts,
                prefix=None, animate=True, allonly=False, hold=False,
@@ -605,9 +618,18 @@ def draw_sosys_snapshots(sosys, d0, v0, g, ts,
     d, v = newm_integrate(sosys, d0, v0, T, dt)
     for t in ts:
         index = bisect_right(tx, t) -1
-        draw.draw_pde_snapshot(xpart, d[index], t, ylabel, xlabel, hold=hold, ylims=ylims)
+        draw.draw_pde_snapshot(
+            xpart, d[index], np.true_divide(np.diff(d[index]), np.diff(xpart)),
+            t, ylabel, xlabel, hold=hold, ylims=ylims)
 
     if hold:
         return draw.pop_holds()
 
 
+def draw_system_snapshots(sys, d0, g, ts, **kargs):
+    if isinstance(sys, SOSystem):
+        return draw_sosys_snapshots(sys, d0[0], d0[1], g, ts, **kargs)
+    else:
+        raise NotImplementedError(
+            "Not implemented for this class of system: {}".format(
+                sys.__class__.__name__))

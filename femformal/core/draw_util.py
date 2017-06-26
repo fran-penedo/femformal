@@ -23,8 +23,12 @@ def draw_linear(ys, xs, ylabel='y', xlabel='x', axes=None):
     # ax.set_xlim(xs[0], xs[-1])
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
+    #FIXME
     ax.set_ylim(-100, 6e3)
     ax.plot(xs, ys, '-')
+
+    if axes is None:
+        return fig
 
 def draw_ts(ts, prefix=None):
     global _figcounter
@@ -288,18 +292,29 @@ def draw_pde_trajectory(ds, xs, ts, animate=True, prefix=None, hold=False,
     _render(fig, savefun, hold)
 
 
-def draw_pde_snapshot(xs, ds, t, ylabel, xlabel, ylims=None, hold=False):
+def _set_snap_figure(t, xlabel, ylabel, ylims=None):
     fig = plt.figure()
     ax = fig.add_subplot(111)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     if ylims is not None:
         ax.set_ylim(ylims)
-
     ax.text(.02, .90, 't = {}'.format(t), transform=ax.transAxes)
+    return fig
+
+def draw_pde_snapshot(xs, ds, dds, t, ylabel, xlabel, ylims=None, hold=False):
+    fig = _set_snap_figure(t, xlabel, ylabel, ylims)
+    ax = fig.get_axes()[0]
     ax.plot(xs, ds, 'k-')
 
     _render(fig, None, hold)
+
+    fig = _set_snap_figure(t, xlabel, ylabel, ylims)
+    ax = fig.get_axes()[0]
+    ax.hlines(dds, xs[:-1], xs[1:], colors='k')
+
+    _render(fig, None, hold)
+
 
 
 def _render(fig, savefun, hold):
@@ -361,14 +376,23 @@ def draw_predicates(apcs, labels, xpart, axs, perts=None):
 
     for i, apc in enumerate(apcs):
         ax = axs[apc.uderivs]
-        (l,) = ax.plot(apc.A, [apc.p(x) for x in apc.A], lw=1, label=labels[i])
+        ys = [apc.p(x) for x in apc.A]
+        (l,) = ax.plot(apc.A, ys, lw=1, label=labels[i])
+        update_ax_ylim(ax, ys)
         if perts is not None:
             mids_in_domain = [x for x in mids if x >= apc.A[0] and x <= apc.A[1]]
             if len(mids_in_domain) > 1:
-                ax.plot(mids_in_domain, [perts[i](x) for x in mids_in_domain],
-                        lw=1, ls='--', c=l.get_c())
+                ys = [perts[i](x) for x in mids_in_domain]
+                ax.plot(mids_in_domain, ys, lw=1, ls='--', c=l.get_c())
             else:
-                ax.plot(mids_in_domain, [perts[i](x) for x in mids_in_domain],
-                        marker='_', markersize=3, c=l.get_c())
+                ys = [perts[i](x) for x in mids_in_domain]
+                ax.plot(mids_in_domain, ys, marker='_', markersize=3, c=l.get_c())
+        update_ax_ylim(ax, ys)
     for ax in axs:
         ax.legend(loc='lower left', fontsize='6', labelspacing=0.05, handletextpad=0.1)
+
+def update_ax_ylim(ax, ys):
+    m, M = min(ys), max(ys)
+    m -= 0.03 * abs(M - m)
+    M += 0.03 * abs(M - m)
+    ax.set_ylim([min(ax.get_ylim()[0], m), max(ax.get_ylim()[1], M)])
