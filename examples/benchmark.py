@@ -149,7 +149,7 @@ def run_draw_snapshots(m, inputm, draw_opts, args):
 
     for fig_pair, t in zip(figs_grouped, ts):
         for fig in fig_pair:
-            _set_fig_opts(fig, [0], draw_opts)
+            _set_fig_opts(fig, [0], draw_opts, tight=False)
         if cregions is not None:
             draw_predicates_to_axs(
                 [fig.get_axes()[0] for fig in fig_pair], cregions,
@@ -166,8 +166,10 @@ def run_draw_snapshots(m, inputm, draw_opts, args):
     else:
         for fig_pair, t in zip(figs_grouped, ts):
             figa, figb = fig_pair
-            figa.savefig(_fix_filename(prefix + "_disp_t{}".format(t)) + ".png")
-            figb.savefig(_fix_filename(prefix + "_strain_t{}".format(t)) + ".png")
+            figa.savefig(_fix_filename(prefix + "_disp_t{}".format(t)) + ".png",
+                         bbox_inches='tight', pad_inches=0)
+            figb.savefig(_fix_filename(prefix + "_strain_t{}".format(t)) + ".png",
+                         bbox_inches='tight', pad_inches=0)
 
 def _set_fig_opts(fig, ax_indices, draw_opts, tight=True):
     fig.set_size_inches(draw_opts.plot_size_inches)
@@ -176,8 +178,10 @@ def _set_fig_opts(fig, ax_indices, draw_opts, tight=True):
         ax = fig.get_axes()[i]
         ax.set_xticklabels([x * draw_opts.xaxis_scale for x in ax.get_xticks()])
     for ax in fig.get_axes():
-        for item in ([ax.title, ax.xaxis.label, ax.yaxis.label] +
-                    ax.get_xticklabels() + ax.get_yticklabels()):
+        ax.ticklabel_format(style='sci', axis='y', scilimits=(-2, 2))
+        for item in ([ax.title, ax.xaxis.label, ax.yaxis.label,
+                      ax.yaxis.get_offset_text(), ax.xaxis.get_offset_text()] +
+                     ax.get_xticklabels() + ax.get_yticklabels()):
             item.set_fontsize(draw_opts.font_size)
     if tight:
         fig.tight_layout()
@@ -192,14 +196,18 @@ def run_draw_inputs(m, inputm, draw_opts, args):
     m.pwlf.ys = inputs
     fig = sys.draw_pwlf(m.pwlf)
 
-    fig.get_axes()[0].autoscale()
-    _set_fig_opts(fig, [], draw_opts)
+    ax = fig.get_axes()[0]
+    ax.autoscale()
+    ax.set_ylabel(draw_opts.input_ylabel)
+    ax.set_xlabel(draw_opts.input_xlabel)
+    _set_fig_opts(fig, [], draw_opts, tight=False)
 
     prefix = draw_opts.file_prefix
     if prefix is None:
         draw.plt.show()
     else:
-        fig.savefig(_fix_filename(prefix + "_inputs") + ".png")
+        fig.savefig(_fix_filename(prefix + "_inputs") + ".png",
+                         bbox_inches='tight', pad_inches=0)
 
 def draw_predicates_to_axs(axs, cregions, error_bounds, xpart, fdt_mult):
     apcs = zip(*sorted(cregions.items()))[1]

@@ -409,6 +409,8 @@ class DrawOpts(object):
         'xlabel': '$x$',
         'ylabel': '$u$',
         'derivative_ylabel': '$\\frac{d}{dx} u$',
+        'input_ylabel': '$U$',
+        'input_xlabel': '$t$',
         'xaxis_scale': 1,
     }
 
