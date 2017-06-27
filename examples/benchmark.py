@@ -90,19 +90,21 @@ def run_abstract_batch(m, args):
         max(times), min(times), sum(times) / float(its))
 
 def run_draw(m, args):
+    if 'input_file' in args:
+        inputm = load_module(args.input_file)
+        draw_opts = draw.DrawOpts(getattr(inputm, 'draw_opts', None))
     runstr = 'run_draw_{}'.format(args.draw_action)
     if runstr in globals():
-        globals()[runstr](m, args)
+        globals()[runstr](m, inputm, draw_opts, args)
     else:
         parser.print_help()
 
-def run_draw_animated(m, args):
+def run_draw_animated(m, inputm, draw_opts, args):
     cs = getattr(m, 'cs')
     cregions = getattr(m, 'cregions', None)
     error_bounds = getattr(m, 'error_bounds', None)
 
-    if 'input_file' in args:
-        inputm = load_module(args.input_file)
+    if inputm is not None:
         inputs = inputm.inputs
         m.pwlf.ys = inputs
         def f_nodal_control(t):
@@ -111,21 +113,23 @@ def run_draw_animated(m, args):
             return f
         cs.system = sys.ControlSOSystem.from_sosys(cs.system, f_nodal_control)
 
-    (fig, ) = sys.draw_system(cs.system, cs.d0, cs.g, cs.T, t0=0, hold=True)
+    (fig, ) = sys.draw_system(
+        cs.system, cs.d0, cs.g, cs.T, t0=0, hold=True, xlabel=draw_opts.xlabel,
+        ylabel=draw_opts.ylabel, derivative_ylabel=draw_opts.derivative_ylabel)
 
     if cregions is not None:
         draw_predicates_to_axs(fig.get_axes()[0:2], cregions, error_bounds, cs.xpart, cs.fdt_mult)
 
-    fig.set_size_inches(3,2)
-    fig.canvas.set_window_title("i3_7")
+    _set_fig_opts(fig, [0, 1, 2, 3], draw_opts, tight=False)
 
     draw.plt.show()
 
-def run_draw_snapshots(m, args):
+def run_draw_snapshots(m, inputm, draw_opts, args):
     cs = getattr(m, 'cs')
     cregions = getattr(m, 'cregions', None)
     error_bounds = getattr(m, 'error_bounds', None)
-    inputm = load_module(args.input_file)
+    if inputm is None:
+        raise Exception("Input file needed to draw snapshots")
     ts = getattr(inputm, 'ts')
     inputs = getattr(inputm, 'inputs')
     if inputs is not None:
@@ -134,15 +138,18 @@ def run_draw_snapshots(m, args):
             f = np.zeros(m.N + 1)
             f[-1] = m.pwlf(t, x=m.pwlf.x)
             return f
+
         cs.system = sys.ControlSOSystem.from_sosys(cs.system, f_nodal_control)
 
-    figs = sys.draw_system_snapshots(cs.system, cs.d0, cs.g, ts, hold=True)
+    figs = sys.draw_system_snapshots(
+        cs.system, cs.d0, cs.g, ts, hold=True, xlabel=draw_opts.xlabel,
+        ylabel=draw_opts.ylabel, derivative_ylabel=draw_opts.derivative_ylabel,
+        font_size=draw_opts.font_size)
     figs_grouped = [(figs[2*i], figs[2*i + 1]) for i in range(len(ts))]
 
     for fig_pair, t in zip(figs_grouped, ts):
         for fig in fig_pair:
-            fig.set_size_inches(3,2)
-            fig.canvas.set_window_title("i3_7")
+            _set_fig_opts(fig, [0], draw_opts)
         if cregions is not None:
             draw_predicates_to_axs(
                 [fig.get_axes()[0] for fig in fig_pair], cregions,
@@ -153,7 +160,7 @@ def run_draw_snapshots(m, args):
         for fig in figs_group:
             draw.update_ax_ylim(fig.get_axes()[0], ylims_flat)
 
-    prefix = args.draw_file_prefix
+    prefix = draw_opts.file_prefix
     if prefix is None:
         draw.plt.show()
     else:
@@ -162,20 +169,33 @@ def run_draw_snapshots(m, args):
             figa.savefig(_fix_filename(prefix + "_disp_t{}".format(t)) + ".png")
             figb.savefig(_fix_filename(prefix + "_strain_t{}".format(t)) + ".png")
 
+def _set_fig_opts(fig, ax_indices, draw_opts, tight=True):
+    fig.set_size_inches(draw_opts.plot_size_inches)
+    fig.canvas.set_window_title(draw_opts.window_title)
+    for i in ax_indices:
+        ax = fig.get_axes()[i]
+        ax.set_xticklabels([x * draw_opts.xaxis_scale for x in ax.get_xticks()])
+    for ax in fig.get_axes():
+        for item in ([ax.title, ax.xaxis.label, ax.yaxis.label] +
+                    ax.get_xticklabels() + ax.get_yticklabels()):
+            item.set_fontsize(draw_opts.font_size)
+    if tight:
+        fig.tight_layout()
+
 def _fix_filename(s):
     return s.replace('.', '_')
 
-def run_draw_inputs(m, args):
-    inputm = load_module(args.input_file)
+def run_draw_inputs(m, inputm, draw_opts, args):
+    if inputm is None:
+        raise Exception("Input file needed to draw snapshots")
     inputs = inputm.inputs
     m.pwlf.ys = inputs
     fig = sys.draw_pwlf(m.pwlf)
 
-    fig.set_size_inches(3,2)
-    fig.canvas.set_window_title("i3_7")
     fig.get_axes()[0].autoscale()
+    _set_fig_opts(fig, [], draw_opts)
 
-    prefix = args.draw_file_prefix
+    prefix = draw_opts.file_prefix
     if prefix is None:
         draw.plt.show()
     else:
@@ -206,8 +226,6 @@ def get_argparser():
         'abstract_batch', help='Run an example a number of times a show execution times')
     parser_draw = subparsers.add_parser(
         'draw', help='Plot PDE trajectories')
-    parser_draw.add_argument('-f', '--draw-file-prefix',
-                             help='save plots to files with this prefix')
     parser_draw.add_argument('-i', '--input-file', help='file with extra inputs')
     _add_draw_argparser(parser_draw)
     parser_milp = subparsers.add_parser(

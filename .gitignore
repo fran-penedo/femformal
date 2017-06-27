@@ -8,3 +8,4 @@ doc/**/*.pdf
 tags
 *.egg-info
 out_vars.txt
+temp_plots/

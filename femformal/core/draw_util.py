@@ -65,7 +65,7 @@ def draw_ts_2D(ts, partition, prefix=None):
         plt.show()
 
 
-def draw_pde_trajectories(dss, xss, tss, pwc=False, ylabel="u", xlabel="x"):
+def draw_pde_trajectories(dss, xss, tss, pwc=False, ylabel="u", xlabel="x", derivative_ylabel="$\\frac{d}{dx} u$"):
     global _holds
 
     d_min, d_max = np.amin([np.amin(ds) for ds in dss]), np.amax([np.amax(ds) for ds in dss])
@@ -235,8 +235,8 @@ def set_animation(fig, ts, lines):
     return line_ani
 
 
-def draw_pde_trajectory(ds, xs, ts, animate=True, prefix=None, hold=False,
-                        ylabel='Temperature', xlabel='x', allonly=None):
+def draw_pde_trajectory(ds, xs, ts, hold=False,
+                        ylabel='Temperature', xlabel='x', derivative_ylabel="$\\frac{d}{dx} Temperature$"):
     global _holds
 
     matplotlib.rcParams.update({'font.size': 8})
@@ -254,9 +254,9 @@ def draw_pde_trajectory(ds, xs, ts, animate=True, prefix=None, hold=False,
                             scalarmap=scalarmap)
     dds = np.true_divide(np.diff(ds), np.diff(xs))
     line_tr = set_traj_line(ax_tr, dds, xs, ts, hlines=True, xlabel=xlabel,
-                            ylabel="$\\frac{d}{d x}$" + ylabel, scalarmap=None)
+                            ylabel=derivative_ylabel, scalarmap=None)
     line_br = set_traj_line(ax_br, dds, xs, ts, hlines=True, xlabel=xlabel,
-                            ylabel="$\\frac{d}{d x}$" + ylabel, scalarmap=scalarmap)
+                            ylabel=derivative_ylabel, scalarmap=scalarmap)
 
     savefun = None
     # if animate:
@@ -292,24 +292,26 @@ def draw_pde_trajectory(ds, xs, ts, animate=True, prefix=None, hold=False,
     _render(fig, savefun, hold)
 
 
-def _set_snap_figure(t, xlabel, ylabel, ylims=None):
+def _set_snap_figure(t, xlabel, ylabel, font_size, ylims=None):
     fig = plt.figure()
     ax = fig.add_subplot(111)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     if ylims is not None:
         ax.set_ylim(ylims)
-    ax.text(.02, .90, 't = {}'.format(t), transform=ax.transAxes)
+    ax.text(.02, .90, 't = {}'.format(t), transform=ax.transAxes, fontsize=font_size)
     return fig
 
-def draw_pde_snapshot(xs, ds, dds, t, ylabel, xlabel, ylims=None, hold=False):
-    fig = _set_snap_figure(t, xlabel, ylabel, ylims)
+def draw_pde_snapshot(
+    xs, ds, dds, t, ylabel='u', xlabel='x', derivative_ylabel="$\\frac{d}{dx} u$",
+    font_size=8, ylims=None, hold=False):
+    fig = _set_snap_figure(t, xlabel, ylabel, font_size, ylims)
     ax = fig.get_axes()[0]
     ax.plot(xs, ds, 'k-')
 
     _render(fig, None, hold)
 
-    fig = _set_snap_figure(t, xlabel, ylabel, ylims)
+    fig = _set_snap_figure(t, xlabel, derivative_ylabel, font_size, ylims)
     ax = fig.get_axes()[0]
     ax.hlines(dds, xs[:-1], xs[1:], colors='k')
 
@@ -396,3 +398,26 @@ def update_ax_ylim(ax, ys):
     m -= 0.03 * abs(M - m)
     M += 0.03 * abs(M - m)
     ax.set_ylim([min(ax.get_ylim()[0], m), max(ax.get_ylim()[1], M)])
+
+
+class DrawOpts(object):
+    defaults = {
+        'file_prefix': None,
+        'plot_size_inches': (3, 2),
+        'font_size': 8,
+        'window_title': 'i3_7',
+        'xlabel': '$x$',
+        'ylabel': '$u$',
+        'derivative_ylabel': '$\\frac{d}{dx} u$',
+        'xaxis_scale': 1,
+    }
+
+    def __init__(self, dic):
+        if dic is not None:
+            copy = dic.copy()
+        else:
+            copy = {}
+        for k, v in DrawOpts.defaults.items():
+            setattr(self, k, copy.pop(k, v))
+        if len(copy) > 0:
+            raise Exception('Unrecognized options in DrawOpts: {}'.format(copy))

@@ -561,9 +561,7 @@ def draw_system_disc(sys, x0, T, t0=0,
                              animate=animate, hold=hold, allonly=allonly, ylabel=ylabel,
                              xlabel=xlabel)
 
-def draw_system_cont(sys, x0, T, t0=0,
-                     prefix=None, animate=True, allonly=False, hold=False,
-                     ylabel='Temperature', xlabel='x'):
+def draw_system_cont(sys, x0, T, t0=0, hold=False, **kargs):
     dt = sys.dt
     xpart = sys.xpart
 
@@ -572,24 +570,18 @@ def draw_system_cont(sys, x0, T, t0=0,
     x = np.c_[x0[0] * np.ones(x.shape[0]), x, x0[-1] * np.ones(x.shape[0])]
     x = x[int(round(t0/dt)):]
     tx = tx[int(round(t0/dt)):]
-    draw.draw_pde_trajectory(x, xpart, tx, prefix=prefix,
-                             animate=animate, hold=hold, allonly=allonly, ylabel=ylabel,
-                             xlabel=xlabel)
+    draw.draw_pde_trajectory(x, xpart, tx, hold=hold, **kargs)
     if hold:
         return draw.pop_holds()
 
-def draw_sosys(sosys, d0, v0, g, T, t0=0,
-               prefix=None, animate=True, allonly=False, hold=False,
-               ylabel='Displacement', xlabel='x'):
+def draw_sosys(sosys, d0, v0, g, T, t0=0, hold=False, **kargs):
     dt = sosys.dt
     xpart = sosys.xpart
 
     tx = np.linspace(t0, T, int(round((T - t0)/dt)))
     d, v = newm_integrate(sosys, d0, v0, T, dt)
     d = d[int(round(t0/dt)):]
-    draw.draw_pde_trajectory(d, xpart, tx, prefix=prefix,
-                             animate=animate, hold=hold, allonly=allonly,
-                             ylabel=ylabel, xlabel=xlabel)
+    draw.draw_pde_trajectory(d, xpart, tx, hold=hold, **kargs)
     if hold:
         return draw.pop_holds()
 
@@ -607,9 +599,7 @@ def draw_system(sys, d0, g, T, t0=0, **kargs):
 def draw_pwlf(pwlf, ylabel='Force $u_L$', xlabel='Time t', axes=None):
     return draw.draw_linear(pwlf.ys, pwlf.ts, ylabel, xlabel, axes=axes)
 
-def draw_sosys_snapshots(sosys, d0, v0, g, ts,
-               prefix=None, animate=True, allonly=False, hold=False,
-               ylabel='Displacement', xlabel='x', ylims=None):
+def draw_sosys_snapshots(sosys, d0, v0, g, ts, hold=False, **kargs):
     dt = sosys.dt
     xpart = sosys.xpart
 
@@ -620,7 +610,7 @@ def draw_sosys_snapshots(sosys, d0, v0, g, ts,
         index = bisect_right(tx, t) -1
         draw.draw_pde_snapshot(
             xpart, d[index], np.true_divide(np.diff(d[index]), np.diff(xpart)),
-            t, ylabel, xlabel, hold=hold, ylims=ylims)
+            t, hold=hold, **kargs)
 
     if hold:
         return draw.pop_holds()
