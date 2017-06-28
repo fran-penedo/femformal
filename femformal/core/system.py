@@ -603,7 +603,7 @@ def draw_sosys_snapshots(sosys, d0, v0, g, ts, hold=False, **kargs):
     dt = sosys.dt
     xpart = sosys.xpart
 
-    t0, T = min(ts), max(ts)
+    t0, T = 0, max(ts)
     tx = np.linspace(t0, T, int(round((T - t0)/dt)))
     d, v = newm_integrate(sosys, d0, v0, T, dt)
     for t in ts:
