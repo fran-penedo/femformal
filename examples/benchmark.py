@@ -178,7 +178,10 @@ def _set_fig_opts(fig, ax_indices, draw_opts, tight=True):
         ax = fig.get_axes()[i]
         ax.set_xticklabels([x * draw_opts.xaxis_scale for x in ax.get_xticks()])
     for ax in fig.get_axes():
-        ax.ticklabel_format(style='sci', axis='y', scilimits=(-2, 2))
+        try:
+            ax.ticklabel_format(style='sci', axis='y', scilimits=(-2, 2))
+        except:
+            pass
         for item in ([ax.title, ax.xaxis.label, ax.yaxis.label,
                       ax.yaxis.get_offset_text(), ax.xaxis.get_offset_text()] +
                      ax.get_xticklabels() + ax.get_yticklabels()):
