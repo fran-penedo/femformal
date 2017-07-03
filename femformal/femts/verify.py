@@ -8,7 +8,7 @@ from .modelcheck import check_spec
 from bisect import bisect_right
 
 import logging
-logger = logging.getLogger('FEMFORMAL')
+logger = logging.getLogger(__name__)
 
 
 def verify(system, partition, regions, init_states, spec, depth, **kwargs):

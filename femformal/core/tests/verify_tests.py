@@ -5,7 +5,7 @@ import femformal.core.logic as logic
 import numpy as np
 
 import logging
-logger = logging.getLogger('FEMFORMAL')
+logger = logging.getLogger(__name__)
 
 class test_verify(object):
 

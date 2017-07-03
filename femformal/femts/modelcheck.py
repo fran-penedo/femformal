@@ -5,7 +5,7 @@ import os
 import tempfile
 
 import logging
-logger = logging.getLogger('FEMFORMAL')
+logger = logging.getLogger(__name__)
 
 NUSMV = path.join(path.dirname(__file__), 'nusmv', 'bin', 'NuSMV')
 

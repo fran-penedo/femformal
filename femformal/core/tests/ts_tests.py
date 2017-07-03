@@ -5,7 +5,7 @@ import femformal.core.system as s
 from femformal.core.draw_util import draw_ts
 
 import logging
-logger = logging.getLogger('FEMFORMAL')
+logger = logging.getLogger(__name__)
 
 class test_ts(object):
 

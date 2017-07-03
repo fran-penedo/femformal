@@ -6,7 +6,7 @@ import numpy as np
 import femformal.core.system as sys
 
 
-logger = logging.getLogger('FEMFORMAL')
+logger = logging.getLogger(__name__)
 
 class TestSystem(unittest.TestCase):
 

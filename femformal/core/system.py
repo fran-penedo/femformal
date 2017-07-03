@@ -1,5 +1,4 @@
 import numpy as np
-import femformal.core.util
 from scipy.optimize import linprog
 from scipy.integrate import odeint
 import scipy.linalg as la
@@ -7,7 +6,7 @@ from bisect import bisect_left, bisect_right
 from . import draw_util as draw
 
 import logging
-logger = logging.getLogger('FEMFORMAL')
+logger = logging.getLogger(__name__)
 
 class System(object):
 

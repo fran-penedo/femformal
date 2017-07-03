@@ -1,14 +1,7 @@
 import numpy as np
 
 import logging
-logger = logging.getLogger('FEMFORMAL')
-handler = logging.StreamHandler()
-formatter = logging.Formatter('%(levelname)s %(module)s:%(lineno)d:%(funcName)s: %(message)s')
-handler.setFormatter(formatter)
-logger.addHandler(handler)
-logger.propagate = False
-
-logger.setLevel(logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 def label(name, i, j):
     return name + "_" + str(i) + "_" + str(j)

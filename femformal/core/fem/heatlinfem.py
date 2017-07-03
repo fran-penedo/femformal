@@ -2,7 +2,7 @@ import numpy as np
 from .. import system as sys
 
 import logging
-logger = logging.getLogger('FEMFORMAL')
+logger = logging.getLogger(__name__)
 
 def heatlinfem(N, L, T, dt):
     n = N

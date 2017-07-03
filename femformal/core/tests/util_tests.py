@@ -4,7 +4,7 @@ import networkx as nx
 import itertools as it
 
 import logging
-logger = logging.getLogger('FEMFORMAL')
+logger = logging.getLogger(__name__)
 
 class test_util(object):
     def test_state_label(self):

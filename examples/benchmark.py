@@ -1,7 +1,6 @@
 import argparse
 import numpy as np
 import imp
-import logging
 from timeit import default_timer as timer
 
 import femformal.core.system as sys
@@ -12,10 +11,8 @@ from femformal.femmilp.femmilp import verify_singleton, verify_set, synthesize
 from femformal.femts.verify import verify, verify_input_constrained
 
 
-logger = logging.getLogger('FEMFORMAL')
-
 def run_abstract(m, args):
-    logger.debug(m.system)
+    # logger.debug(m.system)
     start = timer()
     res = verify_input_constrained(m.system, m.partition, m.regions, m.init_states, m.spec, m.depth,
                  draw_file_prefix=args.draw_file_prefix,
@@ -270,6 +267,32 @@ def load_module(f):
         return None
 
 def main():
+    import logging.config
+    logging.config.dictConfig({
+        'version': 1,
+        'disable_existing_loggers': False,
+        'formatters': {
+            'debug_formatter': {
+                'format': '%(levelname).1s %(module)s:%(lineno)d:%(funcName)s: %(message)s'
+            },
+        },
+        'handlers': {
+            'console': {
+                'level':'DEBUG',
+                'class':'logging.StreamHandler',
+                'formatter':'debug_formatter',
+            },
+        },
+        'loggers': {
+            'femformal': {
+                'handlers': ['console'],
+                'level': 'DEBUG',
+                'propagate': True
+            }
+        }
+    })
+
+
     parser = get_argparser()
     args = parser.parse_args()
     runstr = 'run_' + args.action

@@ -1,10 +1,12 @@
 import numpy as np
-import femformal.ts as t
-import femformal.modelcheck as m
+import femformal.femts.ts as t
+import femformal.femts.modelcheck as m
+from nose.tools import nottest
 
 import logging
-logger = logging.getLogger('FEMFORMAL')
+logger = logging.getLogger(__name__)
 
+@nottest
 def modelcheck_test():
     ts = t.TS()
     ts.add_nodes_from(['s1_1', 's2_2', 's3_3'])

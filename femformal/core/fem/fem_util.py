@@ -5,7 +5,7 @@ from .. import logic as logic
 
 from bisect import bisect_left
 import logging
-logger = logging.getLogger('FEMFORMAL')
+logger = logging.getLogger(__name__)
 
 def build_cs(system, d0, g, cregions, cspec, fdt_mult=1, bounds=None,
              pset=None, f=None, discretize_system=True, cstrue=None, error_bounds=None,

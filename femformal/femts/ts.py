@@ -10,7 +10,7 @@ from femformal.core.logic import subst_spec_labels
 from femformal.core.system import is_facet_separating
 
 import logging
-logger = logging.getLogger('FEMFORMAL')
+logger = logging.getLogger(__name__)
 
 class TS(nx.DiGraph):
 

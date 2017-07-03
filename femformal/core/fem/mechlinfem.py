@@ -2,7 +2,7 @@ import numpy as np
 from .. import system as sys
 
 import logging
-logger = logging.getLogger('FEMFORMAL')
+logger = logging.getLogger(__name__)
 
 def mechlinfem(xpart, rho, E, g, f_nodal, dt):
     # n_g = len([x for x in g if x is not None])

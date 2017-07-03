@@ -6,7 +6,7 @@ import numpy as np
 import gurobipy as g
 
 import logging
-logger = logging.getLogger('FEMFORMAL')
+logger = logging.getLogger(__name__)
 
 def add_sys_constr_x0(m, l, system, x0, N, xhist=None):
     if isinstance(system, sys.System):

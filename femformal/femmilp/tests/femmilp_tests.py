@@ -7,7 +7,7 @@ import femformal.core.system as sys
 import femformal.femmilp.femmilp as femmilp
 
 
-logger = logging.getLogger('FEMFORMAL')
+logger = logging.getLogger(__name__)
 
 class TestFemmilp(unittest.TestCase):
     def setUp(self):
