@@ -24,6 +24,12 @@ class APCont(object):
         else:
             self.dp = lambda x: 0
 
+
+class APCont2D(APCont):
+    def __init__(self, u_comp, A, r, p, dp):
+        APCont.__init__(self, A, r, p, dp)
+        self.v_comp = u_comp
+
 class APDisc(object):
     def __init__(self, r, m, isnode, uderivs = 0):
         # r == 1: f < p, r == -1: f > p
@@ -74,8 +80,29 @@ def ap_cont_to_disc(apcont, xpart):
         isnode = False
     return APDisc(r, m, isnode, apcont.uderivs)
 
+
 def perturb(formula, eps):
     return stl.perturb(formula, eps)
+
+
+def ap_cont2d_to_disc(apcont, nodes_coords, elems_nodes):
+    r = apcont.r
+
+
+def find_elem_with_vertex(vnode, position, elems_nodes):
+    try:
+        return next(e for e, nodes in enumerate(elems_nodes)
+                    if nodes[position] == vnode)
+    except StopIteration:
+        raise ValueError("No element with node {} in position {}".format(vnode, position))
+
+def find_node(node, nodes_coords):
+    try:
+        return next(n for n, coords in enumerate(nodes_coords)
+                    if np.all(np.isclose(node, coords)))
+    except StopIteration:
+        raise ValueError("No node with coordinates {}".format(node))
+
 
 def scale_time(formula, dt):
     formula.bounds = [int(b / dt) for b in formula.bounds]
