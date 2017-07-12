@@ -47,7 +47,7 @@ def mech2d(xpart, ypart, rho, C, g, f_nodal, dt):
     bigm = bigm.tocsc()
     sosys = sys.SOSystem(bigm, bigk, bigf, node_coords, dt)
 
-    return sosys
+    return sosys, elems_nodes
 
 
 def _remove_close_zeros(matrix):

@@ -2,6 +2,8 @@ import femformal.core.fem.mech2d as mech2d
 import numpy as np
 import femformal.core.system as sys
 import matplotlib.pyplot as plt
+import mpl_toolkits.mplot3d as p3
+import femformal.core.draw_util as draw
 
 length = 16
 width = 2
@@ -28,14 +30,14 @@ def g(x, y):
         return [None, None]
 
 
-dt = 0.001
-T = 5.0
-sosys = mech2d.mech2d(xs, ys, rho, C, g, force, dt)
+dt = 0.01
+T = 50.0
+sosys, elems_nodes = mech2d.mech2d(xs, ys, rho, C, g, force, dt)
 
 d0, v0 = mech2d.state(u0, du0, sosys.xpart, g)
 
 d, v = sys.newm_integrate(sosys, d0, v0, T, dt)
 
 ts = np.arange(0, T + 1e-7, dt)
-plt.plot(ts, d[:, 11])
-plt.show()
+
+draw.draw_2d_pde_trajectory(d, sosys.xpart, elems_nodes, ts)

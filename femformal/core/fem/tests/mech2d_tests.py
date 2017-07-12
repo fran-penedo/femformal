@@ -134,7 +134,7 @@ class TestMechNLFem(unittest.TestCase):
             os.path.dirname(os.path.abspath(__file__)),
             'expected/mech2d_mech2d_nobigm_bigk.mat'))['bigk']
 
-        sosys = mech2d.mech2d(self.xs, self.ys, self.rho, self.C, g, force, 1)
+        sosys, elems_nodes = mech2d.mech2d(self.xs, self.ys, self.rho, self.C, g, force, 1)
 
         self.assertEqual(sosys.K.nnz, expected.nnz)
         np.testing.assert_array_almost_equal(

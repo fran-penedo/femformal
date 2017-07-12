@@ -7,6 +7,7 @@ from matplotlib.collections import LineCollection
 from matplotlib.widgets import Slider
 import matplotlib.colors as colors
 import matplotlib.cm as cmx
+import mpl_toolkits.mplot3d as p3
 from bisect import bisect_left, bisect_right
 
 _figcounter = 0
@@ -204,7 +205,7 @@ def set_animation(fig, ts, lines):
         return lines(i)
 
     line_ani = animation.FuncAnimation(fig, ani_func, frames=frame_seq,
-        interval=5000/frames, blit=True)
+        interval=max(5000/frames, 20), blit=False)
 
     def onClick(event):
         if event.inaxes == axslider: return
@@ -223,7 +224,7 @@ def set_animation(fig, ts, lines):
         t = bisect_left(ts, val)
         frame_seq.cur = t
         line_ani = animation.FuncAnimation(fig, ani_func, frames=frame_seq,
-            interval=5000/frames, blit=True)
+            interval=max(5000/frames, 20), blit=False)
         fig.__line_ani = line_ani
 
     slider.on_changed(onChanged)
@@ -259,22 +260,6 @@ def draw_pde_trajectory(ds, xs, ts, hold=False,
                             ylabel=derivative_ylabel, scalarmap=scalarmap)
 
     savefun = None
-    # if animate:
-    #     frames = min(len(ts), len(ds))
-    #     line_ani = animation.FuncAnimation(
-    #         fig, _combine_lines([line_tl, line_tr]), frames=frames,
-    #         interval=5000/frames, blit=True)
-    #     _holds.append(line_ani)
-    #     if prefix:
-    #         savefun = lambda: line_ani.save(prefix + str(_figcounter) + '.mp4')
-    # else:
-    #     fig.subplots_adjust(bottom=0.1)
-    #     axslider = plt.axes([0.0, 0.0, 1, .03])
-    #     slider = Slider(axslider, 'Time', ts[0], ts[-1], valinit=ts[0])
-    #     lines = _combine_lines([line_tl, line_tr])
-    #     slider.on_changed(lambda val: lines(bisect_left(ts, val)))
-    #     lines(0)
-    #     fig.__slider = slider
 
     lines = _combine_lines([line_tl, line_tr])
     set_animation(fig, ts, lines)
@@ -291,6 +276,49 @@ def draw_pde_trajectory(ds, xs, ts, hold=False,
 
     _render(fig, savefun, hold)
 
+
+def draw_2d_pde_trajectory(ds, nodes_coords, elems_nodes, ts):
+    fig = plt.figure()
+    axl = fig.add_subplot(121, projection='3d')
+    axr = fig.add_subplot(122, projection='3d')
+    axes = [axl, axr]
+
+    poly_update_fs = []
+    polys_verts = np.array([_polygon_vertices(nodes_coords, d, elems_nodes)
+                            for d in ds])
+    for i in range(2):
+        poly_update = set_traj_poly(axes[i], polys_verts[:, i], ts)
+        poly_update_fs.append(poly_update)
+
+    for i, ax in enumerate(axes):
+        ax.set_xlim3d(np.amin(polys_verts[:, i, :, :, 0]), np.amax(polys_verts[:, i, :, :, 0]))
+        ax.set_ylim3d(np.amin(polys_verts[:, i, :, :, 1]), np.amax(polys_verts[:, i, :, :, 1]))
+        ax.set_zlim3d(np.amin(polys_verts[:, i, :, :, 2]), np.amax(polys_verts[:, i, :, :, 2]))
+
+    set_animation(fig, ts, _combine_lines(poly_update_fs))
+
+    fig.tight_layout()
+    plt.show()
+
+def set_traj_poly(ax, verts, ts):
+    time_text = ax.text2D(.02, .95, '', transform=ax.transAxes)
+    poly_collection = ax.add_collection(p3.art3d.Poly3DCollection([]))
+
+    def update_line(i, p=poly_collection):
+        p.set_verts(verts[i])
+        time_text.set_text('t = {}'.format(ts[i]))
+        return p, time_text
+
+    return update_line
+
+def _polygon_vertices(nodes_coords, d, elems_nodes):
+    verts = [[], []]
+    for elem_nodes in elems_nodes:
+        for i in range(2):
+            node_verts = [np.hstack([nodes_coords[n], d[2*n + i]])
+                          for n in elem_nodes]
+            verts[i].append(node_verts)
+    return np.array(verts)
 
 def _set_snap_figure(t, xlabel, ylabel, font_size, ylims=None):
     fig = plt.figure()
