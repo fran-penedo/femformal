@@ -1,7 +1,9 @@
 import numpy as np
+import scipy
 from scipy.optimize import linprog
 from scipy.integrate import odeint
 import scipy.linalg as la
+import scipy.sparse.linalg as spla
 from bisect import bisect_left, bisect_right
 from . import draw_util as draw
 
@@ -113,7 +115,7 @@ class SOSystem(object):
 
     @property
     def n(self):
-        return len(self.M)
+        return self.M.shape[0]
 
     @property
     def K(self):
@@ -135,8 +137,17 @@ class SOSystem(object):
 
 
 def ns_sys_matrices(system):
-    n_e = np.nonzero(~np.all(system.M == 0, axis=1))[0]
+    nz_bool = system.M != 0
+    try:
+        nz_bool = nz_bool.toarray()
+    except:
+        pass
+    n_e = np.nonzero(np.any(nz_bool, axis=1))[0]
     M = system.M[np.ix_(n_e, n_e)]
+    try:
+        M = M.tocsc()
+    except:
+        pass
     K = system.K[np.ix_(n_e, n_e)]
     F = system.F[n_e]
 
@@ -350,7 +361,7 @@ def newm_integrate(sosys, d0, v0, T, dt=.1):
     d = np.array(d0)
     v = np.array(v0)
     a = np.zeros(d.shape[0])
-    M_LU = la.lu_factor(M)
+    solve_m = _factorize(M)
     try:
         f_nodal_c = f_nodal(0)[n_e]
     except TypeError:
@@ -359,7 +370,7 @@ def newm_integrate(sosys, d0, v0, T, dt=.1):
         K_cur = K(d)
     except TypeError:
         K_cur = K
-    a[n_e] = la.lu_solve(M_LU, F + f_nodal_c - K_cur.dot(d[n_e]))
+    a[n_e] = solve_m(F + f_nodal_c - K_cur.dot(d[n_e]))
     ds = [d]
     vs = [v]
     for i in range(its):
@@ -374,11 +385,22 @@ def newm_integrate(sosys, d0, v0, T, dt=.1):
             K_cur = K(d)
         except TypeError:
             K_cur = K
-        a[n_e] = la.lu_solve(M_LU, F + f_nodal_c - K_cur.dot(d[n_e]))
+        a[n_e] = solve_m(F + f_nodal_c - K_cur.dot(d[n_e]))
         v = tv + .5 * dt * a
         ds.append(d)
         vs.append(v)
     return np.array(ds), np.array(vs)
+
+
+def _factorize(M):
+    if scipy.sparse.issparse(M):
+        return spla.factorized(M)
+    else:
+        lu = la.lu_factor(M)
+        def solve(b):
+            return la.lu_solve(lu, b)
+
+        return solve
 
 
 def linterx(d, xpart):

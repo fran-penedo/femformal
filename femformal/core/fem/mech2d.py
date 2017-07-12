@@ -43,8 +43,8 @@ def mech2d(xpart, ypart, rho, C, g, f_nodal, dt):
 
     _remove_close_zeros(bigk)
     _remove_close_zeros(bigm)
-    bigk = bigk.tocsr()
-    bigm = bigm.tocsr()
+    bigk = bigk.tocsc()
+    bigm = bigm.tocsc()
     sosys = sys.SOSystem(bigm, bigk, bigf, node_coords, dt)
 
     return sosys
@@ -154,4 +154,22 @@ def invert_2x2(jac):
         return np.array([[j[1,1], -j[0, 1]], [-j[1,0], j[0,0]]])
 
     return jac_inv
+
+
+def state(u0, du0, node_coords, g):
+    d0 = []
+    v0 = []
+    for node in node_coords:
+        gnode = g(*node)
+        u0node = u0(*node)
+        du0node = du0(*node)
+        for i in range(2):
+            if gnode[i] is None:
+                d0.append(u0node[i])
+                v0.append(du0node[i])
+            else:
+                d0.append(gnode[i])
+                v0.append(0.0)
+
+    return d0, v0
 
