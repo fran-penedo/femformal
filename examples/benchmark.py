@@ -1,4 +1,5 @@
 import argparse
+import traceback
 import numpy as np
 import imp
 from timeit import default_timer as timer
@@ -261,9 +262,9 @@ def _add_draw_argparser(parser):
 def load_module(f):
     try:
         return imp.load_source("femformal_benchmark_module", f)
-    except Exception as e:
+    except Exception:
         print "Couldn't load module {}".format(f)
-        print e
+        traceback.print_exc()
         return None
 
 def main():
