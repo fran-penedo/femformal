@@ -6,7 +6,7 @@ from pyparsing import Word, Literal, MatchFirst, nums, alphas
 from stlmilp import stl as stl
 
 from . import system as sys
-from .fem import fem_util as fem
+from .fem import mesh as mesh
 from .util import state_label, label, unlabel
 
 
@@ -96,73 +96,15 @@ def perturb(formula, eps):
     return stl.perturb(formula, eps)
 
 
-def ap_cont2d_to_disc(apcont, nodes_coords, elems_nodes, obj_finder, shapes):
-    """
-    obj_finder :: NodeIndex -> NodeIndex -> [Elem<Dimension>Index, [NodeIndex]]
-    shapes :: Dimension x [ShapeFunction]
-    """
+def ap_cont2d_to_disc(apcont, mesh_, build_elem):
     region = apcont.A
 
-    size = region[1] - region[0]
+    dim, elems_coords = mesh_.find_elems_between(region[0], region[1])
+    elems = [(e, build_elem(coords)) for e, coords in elems_coords]
+    m = {e : () for e, elem in elems}
 
-    if np.all(isclose(size, 0.0)):
-        apf = _ap_cont2d_to_disc_0d_degen
-    elif isclose(size[0], 0.0):
-        apf = _ap_cont2d_to_disc_1d_x_degen
-    elif isclose(size[1], 0.0):
-        apf = _ap_cont2d_to_disc_1d_y_degen
-    else:
-        apf = _ap_cont2d_to_disc_full
-
-    return apf(apcont, nodes_coords, elems_nodes, grid_shape)
-
-def _ap_cont2d_to_disc_0d_degen(apcont, nodes_coords, elems_nodes, obj_finder, shapes):
-    node = apcont.A[0]
-    n = fem.find_node(node, nodes_coords)
-    if apcont.uderivs > 0:
-        raise Exception("Derivatives at nodes are not well defined")
-    m = {n : (apcont.p(*node), apcont.dp(*node))}
-    region_dim = 0
-
-    return APDisc(apcont.r, m, u_comp=apcont.u_comp,
-                  uderivs=apcont.uderivs, region_dim=region_dim)
-
-def _ap_cont2d_to_disc_1d_x_degen(apcont, nodes_coords, elems_nodes, obj_finder, shapes):
-    ns = [fem.find_node(node, nodes_coords) for node in apcont.A]
-    elem_list = obj_finder(ns[0], ns[1], 1)
-
-    m = {n : (apcont.p(PLACEHOLDER), apcont.dp(PLACEHOLDER))
-         for n in range(ns[0], ns[1])}
-    region_dim = 1
-
-    return APDisc(apcont.r, m, u_comp=apcont.u_comp,
-                  uderivs=apcont.uderivs, region_dim=region_dim)
-
-def _ap_cont2d_to_disc_1d_y_degen(apcont, nodes_coords, elems_nodes, obj_finder, shapes):
-    ns = [fem.find_node(node, nodes_coords) for node in apcont.A]
-    node_list = obj_finder(ns[0], ns[1], 1)
-
-    m = {n : (apcont.p(PLACEHOLDER), apcont.dp(PLACEHOLDER))
-         for n in range(ns[0], ns[1], grid_shape[0])}
-    region_dim = 1
-
-    return APDisc(apcont.r, m, u_comp=apcont.u_comp,
-                  uderivs=apcont.uderivs, region_dim=region_dim)
-
-def _ap_cont2d_to_disc_full(apcont, nodes_coords, elems_nodes, obj_finder, shapes):
-    ns = [fem.find_node(node, nodes_coords) for node in apcont.A]
-    es = np.aray([fem.find_elem_with_vertex(n, pos, elems_nodes)
-                  for n, pos in zip(ns, [0, 3])])
-    elem_list = obj_finder(es[0], es[1], 2)
-
-    m = {i * grid_shape[0] + j : (apcont.p(PLACEHOLDER), apcont.dp(PLACEHOLDER))
-         for i in range(*(es / grid_shape[0]))
-         for j in range(*(es % grid_shape[0]))}
-    region_dim = 2
-
-    return APDisc(apcont.r, m, u_comp=apcont.u_comp,
-                  uderivs=apcont.uderivs, region_dim=region_dim)
-
+    return APDisc(
+        apcont.r, m, u_comp=apcont.u_comp, uderivs=apcont.uderivs, region_dim=dim)
 
 def scale_time(formula, dt):
     formula.bounds = [int(b / dt) for b in formula.bounds]

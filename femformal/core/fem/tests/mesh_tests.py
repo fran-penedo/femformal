@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-from .. import fem_util as fem
+from .. import mesh as mesh
 
 
 class test_fem_util(unittest.TestCase):
@@ -40,24 +40,24 @@ class test_fem_util(unittest.TestCase):
         for elem, nodes in enumerate(self.elems_nodes):
             for i in range(len(nodes)):
                 self.assertEqual(
-                    fem.find_elem_with_vertex(nodes[i], i, self.elems_nodes),
+                    mesh.find_elem_with_vertex(nodes[i], i, self.elems_nodes),
                     elem)
 
         with self.assertRaises(ValueError):
-            fem.find_elem_with_vertex(-1, 0, self.elems_nodes)
+            mesh.find_elem_with_vertex(-1, 0, self.elems_nodes)
 
     def test_find_node(self):
         for n, coords in enumerate(self.nodes_coords):
-            self.assertEqual(fem.find_node(coords, self.nodes_coords), n)
+            self.assertEqual(mesh.find_node(coords, self.nodes_coords), n)
         with self.assertRaises(ValueError):
-            fem.find_node(np.array([-50, -50]), self.nodes_coords)
+            mesh.find_node(np.array([-50, -50]), self.nodes_coords)
 
     def test_elem_nodes(self):
         e = 0
         num_elems_x = 4
-        np.testing.assert_array_equal(fem.GridQ4._elem_nodes(e, num_elems_x),
+        np.testing.assert_array_equal(mesh.GridQ4._elem_nodes(e, num_elems_x),
                                       [0, 1, 6, 5])
         e = 9
-        np.testing.assert_array_equal(fem.GridQ4._elem_nodes(e, num_elems_x),
+        np.testing.assert_array_equal(mesh.GridQ4._elem_nodes(e, num_elems_x),
                                       [11, 12, 17, 16])
 

@@ -1,12 +1,11 @@
 import argparse
-import traceback
-import numpy as np
 import imp
+import traceback
 from timeit import default_timer as timer
 
-import femformal.core.system as sys
-import femformal.core.draw_util as draw
-import femformal.core.fem.fem_util as fem
+import numpy as np
+
+from femformal.core import system as sys, draw_util as draw, casestudy as fem
 from femformal.core.logic import csystem_robustness
 from femformal.femmilp.femmilp import verify_singleton, verify_set, synthesize
 from femformal.femts.verify import verify, verify_input_constrained
