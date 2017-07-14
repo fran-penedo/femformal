@@ -1,7 +1,7 @@
 import numpy as np
 from matplotlib import pyplot as plt
 
-from femformal.core import system as sys, logic as logic, draw_util as draw, fem_util as fem
+from femformal.core import system as sys, logic as logic, draw_util as draw, casestudy as fem
 from femformal.core.fem import mechlinfem as mechlinfem
 
 

@@ -1,7 +1,7 @@
 import numpy as np
 
 from femformal.core.fem.mechlinfem import mechlinfem
-from femformal.core import fem_util as fem
+from femformal.core import casestudy as fem
 
 
 Ns = [20]

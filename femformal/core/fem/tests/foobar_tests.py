@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-from .. import foobar as fem
+from .. import fem_util as fem
 
 
 class test_fem_util(unittest.TestCase):

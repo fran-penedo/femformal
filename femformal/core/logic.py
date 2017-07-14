@@ -6,7 +6,7 @@ from pyparsing import Word, Literal, MatchFirst, nums, alphas
 from stlmilp import stl as stl
 
 from . import system as sys
-from .fem import foobar as fem
+from .fem import fem_util as fem
 from .util import state_label, label, unlabel
 
 

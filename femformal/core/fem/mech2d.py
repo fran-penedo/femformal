@@ -4,7 +4,7 @@ from itertools import product as cartesian_product
 import numpy as np
 import scipy
 
-from . import foobar as fem
+from . import fem_util as fem
 from .. import system as sys
 
 

@@ -1,5 +1,5 @@
 import numpy as np
-from femformal.core import logic as logic, fem_util as fem
+from femformal.core import logic as logic, casestudy as fem
 from femformal.core.fem.heatlinfem import heatlinfem
 
 

@@ -1,6 +1,6 @@
 import numpy as np
 
-from femformal.core import logic as logic, system as sys, fem_util as fem
+from femformal.core import logic as logic, system as sys, casestudy as fem
 from femformal.core.fem import mechlinfem as mechlinfem
 
 
