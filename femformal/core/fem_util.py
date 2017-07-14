@@ -3,7 +3,7 @@ from bisect import bisect_left
 
 import numpy as np
 
-from .. import system as sys, logic as logic
+from femformal.core import system as sys, logic as logic
 
 
 # from .. import femmilp.system_milp as sysmilp

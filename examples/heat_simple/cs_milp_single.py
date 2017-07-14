@@ -1,7 +1,6 @@
 import numpy as np
 
-from femformal.core import logic as logic
-from femformal.core.fem import fem_util as fem
+from femformal.core import logic as logic, fem_util as fem
 from femformal.core.fem.heatlinfem import heatlinfem
 
 

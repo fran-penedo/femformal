@@ -1,5 +1,4 @@
-from femformal.core import system as s
-from femformal.core.fem import fem_util as fem
+from femformal.core import system as s, fem_util as fem
 from femformal.core.fem.heatlinfem import heatlinfem
 
 

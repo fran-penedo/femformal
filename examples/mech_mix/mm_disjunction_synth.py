@@ -1,7 +1,7 @@
 import numpy as np
 
-from femformal.core import logic as logic, system as sys
-from femformal.core.fem import fem_util as fem, mechlinfem as mechlinfem
+from femformal.core import logic as logic, system as sys, fem_util as fem
+from femformal.core.fem import mechlinfem as mechlinfem
 
 
 N = 20
