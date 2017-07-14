@@ -1,8 +1,9 @@
-import femformal.core.fem.mechlinfem as mechlinfem
-import femformal.core.fem.fem_util as fem
-import femformal.core.system as sys
-import femformal.core.logic as logic
 import numpy as np
+from matplotlib import pyplot as plt
+
+from femformal.core import system as sys, logic as logic
+from femformal.core.fem import mechlinfem as mechlinfem, fem_util as fem
+
 
 N = 20
 L = 100000
@@ -51,8 +52,6 @@ cs = fem.build_cs(sosys, [d0, v0], g, cregions, None, discretize_system=False)
 # print v0
 # print cs.spec
 # print dt
-
-import matplotlib.pyplot as plt
 sys.draw_sosys(sosys, d0, v0, g, 0.3, animate=False, allonly=False, hold=True)
 fig = plt.gcf()
 fig.set_size_inches(3,2)

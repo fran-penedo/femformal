@@ -1,7 +1,8 @@
-from femformal.core.fem.mechlinfem import mechlinfem, state
-import femformal.core.fem.fem_util as fem
-import femformal.core.system as s
 import numpy as np
+from matplotlib import pyplot as plt
+
+from femformal.core import system as s
+from femformal.core.fem.mechlinfem import mechlinfem, state
 
 
 Ns = [20, 40, 80, 160]
@@ -37,8 +38,6 @@ for system in sosys_list:
     dx, vx = s.newm_integrate(system, d0, v0, 0.5, system.dt)
     ds.append(dx)
     vs.append(vx)
-
-import matplotlib.pyplot as plt
 
 fig, axes = plt.subplots(2,2)
 for i in range(len(Ns)):

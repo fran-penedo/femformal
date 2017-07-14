@@ -1,10 +1,11 @@
 import unittest
-import os.path
+from os import path
 
 import numpy as np
-import scipy.io
+from scipy import io
 
 from .. import mech2d as mech2d
+
 
 class TestMechNLFem(unittest.TestCase):
     def setUp(self):
@@ -120,8 +121,8 @@ class TestMechNLFem(unittest.TestCase):
                 return [None, None]
 
 
-        expected = scipy.io.loadmat(os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
+        expected = io.loadmat(path.join(
+            path.dirname(path.abspath(__file__)),
             'expected/mech2d_mech2d_nobigm_bigk.mat'))['bigk']
 
         sosys, elems_nodes = mech2d.mech2d(self.xs, self.ys, self.rho, self.C, g, force, 1)

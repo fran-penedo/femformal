@@ -4,8 +4,8 @@ from itertools import product as cartesian_product
 import numpy as np
 import scipy
 
-from .. import system as sys
 from . import foobar as fem
+from .. import system as sys
 
 
 logger = logging.getLogger(__name__)

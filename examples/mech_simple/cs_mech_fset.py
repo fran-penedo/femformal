@@ -1,7 +1,8 @@
-import femformal.core.fem.mechlinfem as mechlinfem
-import femformal.core.fem.fem_util as fem
-import femformal.core.logic as logic
 import numpy as np
+
+from femformal.core import logic as logic
+from femformal.core.fem import mechlinfem as mechlinfem, fem_util as fem
+
 
 N = 20
 L = 100.0

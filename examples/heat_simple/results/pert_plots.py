@@ -1,6 +1,6 @@
-import numpy as np
-import matplotlib.pyplot as plt
 import matplotlib
+import numpy as np
+from matplotlib import pyplot as plt
 
 
 eps = [5.2884818800547961, 1.4886301139418237, 0.675864781296589, 0.37390643814340763, 0.23786780480595837]

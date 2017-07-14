@@ -1,10 +1,10 @@
-import femformal.femts.verify as v
-import femformal.core.system as s
-import femformal.core.util as u
-import femformal.core.logic as logic
+import logging
+
 import numpy as np
 
-import logging
+from femformal.core import system as s, logic as logic
+
+
 logger = logging.getLogger(__name__)
 
 class test_verify(object):

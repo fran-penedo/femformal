@@ -1,10 +1,11 @@
-import numpy as np
-import networkx as nx
-import femformal.femts.ts as t
-import femformal.core.system as s
-from femformal.core.draw_util import draw_ts
-
 import logging
+
+import numpy as np
+
+from femformal.core import system as s
+from femformal.femts import ts as t
+
+
 logger = logging.getLogger(__name__)
 
 class test_ts(object):

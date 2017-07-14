@@ -1,7 +1,8 @@
-from femformal.core.fem.heatlinfem import heatlinfem
-import femformal.core.fem.fem_util as fem
-import femformal.core.logic as logic
 import numpy as np
+
+from femformal.core import logic as logic
+from femformal.core.fem import fem_util as fem
+from femformal.core.fem.heatlinfem import heatlinfem
 
 
 Ns = [50 for i in range(50)]

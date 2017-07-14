@@ -3,7 +3,7 @@ import unittest
 
 import numpy as np
 
-import femformal.core.system as sys
+from femformal.core import system as sys
 
 
 logger = logging.getLogger(__name__)

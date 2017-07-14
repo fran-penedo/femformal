@@ -1,14 +1,13 @@
+from bisect import bisect_left, bisect_right
+
+import matplotlib
 import networkx as nx
 import numpy as np
-import matplotlib
-import matplotlib.pyplot as plt
-import matplotlib.animation as animation
+from matplotlib import animation as animation, cm as cmx, colors as colors, pyplot as plt
 from matplotlib.collections import LineCollection
 from matplotlib.widgets import Slider
-import matplotlib.colors as colors
-import matplotlib.cm as cmx
-import mpl_toolkits.mplot3d as p3
-from bisect import bisect_left, bisect_right
+from mpl_toolkits import mplot3d as p3
+
 
 _figcounter = 0
 _holds = []

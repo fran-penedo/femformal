@@ -1,9 +1,12 @@
-import femformal.core.util as u
-import numpy as np
-import networkx as nx
 import itertools as it
-
 import logging
+
+import networkx as nx
+import numpy as np
+
+from femformal.core import util as u
+
+
 logger = logging.getLogger(__name__)
 
 class test_util(object):

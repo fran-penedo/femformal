@@ -1,8 +1,8 @@
-import fem.mechlinfem as mechlinfem
-import fem.fem_util as fem
-import femformal.system as sys
-import femformal.logic as logic
 import numpy as np
+from matplotlib import pyplot as plt
+
+from femformal.core import system as sys, logic as logic
+from femformal.core.fem import mechlinfem as mechlinfem
 
 
 N = 20
@@ -24,8 +24,6 @@ cregions = {'A': apc1, 'B': apc2}
 sosys = mechlinfem.mechlinfem(xpart, rho, E, g, f_nodal, dt)
 d0, v0 = mechlinfem.state(u0, du0, xpart, g)
 # cs = fem.build_cs(sosys, [d0, v0], g, cregions, None, discretize_system=False)
-
-import matplotlib.pyplot as plt
 sys.draw_sosys(sosys, d0, v0, g, 0.01, animate=False, hold=True, allonly=True)
 fig = plt.gcf()
 ax = plt.gcf().get_axes()[0]

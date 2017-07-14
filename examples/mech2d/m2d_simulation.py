@@ -1,9 +1,8 @@
-import femformal.core.fem.mech2d as mech2d
 import numpy as np
-import femformal.core.system as sys
-import matplotlib.pyplot as plt
-import mpl_toolkits.mplot3d as p3
-import femformal.core.draw_util as draw
+
+from femformal.core import system as sys, draw_util as draw
+from femformal.core.fem import mech2d as mech2d
+
 
 length = 16
 width = 2

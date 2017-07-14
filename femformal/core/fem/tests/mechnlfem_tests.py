@@ -2,9 +2,9 @@ import unittest
 
 import numpy as np
 
-import femformal.core.fem.mechnlfem as mechnl
-import femformal.core.fem.mechlinfem as mechlin
-import femformal.core.system as sys
+from femformal.core import system as sys
+from femformal.core.fem import mechnlfem as mechnl, mechlinfem as mechlin
+
 
 class TestMechNLFem(unittest.TestCase):
     def test_linear_equivalent(self):

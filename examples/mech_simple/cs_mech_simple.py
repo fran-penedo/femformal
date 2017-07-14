@@ -1,8 +1,9 @@
-import fem.mechlinfem as mechlinfem
-import fem.fem_util as fem
-import femformal.system as sys
-import femformal.logic as logic
 import numpy as np
+from matplotlib import pyplot as plt
+
+from femformal.core import system as sys, logic as logic
+from femformal.core.fem import mechlinfem as mechlinfem, fem_util as fem
+
 
 N = 20
 L = 100.0
@@ -37,8 +38,6 @@ print d0
 print v0
 print cs.spec
 print dt
-
-import matplotlib.pyplot as plt
 sys.draw_sosys(sosys, d0, v0, g, 0.2, animate=False, hold=True)
 # ax = plt.gcf().get_axes()[1]
 # for apc in [apc1, apc2]:

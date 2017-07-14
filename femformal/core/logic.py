@@ -2,12 +2,12 @@ import itertools as it
 from bisect import bisect_left, bisect_right
 
 import numpy as np
-import stlmilp.stl as stl
 from pyparsing import Word, Literal, MatchFirst, nums, alphas
+from stlmilp import stl as stl
 
 from . import system as sys
-from .util import state_label, label, unlabel
 from .fem import foobar as fem
+from .util import state_label, label, unlabel
 
 
 class APCont(object):

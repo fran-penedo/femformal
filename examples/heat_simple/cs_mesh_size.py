@@ -1,8 +1,6 @@
+from femformal.core import logic as logic
+from femformal.core.fem import fem_util as fem
 from femformal.core.fem.heatlinfem import heatlinfem
-import femformal.core.fem.fem_util as fem
-import femformal.core.util as u
-import femformal.core.logic as logic
-import numpy as np
 
 
 Ns = [10, 20, 30, 40, 50]

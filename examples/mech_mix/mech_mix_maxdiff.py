@@ -1,7 +1,7 @@
-from femformal.core.fem.mechlinfem import mechlinfem
-import femformal.core.fem.fem_util as fem
-import femformal.core.system as s
 import numpy as np
+
+from femformal.core.fem import fem_util as fem
+from femformal.core.fem.mechlinfem import mechlinfem
 
 
 Ns = [20]

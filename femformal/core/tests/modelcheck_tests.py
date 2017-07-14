@@ -1,9 +1,10 @@
-import numpy as np
-import femformal.femts.ts as t
-import femformal.femts.modelcheck as m
+import logging
+
 from nose.tools import nottest
 
-import logging
+from femformal.femts import ts as t, modelcheck as m
+
+
 logger = logging.getLogger(__name__)
 
 @nottest

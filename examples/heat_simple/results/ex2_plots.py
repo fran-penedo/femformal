@@ -1,8 +1,8 @@
-import fem.heatlinfem as heatlinfem
-import fem.fem_util as fem
-import femformal.util as u
-import femformal.logic as logic
 import numpy as np
+from fem import heatlinfem as heatlinfem, fem_util as fem
+from matplotlib import pyplot as plt
+
+from femformal import logic as logic, system as fsys
 
 
 N = 50
@@ -30,9 +30,6 @@ cs = fem.build_cs(system, d0, T, cregions, cspec, eps=eps)
 system = cs.dsystem
 rh_N = cs.rh_N
 spec = cs.spec
-
-import femformal.system as fsys
-import matplotlib.pyplot as plt
 
 fsys.draw_system_disc(system, d0, 10, t0=1, animate=False,
                       allonly=True, hold=True, ylabel='Temperature u',

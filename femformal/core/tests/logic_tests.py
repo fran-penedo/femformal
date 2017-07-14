@@ -1,9 +1,9 @@
 import unittest
 
 import numpy as np
-import stlmilp.stl as stl
+from stlmilp import stl as stl
 
-import femformal.core.logic as logic
+from femformal.core import logic as logic
 
 
 class test_logic(unittest.TestCase):

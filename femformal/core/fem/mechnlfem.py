@@ -1,7 +1,10 @@
+import logging
+
 import numpy as np
+
 from .. import system as sys
 
-import logging
+
 logger = logging.getLogger(__name__)
 
 def mechnlfem(xpart, rho, E, g, f_nodal, dt):

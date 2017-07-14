@@ -1,10 +1,9 @@
-import femformal.core.fem.mechlinfem as mechlinfem
-import femformal.core.fem.fem_util as fem
-import femformal.core.system as sys
-import femformal.core.logic as logic
-import femformal.core.draw_util as draw
 import numpy as np
-from bisect import bisect_left
+from matplotlib import pyplot as plt
+
+from femformal.core import system as sys, logic as logic, draw_util as draw
+from femformal.core.fem import mechlinfem as mechlinfem, fem_util as fem
+
 
 N = 20
 L = 100000
@@ -60,8 +59,6 @@ etas = [eta, [0 for i in eta]]
 nus = [nu, nu_xderiv]
 
 fdt_mult = 2
-
-import matplotlib.pyplot as plt
 (fig, ) = sys.draw_sosys(csosys, d0, v0, g, 0.30, animate=False, allonly=False, hold=True)
 fig.set_size_inches(3,2)
 fig.canvas.set_window_title("i3_7")

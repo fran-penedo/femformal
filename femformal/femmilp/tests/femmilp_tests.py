@@ -3,8 +3,8 @@ import unittest
 
 import numpy as np
 
-import femformal.core.system as sys
-import femformal.femmilp.femmilp as femmilp
+from femformal.core import system as sys
+from femformal.femmilp import femmilp as femmilp
 
 
 logger = logging.getLogger(__name__)

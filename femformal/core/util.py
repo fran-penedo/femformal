@@ -1,6 +1,8 @@
+import logging
+
 import numpy as np
 
-import logging
+
 logger = logging.getLogger(__name__)
 
 def label(name, i, j):

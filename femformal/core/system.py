@@ -1,13 +1,16 @@
+import logging
+from bisect import bisect_left, bisect_right
+
 import numpy as np
 import scipy
-from scipy.optimize import linprog
+from scipy import linalg as la
 from scipy.integrate import odeint
-import scipy.linalg as la
-import scipy.sparse.linalg as spla
-from bisect import bisect_left, bisect_right
+from scipy.optimize import linprog
+from scipy.sparse import linalg as spla
+
 from . import draw_util as draw
 
-import logging
+
 logger = logging.getLogger(__name__)
 
 class System(object):

@@ -1,9 +1,8 @@
-import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib import pyplot as plt
 
-import femformal.core.fem.mechnlfem as mechnlfem
-import femformal.core.logic as logic
-import femformal.core.system as sys
+from femformal.core import logic as logic, system as sys
+from femformal.core.fem import mechnlfem as mechnlfem
 
 
 N = 4

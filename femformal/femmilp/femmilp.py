@@ -1,9 +1,8 @@
 import logging
 
-import stlmilp.milp_util as milp
-import stlmilp.stl_milp_encode as stl_milp
+from stlmilp import milp_util as milp, stl_milp_encode as stl_milp
 
-import femformal.core.system_milp_encode as sys_milp
+from femformal.core import system_milp_encode as sys_milp
 
 
 logger = logging.getLogger(__name__)

@@ -1,11 +1,13 @@
+import logging
+
+import gurobipy as g
+import numpy as np
+from stlmilp import milp_util as milp_util
+
 from . import system as sys
-import stlmilp.milp_util as milp_util
 from .util import label
 
-import numpy as np
-import gurobipy as g
 
-import logging
 logger = logging.getLogger(__name__)
 
 def add_sys_constr_x0(m, l, system, x0, N, xhist=None):

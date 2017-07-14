@@ -1,10 +1,12 @@
-import numpy as np
-from .. import system as sys
-from .. import logic as logic
-# from .. import femmilp.system_milp as sysmilp
-
-from bisect import bisect_left
 import logging
+from bisect import bisect_left
+
+import numpy as np
+
+from .. import system as sys, logic as logic
+
+
+# from .. import femmilp.system_milp as sysmilp
 logger = logging.getLogger(__name__)
 
 def build_cs(system, d0, g, cregions, cspec, fdt_mult=1, bounds=None,
