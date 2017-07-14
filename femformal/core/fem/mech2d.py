@@ -1,17 +1,20 @@
-import numpy as np
-import scipy
-from .. import system as sys
-
+import logging
 from itertools import product as cartesian_product
 
-import logging
+import numpy as np
+import scipy
+
+from .. import system as sys
+from . import foobar as fem
+
+
 logger = logging.getLogger(__name__)
 
 
 def mech2d(xpart, ypart, rho, C, g, f_nodal, dt):
-    node_coords, elems_nodes = grid_mesh(xpart, ypart)
-    nnodes = len(node_coords)
-    nelems = len(elems_nodes)
+    mesh = grid_mesh(xpart, ypart)
+    nnodes = mesh.nnodes
+    nelems = mesh.nelems
 
     # bigk = np.zeros((nnodes*2, nnodes*2))
     # bigm = np.zeros((nnodes*2, nnodes*2))
@@ -20,8 +23,8 @@ def mech2d(xpart, ypart, rho, C, g, f_nodal, dt):
     bigf = np.zeros(nnodes*2)
 
     for e in range(nelems):
-        elem_nodes = elems_nodes[e]
-        x, y = zip(*node_coords[elem_nodes])
+        elem_nodes = mesh.elem_nodes(e)
+        x, y = zip(*mesh.nodes_coords[elem_nodes])
         kelem = elem_stiffness(x, y, C)
         assemble_into_big_matrix(bigk, kelem, elem_nodes)
         melem = elem_mass(x, y, rho)
@@ -30,7 +33,7 @@ def mech2d(xpart, ypart, rho, C, g, f_nodal, dt):
     bigm = lumped(bigm)
 
     for node in range(nnodes):
-        gnode = g(*node_coords[node])
+        gnode = g(*mesh.nodes_coords[node])
         for i in range(2):
             if gnode[i] is not None:
                 bigm[2*node + i] = 0
@@ -45,9 +48,9 @@ def mech2d(xpart, ypart, rho, C, g, f_nodal, dt):
     _remove_close_zeros(bigm)
     bigk = bigk.tocsc()
     bigm = bigm.tocsc()
-    sosys = sys.SOSystem(bigm, bigk, bigf, node_coords, dt)
+    sosys = sys.SOSystem(bigm, bigk, bigf, mesh.nodes_coords, dt)
 
-    return sosys, elems_nodes
+    return sosys, mesh
 
 
 def _remove_close_zeros(matrix):
@@ -59,20 +62,12 @@ def _remove_close_zeros(matrix):
 def lumped(m):
     return scipy.sparse.diags(np.ravel(m.sum(axis=1)), format='lil')
 
-def _elem_nodes(e, num_elems_x):
-    x0 = e + e / num_elems_x
-    return np.array([x0, x0 + 1, x0 + num_elems_x + 2, x0 + num_elems_x + 1])
+
 
 def grid_mesh(xs, ys):
-    node_coords = np.array(sorted(cartesian_product(xs, ys), key=lambda x: x[1]))
+    nodes_coords = np.array(sorted(cartesian_product(xs, ys), key=lambda x: x[1]))
+    return fem.GridQ4(nodes_coords, (len(xs), len(ys)))
 
-    nelems_x = len(xs) - 1
-    nelems_y = len(ys) - 1
-    nelems = nelems_x * nelems_y
-
-    elems_nodes = np.array([_elem_nodes(e, nelems_x) for e in range(nelems)])
-
-    return node_coords, elems_nodes
 
 def assemble_into_big_matrix(matrix, elem_matrix, elem_nodes):
     eqs_grouped = [(2 * x, 2 * x + 1) for x in elem_nodes]

@@ -1,10 +1,14 @@
-import stlmilp.stl as stl
-from . import system as sys
-import numpy as np
 import itertools as it
 from bisect import bisect_left, bisect_right
-from .util import state_label, label, unlabel
+
+import numpy as np
+import stlmilp.stl as stl
 from pyparsing import Word, Literal, MatchFirst, nums, alphas
+
+from . import system as sys
+from .util import state_label, label, unlabel
+from .fem import foobar as fem
+
 
 class APCont(object):
     def __init__(self, A, r, p, dp = None, uderivs = 0):
@@ -30,11 +34,18 @@ class APCont2D(APCont):
         APCont.__init__(self, A, r, p, dp)
         self.v_comp = u_comp
 
+
 class APDisc(object):
-    def __init__(self, r, m, isnode, uderivs = 0):
+    def __init__(self, r, m, isnode = True, uderivs = 0, region_dim = 0):
         # r == 1: f < p, r == -1: f > p
         self.r = r
-        self.isnode = isnode
+        if not isnode or region_dim == 0:
+            self.isnode = isnode
+            self.region_dim = region_dim
+        else:
+            self.region_dim = region_dim
+            self.isnode = bool(region_dim)
+
         # m : i -> (p((x_i + x_{i+1})/2) if not isnode else i -> p(x_i),
         # dp(.....))
         self.m = m
@@ -85,23 +96,72 @@ def perturb(formula, eps):
     return stl.perturb(formula, eps)
 
 
-def ap_cont2d_to_disc(apcont, nodes_coords, elems_nodes):
-    r = apcont.r
+def ap_cont2d_to_disc(apcont, nodes_coords, elems_nodes, obj_finder, shapes):
+    """
+    obj_finder :: NodeIndex -> NodeIndex -> [Elem<Dimension>Index, [NodeIndex]]
+    shapes :: Dimension x [ShapeFunction]
+    """
+    region = apcont.A
 
+    size = region[1] - region[0]
 
-def find_elem_with_vertex(vnode, position, elems_nodes):
-    try:
-        return next(e for e, nodes in enumerate(elems_nodes)
-                    if nodes[position] == vnode)
-    except StopIteration:
-        raise ValueError("No element with node {} in position {}".format(vnode, position))
+    if np.all(isclose(size, 0.0)):
+        apf = _ap_cont2d_to_disc_0d_degen
+    elif isclose(size[0], 0.0):
+        apf = _ap_cont2d_to_disc_1d_x_degen
+    elif isclose(size[1], 0.0):
+        apf = _ap_cont2d_to_disc_1d_y_degen
+    else:
+        apf = _ap_cont2d_to_disc_full
 
-def find_node(node, nodes_coords):
-    try:
-        return next(n for n, coords in enumerate(nodes_coords)
-                    if np.all(np.isclose(node, coords)))
-    except StopIteration:
-        raise ValueError("No node with coordinates {}".format(node))
+    return apf(apcont, nodes_coords, elems_nodes, grid_shape)
+
+def _ap_cont2d_to_disc_0d_degen(apcont, nodes_coords, elems_nodes, obj_finder, shapes):
+    node = apcont.A[0]
+    n = fem.find_node(node, nodes_coords)
+    if apcont.uderivs > 0:
+        raise Exception("Derivatives at nodes are not well defined")
+    m = {n : (apcont.p(*node), apcont.dp(*node))}
+    region_dim = 0
+
+    return APDisc(apcont.r, m, u_comp=apcont.u_comp,
+                  uderivs=apcont.uderivs, region_dim=region_dim)
+
+def _ap_cont2d_to_disc_1d_x_degen(apcont, nodes_coords, elems_nodes, obj_finder, shapes):
+    ns = [fem.find_node(node, nodes_coords) for node in apcont.A]
+    elem_list = obj_finder(ns[0], ns[1], 1)
+
+    m = {n : (apcont.p(PLACEHOLDER), apcont.dp(PLACEHOLDER))
+         for n in range(ns[0], ns[1])}
+    region_dim = 1
+
+    return APDisc(apcont.r, m, u_comp=apcont.u_comp,
+                  uderivs=apcont.uderivs, region_dim=region_dim)
+
+def _ap_cont2d_to_disc_1d_y_degen(apcont, nodes_coords, elems_nodes, obj_finder, shapes):
+    ns = [fem.find_node(node, nodes_coords) for node in apcont.A]
+    node_list = obj_finder(ns[0], ns[1], 1)
+
+    m = {n : (apcont.p(PLACEHOLDER), apcont.dp(PLACEHOLDER))
+         for n in range(ns[0], ns[1], grid_shape[0])}
+    region_dim = 1
+
+    return APDisc(apcont.r, m, u_comp=apcont.u_comp,
+                  uderivs=apcont.uderivs, region_dim=region_dim)
+
+def _ap_cont2d_to_disc_full(apcont, nodes_coords, elems_nodes, obj_finder, shapes):
+    ns = [fem.find_node(node, nodes_coords) for node in apcont.A]
+    es = np.aray([fem.find_elem_with_vertex(n, pos, elems_nodes)
+                  for n, pos in zip(ns, [0, 3])])
+    elem_list = obj_finder(es[0], es[1], 2)
+
+    m = {i * grid_shape[0] + j : (apcont.p(PLACEHOLDER), apcont.dp(PLACEHOLDER))
+         for i in range(*(es / grid_shape[0]))
+         for j in range(*(es % grid_shape[0]))}
+    region_dim = 2
+
+    return APDisc(apcont.r, m, u_comp=apcont.u_comp,
+                  uderivs=apcont.uderivs, region_dim=region_dim)
 
 
 def scale_time(formula, dt):

@@ -325,3 +325,4 @@ class CaseStudy(object):
 
         if len(copy) > 0:
             raise Exception('Undefined parameters in CaseStudy: {}'.format(copy))
+

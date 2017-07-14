@@ -18,31 +18,6 @@ class test_logic(unittest.TestCase):
         self.signal2 = logic.SysSignal(1, stl.LE, 5.0, 10.0, False, 0, self.xpart, 2, [-1000, 1000])
         self.signal3 = logic.SysSignal(1, stl.LE, 5.0, 10.0, True, 0, self.xpart, 2, [-1000, 1000])
 
-        self.nodes_coords = np.array([[ 0,  0 ],
-                                      [ 4,  0 ],
-                                      [ 8,  0 ],
-                                      [12,  0],
-                                      [16,  0],
-                                      [ 0,  1 ],
-                                      [ 4,  1 ],
-                                      [ 8,  1 ],
-                                      [12,  1],
-                                      [16,  1],
-                                      [ 0,  2 ],
-                                      [ 4,  2 ],
-                                      [ 8,  2 ],
-                                      [12,  2],
-                                      [16,  2]])
-        self.elems_nodes = np.array([[ 0,  1,  6,  5 ],
-                                     [ 1,  2,  7,  6 ],
-                                     [ 2,  3,  8,  7 ],
-                                     [ 3,  4,  9,  8 ],
-                                     [ 5,  6, 11, 10 ],
-                                     [ 6,  7, 12, 11 ],
-                                     [ 7,  8, 13, 12 ],
-                                     [ 8,  9, 14, 13 ]])
-
-
 
     def test_apc_to_apd(self):
         apd = logic.ap_cont_to_disc(self.apc1, self.xpart)
@@ -59,10 +34,8 @@ class test_logic(unittest.TestCase):
         self.assertEqual(set(apd.m.keys()), set(els))
         np.testing.assert_array_almost_equal([apd.m[e] for e in els], ps)
 
-
     def test_apd_string(self):
         self.assertEqual(str(self.apd1), self.apd1_string)
-
 
     def test_expr_parser(self):
         fdt_mult = 2
@@ -78,7 +51,6 @@ class test_logic(unittest.TestCase):
         self.assertEqual(s2.fdt_mult, fdt_mult)
         self.assertEqual(s2.bounds, bounds)
 
-
     def test_syssignal(self):
         self.assertEqual(self.signal1.labels[0](5), "d_1_5")
         self.assertEqual(self.signal1.labels[1](5), "d_2_5")
@@ -86,13 +58,11 @@ class test_logic(unittest.TestCase):
         self.assertEqual(self.signal2.f([2.0, 4.0]), 2.0)
         self.assertEqual(self.signal3.f([2.0]), 3.0)
 
-
     def test_signal_perturb(self):
         self.signal1.perturb(lambda a, b, c, d: 1.0)
         self.assertEqual(self.signal1.f([2.0, 4.0]), -2.0)
         self.signal2.perturb(lambda a, b, c, d: 1.0)
         self.assertEqual(self.signal2.f([2.0, 4.0]), 1.0)
-
 
     def test_scale_time(self):
         fdt_mult = 2
@@ -102,20 +72,4 @@ class test_logic(unittest.TestCase):
         dt = .5
         logic.scale_time(form, dt)
         self.assertEqual(form.bounds, [0, 2])
-
-    def test_find_elem_with_vertex(self):
-        for elem, nodes in enumerate(self.elems_nodes):
-            for i in range(len(nodes)):
-                self.assertEqual(
-                    logic.find_elem_with_vertex(nodes[i], i, self.elems_nodes),
-                    elem)
-
-        with self.assertRaises(ValueError):
-            logic.find_elem_with_vertex(-1, 0, self.elems_nodes)
-
-    def test_find_node(self):
-        for n, coords in enumerate(self.nodes_coords):
-            self.assertEqual(logic.find_node(coords, self.nodes_coords), n)
-        with self.assertRaises(ValueError):
-            logic.find_node(np.array([-50, -50]), self.nodes_coords)
 

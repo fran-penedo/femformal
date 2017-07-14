@@ -4,8 +4,7 @@ import os.path
 import numpy as np
 import scipy.io
 
-import femformal.core.fem.mech2d as mech2d
-import femformal.core.system as sys
+from .. import mech2d as mech2d
 
 class TestMechNLFem(unittest.TestCase):
     def setUp(self):
@@ -94,14 +93,6 @@ class TestMechNLFem(unittest.TestCase):
         np.testing.assert_array_equal(
             mech2d.elem_mass(self.x, self.y, 5.0).shape, (8, 8))
 
-    def test_elem_nodes(self):
-        e = 0
-        num_elems_x = 4
-        np.testing.assert_array_equal(mech2d._elem_nodes(e, num_elems_x),
-                                      [0, 1, 6, 5])
-        e = 9
-        np.testing.assert_array_equal(mech2d._elem_nodes(e, num_elems_x),
-                                      [11, 12, 17, 16])
 
     def test_grid_mesh(self):
         xs = self.xs
@@ -112,10 +103,9 @@ class TestMechNLFem(unittest.TestCase):
                                                [ 2,  3,  4,  5,  7,  8,  9, 10 ],
                                                [ 7,  8,  9, 10, 12, 13, 14, 15 ],
                                                [ 6,  7,  8,  9, 11, 12, 13, 14 ]]).T - 1
-        coords, elem_nodes = mech2d.grid_mesh(xs, ys)
-        np.testing.assert_array_almost_equal(coords, expected_coords)
-        np.testing.assert_array_equal(elem_nodes, expected_elem_nodes)
-
+        mesh = mech2d.grid_mesh(xs, ys)
+        np.testing.assert_array_almost_equal(mesh.nodes_coords, expected_coords)
+        np.testing.assert_array_equal(mesh.elems_nodes, expected_elem_nodes)
 
     def test_mech2d_nobigm(self):
         force = np.array([0.000000000000000e+00, 0.000000000000000e+00, 0.000000000000000e+00, 0.000000000000000e+00, 0.000000000000000e+00, 0.000000000000000e+00, 0.000000000000000e+00, 0.000000000000000e+00, 0.000000000000000e+00, -1.796875000000000e-01, -3.000000000000000e+00, 2.656250000000000e-01, 0.000000000000000e+00, 0.000000000000000e+00, 0.000000000000000e+00, 0.000000000000000e+00, 0.000000000000000e+00, 0.000000000000000e+00, 0.000000000000000e+00, -2.656250000000000e-01, 0.000000000000000e+00, 5.468750000000001e-02, 0.000000000000000e+00, 0.000000000000000e+00, 0.000000000000000e+00, 0.000000000000000e+00, 0.000000000000000e+00, 0.000000000000000e+00, 0.000000000000000e+00, -5.468750000000001e-02])
