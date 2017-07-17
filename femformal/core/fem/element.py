@@ -10,7 +10,7 @@ class Element(object):
         self.coords = coords
 
     def interpolate(self, values, coords):
-        return self.shapes(*coords).dot(values)
+        return self.shapes(*coords).dot(np.array(values))
 
     @staticmethod
     def shapes(*parameters):

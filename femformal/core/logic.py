@@ -32,11 +32,11 @@ class APCont(object):
 class APCont2D(APCont):
     def __init__(self, u_comp, A, r, p, dp):
         APCont.__init__(self, A, r, p, dp)
-        self.v_comp = u_comp
+        self.u_comp = u_comp
 
 
 class APDisc(object):
-    def __init__(self, r, m, isnode = True, uderivs = 0, region_dim = 0):
+    def __init__(self, r, m, isnode = True, uderivs = 0, region_dim = 0, u_comp = 0):
         # r == 1: f < p, r == -1: f > p
         self.r = r
         if not isnode or region_dim == 0:
@@ -44,12 +44,13 @@ class APDisc(object):
             self.region_dim = region_dim
         else:
             self.region_dim = region_dim
-            self.isnode = bool(region_dim)
+            self.isnode = not bool(region_dim)
 
         # m : i -> (p((x_i + x_{i+1})/2) if not isnode else i -> p(x_i),
         # dp(.....))
         self.m = m
         self.uderivs = uderivs
+        self.u_comp = u_comp
 
     def __str__(self):
         return "({})".format(" & ".join(
@@ -99,12 +100,17 @@ def perturb(formula, eps):
 def ap_cont2d_to_disc(apcont, mesh_, build_elem):
     region = apcont.A
 
-    dim, elems_coords = mesh_.find_elems_between(region[0], region[1])
-    elems = [(e, build_elem(coords)) for e, coords in elems_coords]
-    m = {e : () for e, elem in elems}
+    elem_set = mesh_.find_elems_between(region[0], region[1])
+    elems = [(e, build_elem(elem_set[e])) for e in elem_set.elems]
+    m = {e : (elem.interpolate([apcont.p(*coord) for coord in elem.coords],
+                               [0, 0]),
+              elem.interpolate([apcont.dp(*coord) for coord in elem.coords],
+                               [0, 0]))
+         for e, elem in elems}
 
     return APDisc(
-        apcont.r, m, u_comp=apcont.u_comp, uderivs=apcont.uderivs, region_dim=dim)
+        apcont.r, m, u_comp=apcont.u_comp, uderivs=apcont.uderivs,
+        region_dim=elem_set.dimension)
 
 def scale_time(formula, dt):
     formula.bounds = [int(b / dt) for b in formula.bounds]

@@ -1,9 +1,12 @@
 import unittest
+from itertools import product as cartesian_product
 
 import numpy as np
+from numpy import testing as npt
 from stlmilp import stl as stl
 
-from femformal.core import logic as logic
+from .. import logic
+from ..fem import mesh, element
 
 
 class test_logic(unittest.TestCase):
@@ -17,6 +20,14 @@ class test_logic(unittest.TestCase):
         self.signal1 = logic.SysSignal(1, stl.GT, 5.0, 10.0, False, 1, self.xpart, 2, [-1000, 1000])
         self.signal2 = logic.SysSignal(1, stl.LE, 5.0, 10.0, False, 0, self.xpart, 2, [-1000, 1000])
         self.signal3 = logic.SysSignal(1, stl.LE, 5.0, 10.0, True, 0, self.xpart, 2, [-1000, 1000])
+
+        self.L = 16
+        self.c = 2
+        self.xs = np.linspace(0, self.L, 5)
+        self.ys = np.linspace(0, self.c, 3)
+        nodes_coords = np.array(sorted(cartesian_product(self.xs, self.ys),
+                                       key=lambda x: x[1]))
+        self.mesh = mesh.GridQ4(nodes_coords, (len(self.xs), len(self.ys)))
 
 
     def test_apc_to_apd(self):
@@ -73,3 +84,18 @@ class test_logic(unittest.TestCase):
         logic.scale_time(form, dt)
         self.assertEqual(form.bounds, [0, 2])
 
+    def test_ap_cont2d_to_disc(self):
+        pred = lambda x, y: x + y
+        dpred = lambda x, y: np.array([1, 1])
+        region = np.array([[8, 0], [16, 1]])
+        apc = logic.APCont2D(0, region, '>', pred, dpred)
+        expected_map = {2: (10.5, np.array([1,1])),
+                        3: (14.5, np.array([1,1]))}
+        apd = logic.ap_cont2d_to_disc(apc, self.mesh, element.BLQuadQ4)
+        npt.assert_equal(apd.r, apc.r)
+        npt.assert_equal(apd.region_dim, 2)
+        self.assertFalse(apd.isnode)
+        self.assertSetEqual(set(apd.m.keys()), set(expected_map.keys()))
+        for k in apd.m.keys():
+            npt.assert_almost_equal(apd.m[k][0], expected_map[k][0])
+            npt.assert_array_almost_equal(apd.m[k][1], expected_map[k][1])
