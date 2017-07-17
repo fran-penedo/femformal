@@ -5,9 +5,10 @@ import numpy as np
 from scipy import io
 
 from .. import mech2d as mech2d
+from .. import element as element
 
 
-class TestMechNLFem(unittest.TestCase):
+class TestMech2d(unittest.TestCase):
     def setUp(self):
         self.C = np.array([[1.346153846153846e+07, 5.769230769230769e+06, 0.000000000000000e+00],
                                   [5.769230769230769e+06, 1.346153846153846e+07, 0.000000000000000e+00],
@@ -21,25 +22,9 @@ class TestMechNLFem(unittest.TestCase):
         self.rho = 0.5
 
 
-    def test_shape_derivatives(self):
-        pts = [-1/np.sqrt(3), 1/np.sqrt(3)]
-        expected = [[np.array([[-0.3943, 0.3943, 0.1057, -0.1057],
-                               [-0.3943, -0.1057, 0.1057, 0.3943]]),
-                     np.array([[-0.1057, 0.1057, 0.3943, -0.3943],
-                               [-0.3943, -0.1057, 0.1057, 0.3943]])],
-                    [np.array([[-0.3943, 0.3943, 0.1057, -0.1057],
-                               [-0.1057, -0.3943, 0.3943, 0.1057]]),
-                     np.array([[-0.1057, 0.1057, 0.3943, -0.3943],
-                               [-0.1057, -0.3943, 0.3943, 0.1057]])]]
-
-        for i in range(len(pts)):
-            for j in range(len(pts)):
-                np.testing.assert_array_almost_equal(
-                    mech2d.shape_derivatives(pts[i], pts[j]), expected[i][j], decimal=4)
-
     def test_jacobian(self):
         pts = [-1/np.sqrt(3), 1/np.sqrt(3)]
-        dshapes = mech2d.shape_derivatives
+        dshapes = element.BLQuadQ4.shapes_derivatives
         jac_inv, jac_det = mech2d.jacobian(dshapes, self.x, self.y)
 
         expected = np.array([[4.999999999999999e-01, -0.000000000000000e+00],
@@ -55,7 +40,8 @@ class TestMechNLFem(unittest.TestCase):
 
     def test_strain_displacement(self):
         pts = [-1/np.sqrt(3), 1/np.sqrt(3)]
-        dshapes = mech2d.shape_derivatives
+        dshapes = element.BLQuadQ4.shapes_derivatives
+        jac_inv, jac_det = mech2d.jacobian(dshapes, self.x, self.y)
         jcob_inv = lambda a, b: np.array([[4.999999999999999e-01, -0.000000000000000e+00],
                                           [-0.000000000000000e+00, 2.000000000000000e+00]])
         strain_disp = mech2d.strain_displacement(dshapes, jcob_inv)
@@ -93,7 +79,6 @@ class TestMechNLFem(unittest.TestCase):
     def test_elem_mass_shape(self):
         np.testing.assert_array_equal(
             mech2d.elem_mass(self.x, self.y, 5.0).shape, (8, 8))
-
 
     def test_grid_mesh(self):
         xs = self.xs

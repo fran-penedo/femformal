@@ -5,12 +5,12 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
-def Element(object):
+class Element(object):
     def __init__(self, coords):
         self.coords = coords
 
-    def interpolate(self, values):
-        return self.shapes(*self.coords).dot(values)
+    def interpolate(self, values, coords):
+        return self.shapes(*coords).dot(values)
 
     @staticmethod
     def shapes(*parameters):
@@ -20,7 +20,7 @@ def Element(object):
     def shapes_derivatives(*parameters):
         raise NotImplementedError()
 
-def BLQuadQ4(Element):
+class BLQuadQ4(Element):
     def __init__(self, coords):
         if coords.shape != (4, 2):
             raise ValueError("Q4 element coordinates must be 4x2")
@@ -33,6 +33,7 @@ def BLQuadQ4(Element):
                                 (1 + a) * (1 + b), (1 - a) * (1 + b)])
 
     @staticmethod
-    def shape_derivatives(*parameters):
+    def shapes_derivatives(*parameters):
+        a, b = parameters
         return 0.25 * np.array([[- (1 - b), (1 - b), (1 + b), - (1 + b)],
                                 [- (1 - a), - (1 + a), (1 + a), (1 - a)]])

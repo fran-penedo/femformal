@@ -5,6 +5,7 @@ import numpy as np
 import scipy
 
 from . import mesh as mesh
+from . import element as element
 from .. import system as sys
 
 
@@ -79,7 +80,7 @@ def elem_stiffness(x, y, c):
     sample_pts = [-1/np.sqrt(3), 1/np.sqrt(3)]
     stiff = np.zeros((8, 8))
 
-    dshapes = shape_derivatives
+    dshapes = element.BLQuadQ4.shapes_derivatives
     jcob_inv, jcob_det = jacobian(dshapes, x, y)
     strain_disp = strain_displacement(dshapes, jcob_inv)
     integ = integrand(strain_disp, c, jcob_det)
@@ -95,7 +96,7 @@ def elem_mass(x, y, rho):
     sample_pts = [-1/np.sqrt(3), 1/np.sqrt(3)]
     mass = np.zeros((8, 8))
 
-    _, jcob_det = jacobian(shape_derivatives, x, y)
+    _, jcob_det = jacobian(element.BLQuadQ4.shapes_derivatives, x, y)
     integ = integrand(shape_interp, rho * np.identity(2), jcob_det)
 
     for i in range(len(weights)):
@@ -104,20 +105,13 @@ def elem_mass(x, y, rho):
 
     return mass
 
-def shapes(a, b):
-    return 0.25 * np.array([(1 - a)*(1 - b), (1 + a) * (1 - b),
-                            (1 + a) * (1 + b), (1 - a) * (1 + b)])
 
 def shape_interp(a, b):
-    sh = shapes(a, b)
+    sh = element.BLQuadQ4.shapes(a, b)
     ret = np.zeros((2, 8))
     ret[0, 0:8:2] = sh
     ret[1, 1:8:2] = sh
     return ret
-
-def shape_derivatives(a, b):
-    return 0.25 * np.array([[- (1 - b), (1 - b), (1 + b), - (1 + b)],
-                            [- (1 - a), - (1 + a), (1 + a), (1 - a)]])
 
 def jacobian(dshapes, x, y):
     jac = lambda a, b: dshapes(a,b).dot(np.vstack([x,y]).T)

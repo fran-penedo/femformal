@@ -27,7 +27,7 @@ class GridQ4(Mesh):
         self.elems_nodes = np.array([GridQ4._elem_nodes(e, self.shape[0] - 1)
                                 for e in range(self.nelems)])
         self.elems1d_nodes = np.array(
-            [GridQ4._elem_nodes(e, self.shape)
+            [GridQ4._elem1d_nodes(e, self.shape)
              for e in range(2 * self.nnodes - np.sum(self.shape))])
 
     def elem_nodes(self, elem, dim=2):
@@ -37,17 +37,21 @@ class GridQ4(Mesh):
             return self.elems1d_nodes[elem]
         elif dim == 2:
             return self.elems_nodes[elem]
+        else:
+            raise NotImplementedError(
+                "Dimension ({}) must be between 0 and 2".format(dim))
 
     def elem_coords(self, elem, dim=2):
         return np.array([self.nodes_coords[n] for n in self.elem_nodes(elem, dim)])
 
-
     @staticmethod
     def _elem1d_nodes(e, shape):
-        nelems1d_x = GridQ4._num_elems1dh(shape)
-        if e >= nelems1d_x:
-            e1 = e - nelems1d_x
-            x0 = e1 / (shape[1] - 1) + shape[0] * (e1 % (shape[1] - 1))
+        nelems1dh = GridQ4._num_elems1dh(shape)
+        nelems1d_x = shape[0] - 1
+        if e >= nelems1dh:
+            e1 = e - nelems1dh
+            nelems1d_y = shape[1] - 1
+            x0 = e1 / nelems1d_y + shape[0] * (e1 % nelems1d_y)
             return np.array([x0, x0, x0 + shape[0], x0 + shape[0]])
         else:
             x0 = e + e / nelems1d_x
@@ -77,25 +81,59 @@ class GridQ4(Mesh):
         return n1 % self.shape[0] == n2 % self.shape[0]
 
     def find_elems_between(self, coords1, coords2):
-        n1, n2 = [find_node(node, coords) for coords in [coords1, coords2]]
+        n1, n2 = [find_node(coords, self.nodes_coords)
+                  for coords in [coords1, coords2]]
         if n1 == n2:
-            return 0, [(n1, self.elem_coords(n1, 0))]
+            return ElementSet(0, {n1: self.elem_coords(n1, 0)})
         elif self._inhline(n1, n2):
-            e1, e2 = [find_elem_with_vertex(n, 0, self._elems1dh_nodes)
-                      for n, pos in zip([n1, n2], [0, 1])]
-            return 1, [(e, self.elem_coords(e, 1)) for e in range(e1, e2 + 1)]
+            e1, e2 = [find_elem_with_vertex(n, pos, self._elems1dh_nodes)
+                      for n, pos in zip([n1, n2], [0, 2])]
+            return ElementSet(1, {e: self.elem_coords(e, 1)
+                                  for e in range(e1, e2 + 1)})
         elif self._invline(n1, n2):
-            e1, e2 = [GridQ4._num_elems1dh +
-                      find_elem_with_vertex(n, 0, self._elems1dv_nodes)
-                      for n, pos in zip([n1, n2], [0, 1])]
-            return 1, [(e, self.elem_coords(e, 1)) for e in range(e1, e2 + 1)]
+            e1, e2 = [GridQ4._num_elems1dh(self.shape) +
+                      find_elem_with_vertex(n, pos, self._elems1dv_nodes)
+                      for n, pos in zip([n1, n2], [0, 2])]
+            return ElementSet(1, {e: self.elem_coords(e, 1)
+                                  for e in range(e1, e2 + 1)})
         else:
             e1, e2 = [find_elem_with_vertex(n, pos, self.elems_nodes)
-                      for n, pos in zip([n1, n2], [0, 3])]
+                      for n, pos in zip([n1, n2], [0, 2])]
             nelemsx = self.shape[0] - 1
-            return 2, [(i + j, self.elem_coords(i + j, 2))
-                       for i in range(e1 / nelemsx, e2 / nelemsx + 1)
-                       for j in range(e1 % nelemsx, e2 % nelemsx + 1)]
+            return ElementSet(2, {i * nelemsx + j: self.elem_coords(i + j, 2)
+                                  for i in range(e1 / nelemsx, e2 / nelemsx + 1)
+                                  for j in range(e1 % nelemsx, e2 % nelemsx + 1)})
+
+
+class ElementSet(object):
+    def __init__(self, dimension, elem_coords_map):
+        self.dimension = dimension
+        self.elem_coords_map = elem_coords_map
+
+    @property
+    def elems(self):
+        return self.elem_coords_map.keys()
+
+    def __getitem__(self, el):
+        return self.elem_coords_map[el]
+
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            if self.dimension != other.dimension or \
+                    len(self.elems) != len(other.elems):
+                return False
+            for el in self.elems:
+                if el not in other.elems or \
+                        not np.all(np.isclose(self[el], other[el])):
+                    return False
+            return True
+        return NotImplemented
+
+    def __ne__(self, other):
+        if isinstance(other, self.__class__):
+            return not self.__eq__(other)
+        return NotImplemented
+
 
 def find_elem_with_vertex(vnode, position, elems_nodes):
     try:

@@ -1,11 +1,85 @@
 import unittest
+from itertools import product as cartesian_product
 
 import numpy as np
 
 from .. import mesh as mesh
 
 
-class test_fem_util(unittest.TestCase):
+class TestGridQ4(unittest.TestCase):
+    def setUp(self):
+        self.L = 16
+        self.c = 2
+        self.xs = np.linspace(0, self.L, 5)
+        self.ys = np.linspace(0, self.c, 3)
+        nodes_coords = np.array(sorted(cartesian_product(self.xs, self.ys),
+                                       key=lambda x: x[1]))
+        self.mesh = mesh.GridQ4(nodes_coords, (len(self.xs), len(self.ys)))
+
+
+    def test_elem_nodes(self):
+        e = 0
+        num_elems_x = 4
+        np.testing.assert_array_equal(mesh.GridQ4._elem_nodes(e, num_elems_x),
+                                      [0, 1, 6, 5])
+        e = 9
+        np.testing.assert_array_equal(mesh.GridQ4._elem_nodes(e, num_elems_x),
+                                      [11, 12, 17, 16])
+
+    def test_num_elems1d_x(self):
+        shape = (5, 3)
+        np.testing.assert_equal(mesh.GridQ4._num_elems1dh(shape), 12)
+
+    def test_elem1d_nodes(self):
+        shape = (5, 3)
+        e = 5
+        np.testing.assert_array_equal(mesh.GridQ4._elem1d_nodes(e, shape),
+                                      [6, 7, 7, 6])
+        e = 19
+        np.testing.assert_array_equal(mesh.GridQ4._elem1d_nodes(e, shape),
+                                      [8, 8, 13, 13])
+
+    def test_inlines(self):
+        self.assertTrue(self.mesh._inhline(7, 8))
+        self.assertFalse(self.mesh._inhline(7, 13))
+        self.assertTrue(self.mesh._invline(1, 6))
+        self.assertFalse(self.mesh._invline(7, 8))
+
+    def test_find_elems_between_0d(self):
+        c1 = np.array([8, 0])
+        c2 = np.array([8, 0])
+        expected = mesh.ElementSet(0, {2: np.array([c1, c1, c1, c1])})
+        result = self.mesh.find_elems_between(c1, c2)
+        np.testing.assert_equal(result, expected)
+
+    def test_find_elems_between_1d_hor(self):
+        c1 = np.array([8, 0])
+        c2 = np.array([16, 0])
+        c3 = np.array([12, 0])
+        expected = mesh.ElementSet(1, {2: np.array([c1, c3, c3, c1]),
+                                       3: np.array([c3, c2, c2, c3])})
+        result = self.mesh.find_elems_between(c1, c2)
+        np.testing.assert_equal(result, expected)
+
+    def test_find_elems_between_1d_ver(self):
+        c1 = np.array([8, 0])
+        c2 = np.array([8, 2])
+        c3 = np.array([8, 1])
+        expected = mesh.ElementSet(1, {16: np.array([c1, c1, c3, c3]),
+                                       17: np.array([c3, c3, c2, c2])})
+        result = self.mesh.find_elems_between(c1, c2)
+        np.testing.assert_equal(result, expected)
+
+    def test_find_elems_between_2d(self):
+        c1 = np.array([8, 0])
+        c2 = np.array([16, 2])
+        expected = set([2, 3, 6, 7])
+        result = self.mesh.find_elems_between(c1, c2)
+        np.testing.assert_equal(result.dimension, 2)
+        np.testing.assert_equal(set(result.elems), expected)
+
+
+class TestMeshGlobals(unittest.TestCase):
     def setUp(self):
         self.L = 16
         self.c = 2
@@ -51,13 +125,4 @@ class test_fem_util(unittest.TestCase):
             self.assertEqual(mesh.find_node(coords, self.nodes_coords), n)
         with self.assertRaises(ValueError):
             mesh.find_node(np.array([-50, -50]), self.nodes_coords)
-
-    def test_elem_nodes(self):
-        e = 0
-        num_elems_x = 4
-        np.testing.assert_array_equal(mesh.GridQ4._elem_nodes(e, num_elems_x),
-                                      [0, 1, 6, 5])
-        e = 9
-        np.testing.assert_array_equal(mesh.GridQ4._elem_nodes(e, num_elems_x),
-                                      [11, 12, 17, 16])
 
