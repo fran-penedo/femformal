@@ -8,9 +8,13 @@ logger = logging.getLogger(__name__)
 class Element(object):
     def __init__(self, coords):
         self.coords = coords
+        self.dimension = self.coords.shape[1]
 
     def interpolate(self, values, coords):
         return self.shapes(*coords).dot(np.array(values))
+
+    def interpolate_derivatives(self, values, coords):
+        return self.shapes_derivatives(*coords).dot(np.array(values))
 
     @staticmethod
     def shapes(*parameters):
@@ -19,6 +23,7 @@ class Element(object):
     @staticmethod
     def shapes_derivatives(*parameters):
         raise NotImplementedError()
+
 
 class BLQuadQ4(Element):
     def __init__(self, coords):

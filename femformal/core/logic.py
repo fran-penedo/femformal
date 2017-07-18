@@ -6,7 +6,6 @@ from pyparsing import Word, Literal, MatchFirst, nums, alphas
 from stlmilp import stl as stl
 
 from . import system as sys
-from .fem import mesh as mesh
 from .util import state_label, label, unlabel
 
 
@@ -44,7 +43,7 @@ class APDisc(object):
             self.region_dim = region_dim
         else:
             self.region_dim = region_dim
-            self.isnode = not bool(region_dim)
+            self.isnode = region_dim == 0
 
         # m : i -> (p((x_i + x_{i+1})/2) if not isnode else i -> p(x_i),
         # dp(.....))
@@ -92,11 +91,6 @@ def ap_cont_to_disc(apcont, xpart):
         isnode = False
     return APDisc(r, m, isnode, apcont.uderivs)
 
-
-def perturb(formula, eps):
-    return stl.perturb(formula, eps)
-
-
 def ap_cont2d_to_disc(apcont, mesh_, build_elem):
     region = apcont.A
 
@@ -111,6 +105,10 @@ def ap_cont2d_to_disc(apcont, mesh_, build_elem):
     return APDisc(
         apcont.r, m, u_comp=apcont.u_comp, uderivs=apcont.uderivs,
         region_dim=elem_set.dimension)
+
+
+def perturb(formula, eps):
+    return stl.perturb(formula, eps)
 
 def scale_time(formula, dt):
     formula.bounds = [int(b / dt) for b in formula.bounds]
@@ -139,7 +137,7 @@ def csystem_robustness(spec, system, d0, dt):
     return stl.robustness(spec, model)
 
 
-def _Build_f(p, op, isnode, uderivs, elem_len):
+def _build_f(p, op, isnode, uderivs, elem_len):
     if isnode:
         return lambda vs: (vs[0] - p) * (-1 if op == stl.LE else 1)
     else:
@@ -148,25 +146,46 @@ def _Build_f(p, op, isnode, uderivs, elem_len):
         elif uderivs == 1:
             return lambda vs: ((vs[1] - vs[0]) / elem_len - p) * (-1 if op == stl.LE else 1)
 
+def _build_f_elem(p, op, uderivs, elem):
+    if uderivs == 0:
+        return lambda vs: (elem.interpolate(vs, [0 for i in range(elem.dimension)])
+                           - p) * (-1 if op == stl.LE else 1)
+    else:
+        return lambda vs: (elem.interpolate_derivatives(vs, [0 for i in range(elem.dimension)])
+                           - p) * (-1 if op == stl.LE else 1)
+
 class SysSignal(stl.Signal):
-    def __init__(self, index, op, p, dp, isnode, uderivs, xpart=None,
-                 fdt_mult=1, bounds=None):
+    def __init__(self, index, op, p, dp, isnode, uderivs, u_comp=0, region_dim=None,
+                 xpart=None, fdt_mult=1, bounds=None, mesh_=None, build_elem=None):
         self.index = index
         self.op = op
         self.p = p
         self.dp = dp
-        self.isnode = isnode
+        self.region_dim = region_dim
+        if region_dim is not None:
+            self.isnode = region_dim == 0
+        else:
+            self.isnode = isnode
         self.uderivs = uderivs
         self.fdt_mult = fdt_mult
+        self.u_comp = u_comp
+        self.mesh_ = mesh_
+        self.build_elem = build_elem
 
-        if isnode:
-            self.labels = [lambda t: label("d", self.index, t)]
-            self.elem_len = 0
+        if self.region_dim is None:
+            if self.isnode:
+                self.labels = [lambda t: label("d", self.u_comp * self.index, t)]
+                self.elem_len = 0
+            else:
+                self.labels = [(lambda t, i=i: label("d", self.index + i, t)) for i in range(2)]
+                self.elem_len = xpart[index + 1] - xpart[index]
+            self.f = _build_f(self.p, self.op, self.isnode, self.uderivs, self.elem_len)
         else:
-            self.labels = [(lambda t, i=i: label("d", self.index + i, t)) for i in range(2)]
-            self.elem_len = xpart[index + 1] - xpart[index]
+            self.labels = [(lambda t, i=i: label("d", self.u_comp + 2 * i, t))
+                            for i in mesh_.elem_nodes(self.index, self.region_dim)]
+            self.elem = build_elem(mesh_.elem_coords(self.index, self.region_dim))
+            self.f = _build_f_elem(self.p, self.op, self.uderivs, self.elem)
 
-        self.f = _Build_f(p, op, isnode, uderivs, self.elem_len)
         if bounds is None:
             self.bounds = [-1000, 1000]
         else:
@@ -176,22 +195,32 @@ class SysSignal(stl.Signal):
     def perturb(self, eps):
         pert = -eps(self.index, self.isnode, self.dp, self.uderivs)
         self.p = self.p + (pert if self.op == stl.LE else -pert)
-        self.f = _Build_f(self.p, self.op, self.isnode, self.uderivs, self.elem_len)
+        if self.region_dim is None:
+            self.f = _build_f(self.p, self.op, self.isnode, self.uderivs, self.elem_len)
+        else:
+            self.f = _build_f_elem(self.p, self.op, self.uderivs, self.elem)
 
     def signal(self, model, t):
         return super(SysSignal, self).signal(model, t * self.fdt_mult)
 
     def __str__(self):
-        return "{isnode} {uderivs} {index} {op} {p} {dp}".format(
-            isnode="d" if self.isnode else "y", uderivs=self.uderivs,
-            index=self.index, op="<" if self.op == stl.LE else ">",
-            p=self.p, dp=self.dp)
+        if self.region_dim is None:
+            return "{isnode} {uderivs} {index} {op} {p} {dp}".format(
+                isnode="d" if self.isnode else "y", uderivs=self.uderivs,
+                index=self.index, op="<" if self.op == stl.LE else ">",
+                p=self.p, dp=self.dp)
+        else:
+            return "{region_dim} {u_comp} {uderivs} {index} {op} {p} {dp}".format(
+                region_dim=self.region_dim, uderivs=self.uderivs, index=self.index,
+                op="<" if self.op ==stl.LE else ">", p=self.p, dp=self.dp,
+                u_comp=self.u_comp
+            )
 
     def __repr__(self):
         return self.__str__()
 
 
-def expr_parser(xpart=None, fdt_mult=1, bounds=None):
+def expr_parser(xpart=None, fdt_mult=1, bounds=None, mesh_=None, build_elem=None):
     num = stl.num_parser()
 
     T_LE = Literal("<")
@@ -200,14 +229,26 @@ def expr_parser(xpart=None, fdt_mult=1, bounds=None):
     integer = Word(nums).setParseAction(lambda t: int(t[0]))
     isnode = Word(alphas).setParseAction(lambda t: t == "d")
     relation = (T_LE | T_GR).setParseAction(lambda t: stl.LE if t[0] == "<" else stl.GT)
-    expr = isnode + integer + integer + relation + num + num
-    expr.setParseAction(lambda t: SysSignal(t[2], t[3], t[4], t[5], t[0], t[1],
-                                            xpart=xpart, fdt_mult=fdt_mult, bounds=bounds))
+    if xpart is not None:
+        if mesh_ is not None or build_elem is not None:
+            raise Exception("Expected either xpart or mesh_/build_elem args")
+        expr = isnode + integer + integer + relation + num + num
+        expr.setParseAction(lambda t: SysSignal(
+            t[2], t[3], t[4], t[5], t[0], t[1], xpart=xpart, fdt_mult=fdt_mult,
+            bounds=bounds))
+    else:
+        if mesh_ is None or build_elem is None:
+            raise Exception("Expected either xpart or mesh_/build_elem args")
+        expr = integer + integer + integer + integer + relation + num + num
+        expr.setParseAction(lambda t: SysSignal(
+            t[3], t[4], t[5], t[6], False, t[2], u_comp=t[1], region_dim=t[0],
+            fdt_mult=fdt_mult, bounds=bounds, mesh_=mesh_, build_elem=build_elem))
 
     return expr
 
-def stl_parser(xpart=None, fdt_mult=1, bounds=None):
-    stl_parser = MatchFirst(stl.stl_parser(expr_parser(xpart, fdt_mult, bounds), True))
+def stl_parser(xpart=None, fdt_mult=1, bounds=None, mesh_=None, build_elem=None):
+    stl_parser = MatchFirst(
+        stl.stl_parser(expr_parser(xpart, fdt_mult, bounds, mesh_, build_elem), True))
     return stl_parser
 
 

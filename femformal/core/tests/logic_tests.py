@@ -17,9 +17,9 @@ class test_logic(unittest.TestCase):
         self.xpart = np.linspace(0, 5, 11)
         self.apd1_string = "((y 1 1 < 5.0 10.0) & (y 1 2 < 6.0 10.0))"
         self.form = "G_[0, 1] ({})".format(self.apd1_string)
-        self.signal1 = logic.SysSignal(1, stl.GT, 5.0, 10.0, False, 1, self.xpart, 2, [-1000, 1000])
-        self.signal2 = logic.SysSignal(1, stl.LE, 5.0, 10.0, False, 0, self.xpart, 2, [-1000, 1000])
-        self.signal3 = logic.SysSignal(1, stl.LE, 5.0, 10.0, True, 0, self.xpart, 2, [-1000, 1000])
+        self.signal1 = logic.SysSignal(1, stl.GT, 5.0, 10.0, False, 1, xpart=self.xpart, fdt_mult=2, bounds=[-1000, 1000])
+        self.signal2 = logic.SysSignal(1, stl.LE, 5.0, 10.0, False, 0, xpart=self.xpart, fdt_mult=2, bounds=[-1000, 1000])
+        self.signal3 = logic.SysSignal(1, stl.LE, 5.0, 10.0, True, 0, xpart=self.xpart, fdt_mult=2, bounds=[-1000, 1000])
 
         self.L = 16
         self.c = 2
@@ -28,6 +28,9 @@ class test_logic(unittest.TestCase):
         nodes_coords = np.array(sorted(cartesian_product(self.xs, self.ys),
                                        key=lambda x: x[1]))
         self.mesh = mesh.GridQ4(nodes_coords, (len(self.xs), len(self.ys)))
+        self.build_elem = element.BLQuadQ4
+        self.signal4 = logic.SysSignal(1, stl.GT, 5.0, 10.0, False, 0, region_dim=2,
+                             mesh_=self.mesh, build_elem=element.BLQuadQ4)
 
 
     def test_apc_to_apd(self):
@@ -62,6 +65,18 @@ class test_logic(unittest.TestCase):
         self.assertEqual(s2.fdt_mult, fdt_mult)
         self.assertEqual(s2.bounds, bounds)
 
+    def test_expr_parser_2d(self):
+        fdt_mult = 2
+        bounds = [-1000, 1000]
+        parser = logic.stl_parser(None, fdt_mult, bounds, self.mesh, self.build_elem)
+        pred = "2 0 0 1 > 5.0 10.0"
+        form = parser.parseString("(" + pred + ")")[0]
+        s4 = form.args[0]
+
+        self.assertEqual(str(s4), pred)
+        self.assertEqual(s4.fdt_mult, fdt_mult)
+        self.assertEqual(s4.bounds, bounds)
+
     def test_syssignal(self):
         self.assertEqual(self.signal1.labels[0](5), "d_1_5")
         self.assertEqual(self.signal1.labels[1](5), "d_2_5")
@@ -74,6 +89,8 @@ class test_logic(unittest.TestCase):
         self.assertEqual(self.signal1.f([2.0, 4.0]), -2.0)
         self.signal2.perturb(lambda a, b, c, d: 1.0)
         self.assertEqual(self.signal2.f([2.0, 4.0]), 1.0)
+        self.signal4.perturb(lambda a, b, c, d: 1.0)
+        self.assertEqual(self.signal4.f([1,2,3,4]), -3.5)
 
     def test_scale_time(self):
         fdt_mult = 2
@@ -99,3 +116,39 @@ class test_logic(unittest.TestCase):
         for k in apd.m.keys():
             npt.assert_almost_equal(apd.m[k][0], expected_map[k][0])
             npt.assert_array_almost_equal(apd.m[k][1], expected_map[k][1])
+
+    def test_syssignal_2d_full(self):
+        s1 = logic.SysSignal(1, stl.GT, 5.0, 10.0, False, 0, region_dim=2,
+                             mesh_=self.mesh, build_elem=element.BLQuadQ4)
+        expected_labels = ["d_2_5", "d_4_5", "d_14_5", "d_12_5"]
+        self.assertListEqual([l(5) for l in s1.labels], expected_labels)
+        vs = [1,2,3,4]
+        expected_f = np.mean(vs) - 5.0
+        npt.assert_equal(s1.f(vs), expected_f)
+
+    def test_syssignal_2d_hor(self):
+        s1 = logic.SysSignal(1, stl.LE, 5.0, 10.0, False, 0, region_dim=1,
+                             mesh_=self.mesh, build_elem=element.BLQuadQ4)
+        expected_labels = ["d_2_5", "d_4_5", "d_4_5", "d_2_5"]
+        self.assertListEqual([l(5) for l in s1.labels], expected_labels)
+        vs = [1,2,2,1]
+        expected_f = 5.0 - np.mean(vs)
+        npt.assert_equal(s1.f(vs), expected_f)
+
+    def test_syssignal_2d_ver(self):
+        s1 = logic.SysSignal(14, stl.LE, 5.0, 10.0, False, 0, region_dim=1,
+                             u_comp=1, mesh_=self.mesh, build_elem=element.BLQuadQ4)
+        expected_labels = ["d_3_5", "d_3_5", "d_13_5", "d_13_5"]
+        self.assertListEqual([l(5) for l in s1.labels], expected_labels)
+        vs = [1,1,2,2]
+        expected_f = 5.0 - np.mean(vs)
+        npt.assert_equal(s1.f(vs), expected_f)
+
+    def test_syssignal_2d_point(self):
+        s1 = logic.SysSignal(5, stl.LE, 5.0, 10.0, False, 0, region_dim=0,
+                             u_comp=1, mesh_=self.mesh, build_elem=element.BLQuadQ4)
+        expected_labels = ["d_11_5", "d_11_5", "d_11_5", "d_11_5"]
+        self.assertListEqual([l(5) for l in s1.labels], expected_labels)
+        vs = [2,2,2,2]
+        expected_f = 5.0 - np.mean(vs)
+        npt.assert_equal(s1.f(vs), expected_f)
