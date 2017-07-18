@@ -26,7 +26,12 @@ def run_abstract(m, args):
 def run_milp(m, args):
     # logger.debug(m.system)
     start = timer()
-    res = verify_singleton(m.dsystem, m.d0, m.spec, m.fdt_mult)
+    if hasattr(m, 'cs'):
+        container = m.cs
+    else:
+        container = m
+    res = verify_singleton(
+        container.dsystem, container.d0, container.spec, container.fdt_mult)
     finish = timer()
     print 'Res: {}'.format(res)
     print 'Time {}'.format(finish - start)

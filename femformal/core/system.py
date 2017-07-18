@@ -98,11 +98,18 @@ class FOSystem(object):
 
 class SOSystem(object):
 
-    def __init__(self, M, K, F, xpart=None, dt=1.0):
+    def __init__(self, M, K, F, xpart=None, dt=1.0, mesh=None, build_elem=None):
         self.M = M
         self._K = K
         self.F = F
+        xpart_given = xpart is not None
+        mesh_given = mesh is not None and build_elem is not None
+        if xpart_given and mesh_given:
+            raise Exception("Expected either xpart or mesh/build_elem")
+
         self.xpart = xpart
+        self.mesh = mesh
+        self.build_elem = build_elem
         self.dt = dt
 
     def to_fosystem(self):

@@ -38,12 +38,8 @@ class APDisc(object):
     def __init__(self, r, m, isnode = True, uderivs = 0, region_dim = 0, u_comp = 0):
         # r == 1: f < p, r == -1: f > p
         self.r = r
-        if not isnode or region_dim == 0:
-            self.isnode = isnode
-            self.region_dim = region_dim
-        else:
-            self.region_dim = region_dim
-            self.isnode = region_dim == 0
+        self.region_dim = region_dim
+        self.isnode = region_dim == 0
 
         # m : i -> (p((x_i + x_{i+1})/2) if not isnode else i -> p(x_i),
         # dp(.....))
@@ -53,11 +49,15 @@ class APDisc(object):
 
     def __str__(self):
         return "({})".format(" & ".join(
-            ["({isnode} {uderivs} {index} {op} {p} {dp})".format(
-                isnode="d" if self.isnode else "y", uderivs=self.uderivs,
-                index=i, op="<" if self.r == 1 else ">",
-                p=p, dp=dp) for (i, (p, dp)) in self.m.items()]))
-
+                ["({region_dim} {u_comp} {uderivs} {index} {op} {p} {dp})".format(
+                    region_dim=self.region_dim,
+                    u_comp=self.u_comp,
+                    uderivs=self.uderivs,
+                    index=i,
+                    op="<" if self.r == 1 else ">",
+                    p=p,
+                    dp=dp
+                ) for (i, (p, dp)) in self.m.items()]))
 
 def subst_spec_labels_disc(spec, regions):
     res = spec
@@ -77,6 +77,7 @@ def ap_cont_to_disc(apcont, xpart):
         i = min(max(bisect_left(xpart, apcont.A[0]), 0), N1 - 1)
         m = {i - 1: (apcont.p(xpart[i]), apcont.dp(xpart[i]))}
         isnode = True
+        region_dim = 0
     else:
         if apcont.uderivs > 1:
             raise Exception(
@@ -89,7 +90,8 @@ def ap_cont_to_disc(apcont, xpart):
                   apcont.dp((xpart[i] + xpart[i+1]) / 2.0))
              for i in range(i_min, i_max)}
         isnode = False
-    return APDisc(r, m, isnode, apcont.uderivs)
+        region_dim = 1
+    return APDisc(r, m, isnode, apcont.uderivs, region_dim=region_dim)
 
 def ap_cont2d_to_disc(apcont, mesh_, build_elem):
     region = apcont.A
@@ -155,24 +157,22 @@ def _build_f_elem(p, op, uderivs, elem):
                            - p) * (-1 if op == stl.LE else 1)
 
 class SysSignal(stl.Signal):
-    def __init__(self, index, op, p, dp, isnode, uderivs, u_comp=0, region_dim=None,
+    def __init__(self, index, op, p, dp, isnode, uderivs, u_comp=0, region_dim=0,
                  xpart=None, fdt_mult=1, bounds=None, mesh_=None, build_elem=None):
         self.index = index
         self.op = op
         self.p = p
         self.dp = dp
         self.region_dim = region_dim
-        if region_dim is not None:
-            self.isnode = region_dim == 0
-        else:
-            self.isnode = isnode
+        self.isnode = region_dim == 0
         self.uderivs = uderivs
         self.fdt_mult = fdt_mult
         self.u_comp = u_comp
+        self.xpart = xpart
         self.mesh_ = mesh_
         self.build_elem = build_elem
 
-        if self.region_dim is None:
+        if self.xpart is not None:
             if self.isnode:
                 self.labels = [lambda t: label("d", self.u_comp * self.index, t)]
                 self.elem_len = 0
@@ -195,7 +195,7 @@ class SysSignal(stl.Signal):
     def perturb(self, eps):
         pert = -eps(self.index, self.isnode, self.dp, self.uderivs)
         self.p = self.p + (pert if self.op == stl.LE else -pert)
-        if self.region_dim is None:
+        if self.xpart is not None:
             self.f = _build_f(self.p, self.op, self.isnode, self.uderivs, self.elem_len)
         else:
             self.f = _build_f_elem(self.p, self.op, self.uderivs, self.elem)
@@ -204,17 +204,15 @@ class SysSignal(stl.Signal):
         return super(SysSignal, self).signal(model, t * self.fdt_mult)
 
     def __str__(self):
-        if self.region_dim is None:
-            return "{isnode} {uderivs} {index} {op} {p} {dp}".format(
-                isnode="d" if self.isnode else "y", uderivs=self.uderivs,
-                index=self.index, op="<" if self.op == stl.LE else ">",
-                p=self.p, dp=self.dp)
-        else:
-            return "{region_dim} {u_comp} {uderivs} {index} {op} {p} {dp}".format(
-                region_dim=self.region_dim, uderivs=self.uderivs, index=self.index,
-                op="<" if self.op ==stl.LE else ">", p=self.p, dp=self.dp,
-                u_comp=self.u_comp
-            )
+        return "{region_dim} {u_comp} {uderivs} {index} {op} {p} {dp}".format(
+            region_dim=self.region_dim,
+            uderivs=self.uderivs,
+            index=self.index,
+            op="<" if self.op ==stl.LE else ">",
+            p=self.p,
+            dp=self.dp,
+            u_comp=self.u_comp,
+        )
 
     def __repr__(self):
         return self.__str__()
@@ -227,22 +225,22 @@ def expr_parser(xpart=None, fdt_mult=1, bounds=None, mesh_=None, build_elem=None
     T_GR = Literal(">")
 
     integer = Word(nums).setParseAction(lambda t: int(t[0]))
-    isnode = Word(alphas).setParseAction(lambda t: t == "d")
     relation = (T_LE | T_GR).setParseAction(lambda t: stl.LE if t[0] == "<" else stl.GT)
-    if xpart is not None:
-        if mesh_ is not None or build_elem is not None:
-            raise Exception("Expected either xpart or mesh_/build_elem args")
-        expr = isnode + integer + integer + relation + num + num
-        expr.setParseAction(lambda t: SysSignal(
-            t[2], t[3], t[4], t[5], t[0], t[1], xpart=xpart, fdt_mult=fdt_mult,
-            bounds=bounds))
-    else:
-        if mesh_ is None or build_elem is None:
-            raise Exception("Expected either xpart or mesh_/build_elem args")
-        expr = integer + integer + integer + integer + relation + num + num
-        expr.setParseAction(lambda t: SysSignal(
-            t[3], t[4], t[5], t[6], False, t[2], u_comp=t[1], region_dim=t[0],
-            fdt_mult=fdt_mult, bounds=bounds, mesh_=mesh_, build_elem=build_elem))
+    expr = integer + integer + integer + integer + relation + num + num
+    expr.setParseAction(lambda t: SysSignal(
+        index=t[3],
+        op=t[4],
+        p=t[5],
+        dp=t[6],
+        isnode=False,
+        uderivs=t[2],
+        u_comp=t[1],
+        region_dim=t[0],
+        fdt_mult=fdt_mult,
+        bounds=bounds,
+        mesh_=mesh_,
+        build_elem=build_elem,
+        xpart=xpart))
 
     return expr
 

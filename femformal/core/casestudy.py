@@ -20,14 +20,22 @@ def build_cs(system, d0, g, cregions, cspec, fdt_mult=1, bounds=None,
         dsystem.dt = dt
         dsystem.xpart = xpart
     else:
-        dsystem = None
+        dsystem = system
 
     if cspec is not None:
-        regions = {label: logic.ap_cont_to_disc(pred, xpart)
-                for label, pred in cregions.items()}
+        if xpart is not None:
+            apc_to_apd = lambda pred: logic.ap_cont_to_disc(pred, xpart)
+        else:
+            apc_to_apd = lambda pred: logic.ap_cont2d_to_disc(pred, system.mesh, system.build_elem)
+        regions = {label: apc_to_apd(pred) for label, pred in cregions.items()}
         dspec = logic.subst_spec_labels_disc(cspec, regions)
         try:
-            spec = logic.stl_parser(xpart, fdt_mult, bounds).parseString(dspec)[0]
+            if xpart is not None:
+                spec = logic.stl_parser(xpart, fdt_mult, bounds).parseString(dspec)[0]
+            else:
+                spec = logic.stl_parser(
+                        None, fdt_mult, bounds, system.mesh, system.build_elem
+                    ).parseString(dspec)[0]
         except Exception as e:
             logger.exception("Error while parsing specification:\n{}\n".format(dspec))
             raise e
@@ -59,11 +67,18 @@ def build_cs(system, d0, g, cregions, cspec, fdt_mult=1, bounds=None,
         if nu is not None and nu_xderiv is not None:
             mn = [nu, nu_xderiv]
         else:
-            mn = [[0.0 for i in range(len(xpart) - 1)] for i in range(2)]
+            if xpart is not None:
+                mn = [[0.0 for i in range(len(xpart) - 1)] for i in range(2)]
+            else:
+                mn = [[0.0 for i in range(system.mesh.nnodes - 1)] for i in range(2)]
 
-        kn = lambda i, isnode, dmu, uderivs: (
-            fdt_mult * (mn[uderivs][i] if isnode else
-                        ((mn[uderivs][i] + mn[uderivs][i+1]) / 2.0)))
+        if xpart is not None:
+            kn = lambda i, isnode, dmu, uderivs: (
+                fdt_mult * (mn[uderivs][i] if isnode else
+                            ((mn[uderivs][i] + mn[uderivs][i+1]) / 2.0)))
+        else:
+            kn = lambda i, isnode, dmu, uderivs: 0.0
+
         logic.perturb(spec, kd)
         logic.perturb(spec, ke)
         logic.perturb(spec, kn)

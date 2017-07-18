@@ -1,7 +1,7 @@
 import numpy as np
 
-from femformal.core import system as sys, draw_util as draw
-from femformal.core.fem import mech2d as mech2d
+from femformal.core import logic, casestudy
+from femformal.core.fem import mech2d
 
 
 length = 16
@@ -32,11 +32,12 @@ def g(x, y):
 dt = 0.01
 T = 50.0
 sosys = mech2d.mech2d(xs, ys, rho, C, g, force, dt)
-
 d0, v0 = mech2d.state(u0, du0, sosys.mesh.nodes_coords, g)
 
-d, v = sys.newm_integrate(sosys, d0, v0, T, dt)
+apc1 = logic.APCont2D(1, np.array([[16, 0], [16, 2]]), '<', lambda x, y: -30e-6, lambda x, y: 0.0)
+cregions = {'A': apc1}
+cspec = "(F_[3.0, 5.0] (A))"
+bounds = [-1e-3, 1e-3]
 
-ts = np.arange(0, T + 1e-7, dt)
-
-draw.draw_2d_pde_trajectory(d, sosys.mesh.nodes_coords, sosys.mesh.elems_nodes, ts)
+cs = casestudy.build_cs(sosys, [d0, v0], g, cregions, cspec,
+                        discretize_system=False, bounds=bounds)
