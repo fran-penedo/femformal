@@ -21,7 +21,8 @@ class Mesh(object):
             x = np.array(args)
             e = self.find_containing_elem(x)
             d_elem = d[self.elem_nodes(e)]
-            return self.elements[e].interpolate(d_elem, x)
+            logger.debug((e, d_elem))
+            return self.elements[e].interpolate_phys(d_elem, x)
 
         return _interp
 
@@ -76,7 +77,7 @@ class GridQ4(GridMesh):
         self.elems1d_nodes = np.array(
             [GridQ4._elem1d_nodes(e, self.shape)
              for e in range(2 * self.nnodes - np.sum(self.shape))])
-        self._build_elem = build_elem
+        self.build_elem = build_elem
 
     @property
     def build_elem(self):
