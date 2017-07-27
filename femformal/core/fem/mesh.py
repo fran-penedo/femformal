@@ -1,5 +1,6 @@
 import logging
 import itertools
+from bisect import bisect_right
 
 import numpy as np
 
@@ -7,10 +8,9 @@ import numpy as np
 logger = logging.getLogger(__name__)
 
 class Mesh(object):
-    def __init__(self, nodes_coords, build_elem):
+    def __init__(self, nodes_coords):
         nodes_coords = nodes_coords[np.lexsort(nodes_coords.T)]
         self.nodes_coords = nodes_coords
-        self.build_elem = build_elem
 
     @property
     def nnodes(self):
@@ -33,9 +33,11 @@ class Mesh(object):
 
 
 class GridMesh(Mesh):
-    def __init__(self, nodes_coords, shape, build_elem):
-        Mesh.__init__(self, nodes_coords, build_elem)
-        shape = np.array(shape)
+    def __init__(self, partitions):
+        nodes_coords = np.array(list(itertools.product(*partitions)))
+        Mesh.__init__(self, nodes_coords)
+        self.partitions = partitions
+        shape = np.array([len(part) for part in partitions])
         if np.prod(shape) != self.nnodes:
             raise ValueError(
                 "Shape {} not compatible with number of nodes {}".format(
@@ -66,14 +68,28 @@ def _flatten_coord(xs, shape):
 
 
 class GridQ4(GridMesh):
-    def __init__(self, nodes_coords, shape, build_elem):
-        GridMesh.__init__(self, nodes_coords, shape, build_elem)
+    def __init__(self, partitions, build_elem):
+        GridMesh.__init__(self, partitions)
         self.nelems = np.prod(self.shape - 1)
         self.elems_nodes = np.array([GridQ4._elem_nodes(e, self.shape[0] - 1)
                                 for e in range(self.nelems)])
         self.elems1d_nodes = np.array(
             [GridQ4._elem1d_nodes(e, self.shape)
              for e in range(2 * self.nnodes - np.sum(self.shape))])
+        self._build_elem = build_elem
+
+    @property
+    def build_elem(self):
+        return self._build_elem
+
+    @build_elem.setter
+    def build_elem(self, value):
+        self._build_elem = value
+        if self._build_elem is not None:
+            self.elements = [self.build_elem(self.elem_coords(e))
+                            for e in range(self.nelems)]
+        else:
+            self.elements = None
 
     def elem_nodes(self, elem, dim=2):
         if dim == 0:
@@ -148,6 +164,23 @@ class GridQ4(GridMesh):
             return ElementSet(2, {i * nelemsx + j: self.elem_coords(i + j, 2)
                                   for i in range(e1 / nelemsx, e2 / nelemsx + 1)
                                   for j in range(e1 % nelemsx, e2 % nelemsx + 1)})
+
+    def find_containing_elem(self, coords):
+        """Returns an arbitrary element containing the point"""
+
+        node_mesh_coords = [bisect_right(self.partitions[i], coords[i]) - 1
+                            for i in range(len(self.partitions))]
+
+        position = 0
+        if node_mesh_coords[0] == len(self.partitions[0]) - 1:
+            position += 1
+        if node_mesh_coords[1] == len(self.partitions[1]) - 1:
+            position +=3
+        if position > 3:
+            position = 2
+
+        vnode = _flatten_coord(node_mesh_coords, self.shape)
+        return find_elem_with_vertex(vnode, position, self.elems_nodes)
 
 
 class ElementSet(object):

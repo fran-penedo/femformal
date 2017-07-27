@@ -25,8 +25,8 @@ class test_logic(unittest.TestCase):
         self.c = 2
         self.xs = np.linspace(0, self.L, 5)
         self.ys = np.linspace(0, self.c, 3)
-        nodes_coords = np.array(list(cartesian_product(self.xs, self.ys)))
-        self.mesh = mesh.GridQ4(nodes_coords, (len(self.xs), len(self.ys)), None)
+        # nodes_coords = np.array(list(cartesian_product(self.xs, self.ys)))
+        self.mesh = mesh.GridQ4([self.xs, self.ys], None)
         self.build_elem = element.BLQuadQ4
         self.signal4 = logic.SysSignal(1, stl.GT, 5.0, 10.0, False, 0, region_dim=2,
                              mesh_=self.mesh, build_elem=element.BLQuadQ4)
