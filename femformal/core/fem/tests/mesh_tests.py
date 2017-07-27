@@ -1,3 +1,4 @@
+import logging
 import unittest
 from itertools import product as cartesian_product
 
@@ -6,15 +7,18 @@ import numpy as np
 from .. import mesh as mesh
 
 
+logger = logging.getLogger(__name__)
+
 class TestGridQ4(unittest.TestCase):
     def setUp(self):
         self.L = 16
         self.c = 2
         self.xs = np.linspace(0, self.L, 5)
         self.ys = np.linspace(0, self.c, 3)
-        nodes_coords = np.array(sorted(cartesian_product(self.xs, self.ys),
-                                       key=lambda x: x[1]))
-        self.mesh = mesh.GridQ4(nodes_coords, (len(self.xs), len(self.ys)))
+        # nodes_coords = np.array(sorted(cartesian_product(self.xs, self.ys),
+        #                                key=lambda x: x[1]))
+        nodes_coords = np.array(list(cartesian_product(self.xs, self.ys)))
+        self.mesh = mesh.GridQ4(nodes_coords, (len(self.xs), len(self.ys)), None)
 
 
     def test_elem_nodes(self):
@@ -126,3 +130,51 @@ class TestMeshGlobals(unittest.TestCase):
         with self.assertRaises(ValueError):
             mesh.find_node(np.array([-50, -50]), self.nodes_coords)
 
+    def test_flatten_coord(self):
+        l = 0
+        a, b, c = 5, 3, 4
+        shape = (a,b,c)
+        for k in range(c):
+            for j in range(b):
+                for i in range(a):
+                    np.testing.assert_equal(
+                        mesh._flatten_coord([i,j,k], shape), l)
+                    np.testing.assert_array_equal(
+                        mesh._unflatten_coord(l, shape), [i,j,k])
+                    l += 1
+
+class TestGridMesh(unittest.TestCase):
+    def setUp(self):
+        xs = np.linspace(0, 8, 5)
+        ys = np.linspace(0, 6, 3)
+        zs = np.linspace(0, 6, 4)
+        # nodes_coords = np.array(sorted(cartesian_product(self.xs, self.ys),
+        #                                key=lambda x: x[1]))
+        nodes_coords = np.array(list(cartesian_product(xs, ys, zs)))
+        self.mesh = mesh.GridMesh(nodes_coords, (len(xs), len(ys), len(zs)), None)
+
+
+    def test_find_nodes_between(self):
+        c1 = np.array([2, 3, 2])
+        c2 = np.array([4, 6, 4])
+        expected = [21, 22, 26, 27, 36, 37, 41, 42]
+        np.testing.assert_array_equal(self.mesh.find_nodes_between(c1, c2), expected)
+
+class TestMesh(unittest.TestCase):
+    def setUp(self):
+        self.xs = np.linspace(0, 8, 5)
+        self.ys = np.linspace(0, 6, 3)
+        self.zs = np.linspace(0, 6, 4)
+        nodes_coords = np.array(list(cartesian_product(self.xs, self.ys, self.zs)))
+        self.mesh = mesh.Mesh(nodes_coords, None)
+
+
+    def test_sorted_nodes(self):
+        nodes = self.mesh.nodes_coords
+        l = 0
+        for k in range(len(self.zs)):
+            for j in range(len(self.ys)):
+                for i in range(len(self.xs)):
+                    np.testing.assert_array_equal(
+                        nodes[l], [self.xs[i], self.ys[j], self.zs[k]])
+                    l += 1

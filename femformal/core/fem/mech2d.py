@@ -66,8 +66,8 @@ def lumped(m):
 
 
 def grid_mesh(xs, ys):
-    nodes_coords = np.array(sorted(cartesian_product(xs, ys), key=lambda x: x[1]))
-    return mesh.GridQ4(nodes_coords, (len(xs), len(ys)))
+    nodes_coords = np.array(list(cartesian_product(xs, ys)))
+    return mesh.GridQ4(nodes_coords, (len(xs), len(ys)), element.BLQuadQ4)
 
 
 def assemble_into_big_matrix(matrix, elem_matrix, elem_nodes):

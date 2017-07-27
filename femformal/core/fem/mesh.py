@@ -1,4 +1,5 @@
 import logging
+import itertools
 
 import numpy as np
 
@@ -6,23 +7,67 @@ import numpy as np
 logger = logging.getLogger(__name__)
 
 class Mesh(object):
-    def __init__(self, nodes_coords):
+    def __init__(self, nodes_coords, build_elem):
+        nodes_coords = nodes_coords[np.lexsort(nodes_coords.T)]
         self.nodes_coords = nodes_coords
+        self.build_elem = build_elem
 
     @property
     def nnodes(self):
         return self.nodes_coords.shape[0]
 
+    def interpolate(self, d):
+        def _interp(*args):
+            x = np.array(args)
+            e = self.find_containing_elem(x)
+            d_elem = d[self.elem_nodes(e)]
+            return self.elements[e].interpolate(d_elem, x)
 
-class GridQ4(Mesh):
-    def __init__(self, nodes_coords, shape):
-        Mesh.__init__(self, nodes_coords)
+        return _interp
+
+    def find_containing_elem(self, coords):
+        raise NotImplementedError()
+
+    def elem_nodes(self, elem, dim):
+        raise NotImplementedError()
+
+
+class GridMesh(Mesh):
+    def __init__(self, nodes_coords, shape, build_elem):
+        Mesh.__init__(self, nodes_coords, build_elem)
         shape = np.array(shape)
         if np.prod(shape) != self.nnodes:
             raise ValueError(
                 "Shape {} not compatible with number of nodes {}".format(
                     shape, self.nnodes))
         self.shape = shape
+
+    def find_nodes_between(self, coords1, coords2):
+        n1, n2 = [find_node(coords, self.nodes_coords)
+                  for coords in [coords1, coords2]]
+        n1s, n2s = [np.array(_unflatten_coord(n, self.shape)) for n in [n1, n2]]
+        return sorted([_flatten_coord(n1s + off, self.shape) for off in
+                itertools.product(
+                    *[range(n2s[i] - n1s[i] + 1) for i in range(len(n1s))])])
+
+
+def _unflatten_coord(x, shape):
+    i = x % shape[0]
+    if len(shape) == 1:
+        return (i, )
+    else:
+        return (i, ) + _unflatten_coord((x - i) / shape[0], shape[1:])
+
+def _flatten_coord(xs, shape):
+    if len(shape) == 1:
+        return xs[0]
+    else:
+        return xs[0] + shape[0] * _flatten_coord(xs[1:], shape[1:])
+
+
+class GridQ4(GridMesh):
+    def __init__(self, nodes_coords, shape, build_elem):
+        GridMesh.__init__(self, nodes_coords, shape, build_elem)
         self.nelems = np.prod(self.shape - 1)
         self.elems_nodes = np.array([GridQ4._elem_nodes(e, self.shape[0] - 1)
                                 for e in range(self.nelems)])
@@ -134,6 +179,8 @@ class ElementSet(object):
             return not self.__eq__(other)
         return NotImplemented
 
+    def __iter__(self):
+        return self.elems
 
 def find_elem_with_vertex(vnode, position, elems_nodes):
     try:
