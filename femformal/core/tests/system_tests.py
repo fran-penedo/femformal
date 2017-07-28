@@ -3,7 +3,8 @@ import unittest
 
 import numpy as np
 
-from femformal.core import system as sys
+from .. import system as sys
+from ..fem import mesh, element
 
 
 logger = logging.getLogger(__name__)
@@ -121,6 +122,19 @@ class TestComplexSystem(unittest.TestCase):
         y_fo = sys.cont_integrate(fosys, d0 + v0, t_cont)
 
         np.testing.assert_array_almost_equal(d_so[10], y_fo[10,0:sosys.n], decimal=2)
+
+    def test_newmark_constant(self):
+        """Test a constant second order system"""
+
+        xpart = np.linspace(0, 10, 6)
+        xn = len(xpart)
+        xsys = sys.SOSystem(
+            np.zeros((xn, xn)), np.identity(xn), np.zeros(xn), dt=1.0, xpart=xpart)
+        x, _ = sys.newm_integrate(
+            xsys, 1 + np.zeros(xn), np.zeros(xn), 10, xsys.dt)
+        np.testing.assert_array_equal(x.shape, (11, xn))
+        np.testing.assert_equal(np.all(np.isclose(x, 1)), True)
+
 
     def test_pwlf(self):
         self.assertEquals(self.pwlf.ys, [self.pwlf(t) for t in self.pwlf.ts])
@@ -258,4 +272,43 @@ class TestHybridSystem(unittest.TestCase):
         d_hyb, _ = sys.newm_integrate(hysys, d0, v0, its * dt, dt)
 
         np.testing.assert_array_almost_equal(d_hyb, d_sosys)
+
+
+class TestSystemDiff(unittest.TestCase):
+    def setUp(self):
+        xxs = np.linspace(0, 16, 5)
+        yxs = np.linspace(0, 16, 9)
+        xys = np.linspace(0, 2, 3)
+        yys = np.linspace(0, 2, 5)
+        self.xmesh = mesh.GridQ4([xxs, xys], element.BLQuadQ4)
+        self.ymesh = mesh.GridQ4([yxs, yys], element.BLQuadQ4)
+        xn, yn = self.xmesh.nnodes, self.ymesh.nnodes
+        self.T = 10
+        self.xsys = sys.SOSystem(
+            np.zeros((xn, xn)), np.identity(xn), np.zeros(xn), dt=2.0, mesh=self.xmesh)
+        self.ysys = sys.SOSystem(
+            np.zeros((yn, yn)), np.identity(yn), np.zeros(yn), dt=1.0, mesh=self.ymesh)
+        self.x0 = [1 + np.zeros(xn), np.zeros(xn)]
+        self.y0 = [2 + np.zeros(yn), np.zeros(yn)]
+        self.x, _ = sys.newm_integrate(
+            self.xsys, self.x0[0], self.x0[1], self.T, self.xsys.dt)
+        self.y, _ = sys.newm_integrate(
+            self.ysys, self.y0[0], self.y0[1], self.T, self.ysys.dt)
+        self.xlims = np.array([[4, 0], [12, 2]])
+
+
+    def test_diff2d(self):
+        xl, xr = self.xlims
+        diff = sys.diff2d(
+            self.x, self.y, self.xsys.dt, self.ysys.dt, self.xmesh, self.ymesh, xl, xr)
+        np.testing.assert_array_equal(
+            diff.shape, (self.ymesh.nnodes - 4*5, self.x.shape[0]))
+        np.testing.assert_equal(np.all(np.isclose(diff, -1)), True)
+
+
+    def test_sosys_diff_2d(self):
+        np.testing.assert_array_almost_equal(
+            sys.sosys_diff(self.xsys, self.ysys, self.x0, self.y0, [0, self.T], self.xlims),
+            1 + np.zeros((self.ymesh.nnodes - 4*5, 1 + int(round(self.T / self.xsys.dt)))))
+
 

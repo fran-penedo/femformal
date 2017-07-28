@@ -17,11 +17,15 @@ class Mesh(object):
         return self.nodes_coords.shape[0]
 
     def interpolate(self, d):
+        if d.shape[0] != self.nnodes:
+            raise ValueError("Interpolating values do not agree with number of "
+                             "nodes: nvalues = {}, nnnodes = {}".format(
+                                 d.shape[0], self.nnodes))
         def _interp(*args):
             x = np.array(args)
             e = self.find_containing_elem(x)
             d_elem = d[self.elem_nodes(e)]
-            logger.debug((e, d_elem))
+            # logger.debug((e, d_elem))
             return self.elements[e].interpolate_phys(d_elem, x)
 
         return _interp
@@ -49,9 +53,10 @@ class GridMesh(Mesh):
         n1, n2 = [find_node(coords, self.nodes_coords)
                   for coords in [coords1, coords2]]
         n1s, n2s = [np.array(_unflatten_coord(n, self.shape)) for n in [n1, n2]]
-        return sorted([_flatten_coord(n1s + off, self.shape) for off in
+        nodes = [_flatten_coord(n1s + off, self.shape) for off in
                 itertools.product(
-                    *[range(n2s[i] - n1s[i] + 1) for i in range(len(n1s))])])
+                    *[range(n2s[i] - n1s[i] + 1) for i in range(len(n1s))])]
+        return ElementSet(0, {n: self.nodes_coords[n] for n in nodes})
 
 
 def _unflatten_coord(x, shape):
@@ -191,7 +196,7 @@ class ElementSet(object):
 
     @property
     def elems(self):
-        return self.elem_coords_map.keys()
+        return sorted(self.elem_coords_map.keys())
 
     def __getitem__(self, el):
         return self.elem_coords_map[el]
@@ -214,7 +219,8 @@ class ElementSet(object):
         return NotImplemented
 
     def __iter__(self):
-        return self.elems
+        return iter(self.elem_coords_map.items())
+
 
 def find_elem_with_vertex(vnode, position, elems_nodes):
     try:

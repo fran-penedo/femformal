@@ -175,7 +175,7 @@ class TestGridMesh(unittest.TestCase):
         c1 = np.array([2, 3, 2])
         c2 = np.array([4, 6, 4])
         expected = [21, 22, 26, 27, 36, 37, 41, 42]
-        np.testing.assert_array_equal(self.mesh.find_nodes_between(c1, c2), expected)
+        np.testing.assert_array_equal(self.mesh.find_nodes_between(c1, c2).elems, expected)
 
 
 class TestMesh(unittest.TestCase):

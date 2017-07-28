@@ -25,6 +25,8 @@ class TestGridQ4BLQuad(unittest.TestCase):
         interp = self.mesh.interpolate(dd)
         np.testing.assert_array_almost_equal(
             interp(2, 0.5), [np.mean([0, 1, 5, 6]), np.mean([1, 2, 6, 7])])
+        for i in range(self.mesh.nnodes):
+            np.testing.assert_array_almost_equal(interp(*self.mesh.nodes_coords[i]), dd[i])
 
 
 

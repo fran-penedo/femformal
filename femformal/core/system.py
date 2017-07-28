@@ -370,8 +370,16 @@ def newm_integrate(sosys, d0, v0, T, dt=.1):
     its = int(round(T / dt))
     d = np.array(d0)
     v = np.array(v0)
+    if d.shape != v.shape or d.shape != (sosys.n,):
+        raise ValueError("System and initial value shapes do not agree: "
+                         "system dimension = {}, d shape = {}, v shape = {}".format(
+                             sosys.n, d.shape, v.shape))
     a = np.zeros(d.shape[0])
-    solve_m = _factorize(M)
+    try:
+        solve_m = _factorize(M)
+    except ValueError:
+        logger.info("Integrating M = 0 system")
+        solve_m = lambda x: np.zeros(len(n_e))
     try:
         f_nodal_c = f_nodal(0)[n_e]
     except TypeError:
@@ -435,6 +443,7 @@ def diff(x, y, dtx, dty, xpart, ypart, xl, xr, pwc=False):
     if dty > dtx:
         x, y = y, x
         dtx, dty = dty, dtx
+        xpart, ypart = ypart, xpart
 
     yy = y[::int(round(dtx / dty))]
     yl = bisect_left(ypart, xl)
@@ -448,6 +457,19 @@ def diff(x, y, dtx, dty, xpart, ypart, xl, xr, pwc=False):
         xinter = linterx(x, xpart)
         yinter = linterx(yy, ypart)
         d = np.array([xinter(z) - yinter(z) for z in ypart[yl:yr]]).T
+    return d
+
+def diff2d(x, y, dtx, dty, xmesh, ymesh, xl, xr):
+    if dty > dtx:
+        x, y = y, x
+        dtx, dty = dty, dtx
+        xmesh, ymesh = ymesh, xmesh
+
+    yy = y[::int(round(dtx / dty))]
+    xinter = xmesh.interpolate(x.T)
+    yinter = ymesh.interpolate(yy.T)
+    nodes = ymesh.find_nodes_between(xl, xr)
+    d = np.array([xinter(*coords) - yinter(*coords) for _, coords in nodes])
     return d
 
 def sys_diff(xsys, ysys, x0, y0, tlims, xlims, plot=False):
@@ -475,13 +497,21 @@ def sys_diff(xsys, ysys, x0, y0, tlims, xlims, plot=False):
 
 def sosys_diff(xsys, ysys, x0, y0, tlims, xlims, xderiv=False, plot=False):
     dtx, dty = xsys.dt, ysys.dt
-    xpart, ypart = xsys.xpart, ysys.xpart
     t0, T = tlims
     x = newm_integrate(xsys, x0[0], x0[1], T, dtx)[0]
     y = newm_integrate(ysys, y0[0], y0[1], T, dty)[0]
     x = x[int(round(t0/dtx)):]
     y = y[int(round(t0/dty)):]
     # draw.draw_pde_trajectory(x, xpart, np.linspace(0, T, (int(round(T / dtx)))), animate=False)
+    if xsys.xpart is not None:
+        return _sosys_diff_1d(x, y, dtx, dty, xsys.xpart, ysys.xpart, xlims)
+    else:
+        if xderiv > 0:
+            raise NotImplementedError("xderiv > 0 not implemented yet")
+        else:
+            return np.abs(diff2d(x, y, dtx, dty, xsys.mesh, ysys.mesh, xlims[0], xlims[1]))
+
+def _sosys_diff_1d(x, y, dtx, dty, xpart, ypart, xlims):
     if xderiv:
         x = np.true_divide(np.diff(x), np.diff(xpart))
         y = np.true_divide(np.diff(y), np.diff(ypart))
