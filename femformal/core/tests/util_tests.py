@@ -58,3 +58,8 @@ class test_util(object):
 
         # u.draw_ts_2D(ts, partition)
 
+
+    def test_cycle(self):
+        expected = [(0,1,2), (1,2,0), (2,0,1)]
+        for actual, exp in it.izip(u.cycle(3), expected):
+            np.testing.assert_array_equal(list(actual), exp)

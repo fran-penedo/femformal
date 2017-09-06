@@ -274,7 +274,7 @@ class TestHybridSystem(unittest.TestCase):
         np.testing.assert_array_almost_equal(d_hyb, d_sosys)
 
 
-class TestSystemDiff(unittest.TestCase):
+class TestSystemDiff2D1DOF(unittest.TestCase):
     def setUp(self):
         xxs = np.linspace(0, 16, 5)
         yxs = np.linspace(0, 16, 9)
@@ -305,10 +305,64 @@ class TestSystemDiff(unittest.TestCase):
             diff.shape, (self.ymesh.nnodes - 4*5, self.x.shape[0]))
         np.testing.assert_equal(np.all(np.isclose(diff, -1)), True)
 
-
     def test_sosys_diff_2d(self):
         np.testing.assert_array_almost_equal(
             sys.sosys_diff(self.xsys, self.ysys, self.x0, self.y0, [0, self.T], self.xlims),
             1 + np.zeros((self.ymesh.nnodes - 4*5, 1 + int(round(self.T / self.xsys.dt)))))
 
+    def test_sosys_max_der_diff_2d(self):
+        d0 = np.tile(np.arange(5), 3)
+        v0 = np.zeros(self.xmesh.nnodes)
+        mdx, mdtx = sys.sosys_max_der_diff(self.xsys, [d0, v0], [0, self.T])
+        np.testing.assert_array_equal(mdx.shape, (self.xmesh.nelems, 2, 2))
+        np.testing.assert_array_almost_equal(
+            mdx, np.tile([[0.25, 0], [0, 0]], (self.xmesh.nelems, 1, 1)))
+        np.testing.assert_array_equal(mdtx.shape, (self.xmesh.nnodes, ))
 
+
+class TestSystemDiff2D2DOF(unittest.TestCase):
+    def setUp(self):
+        xxs = np.linspace(0, 16, 5)
+        yxs = np.linspace(0, 16, 9)
+        xys = np.linspace(0, 2, 3)
+        yys = np.linspace(0, 2, 5)
+        self.xmesh = mesh.GridQ4([xxs, xys], element.BLQuadQ4)
+        self.ymesh = mesh.GridQ4([yxs, yys], element.BLQuadQ4)
+        xn, yn = 2 * self.xmesh.nnodes, 2 * self.ymesh.nnodes
+        self.T = 10
+        self.xsys = sys.SOSystem(
+            np.zeros((xn, xn)), np.identity(xn), np.zeros(xn), dt=2.0, mesh=self.xmesh)
+        self.ysys = sys.SOSystem(
+            np.zeros((yn, yn)), np.identity(yn), np.zeros(yn), dt=1.0, mesh=self.ymesh)
+        self.x0 = [1 + np.zeros(xn), np.zeros(xn)]
+        self.y0 = [2 + np.zeros(yn), np.zeros(yn)]
+        self.x, _ = sys.newm_integrate(
+            self.xsys, self.x0[0], self.x0[1], self.T, self.xsys.dt)
+        self.y, _ = sys.newm_integrate(
+            self.ysys, self.y0[0], self.y0[1], self.T, self.ysys.dt)
+        self.xlims = np.array([[4, 0], [12, 2]])
+
+
+    def test_diff2d(self):
+        xl, xr = self.xlims
+        diff = sys.diff2d(
+            self.x, self.y, self.xsys.dt, self.ysys.dt, self.xmesh, self.ymesh, xl, xr)
+        np.testing.assert_array_equal(
+            diff.shape, (self.ymesh.nnodes - 4*5, 2, self.x.shape[0]))
+        np.testing.assert_equal(np.all(np.isclose(diff, -1)), True)
+
+    def test_sosys_diff_2d(self):
+        np.testing.assert_array_almost_equal(
+            sys.sosys_diff(self.xsys, self.ysys, self.x0, self.y0, [0, self.T], self.xlims),
+            1 + np.zeros((self.ymesh.nnodes - 4*5, 2, 1 + int(round(self.T / self.xsys.dt)))))
+
+    def test_sosys_max_der_diff_2d(self):
+        d0 = np.zeros(2 * self.xmesh.nnodes)
+        d0[::2] = np.tile(np.arange(5), 3)
+        d0[1::2] = 1 + np.tile(np.arange(5), 3)
+        v0 = np.zeros(2 * self.xmesh.nnodes)
+        mdx, mdtx = sys.sosys_max_der_diff(self.xsys, [d0, v0], [0, self.T])
+        np.testing.assert_array_equal(mdx.shape, (self.xmesh.nelems, 2, 2))
+        np.testing.assert_array_almost_equal(
+            mdx, np.tile([[0.25, 0], [0.25, 0]], (self.xmesh.nelems, 1, 1)))
+        np.testing.assert_array_equal(mdtx.shape, (2 * self.xmesh.nnodes, ))

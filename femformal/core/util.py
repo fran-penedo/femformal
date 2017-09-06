@@ -1,4 +1,5 @@
 import logging
+import itertools
 
 import numpy as np
 
@@ -60,3 +61,9 @@ def project_regions(regions, indices):
         ret[key] = project_list(value, indices)
     return ret
 
+
+def cycle(n):
+    cyc = itertools.cycle(range(n))
+    for i in range(n):
+        yield itertools.islice(cyc, n)
+        cyc.next()

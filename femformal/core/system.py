@@ -466,11 +466,12 @@ def diff2d(x, y, dtx, dty, xmesh, ymesh, xl, xr):
         xmesh, ymesh = ymesh, xmesh
 
     yy = y[::int(round(dtx / dty))]
-    xinter = xmesh.interpolate(x.T)
-    yinter = ymesh.interpolate(yy.T)
+    xinter = xmesh.interpolate(x)
+    yinter = ymesh.interpolate(yy)
     nodes = ymesh.find_nodes_between(xl, xr)
     d = np.array([xinter(*coords) - yinter(*coords) for _, coords in nodes])
     return d
+
 
 def sys_diff(xsys, ysys, x0, y0, tlims, xlims, plot=False):
     dtx, dty = xsys.dt, ysys.dt
@@ -559,7 +560,7 @@ def sys_max_diff(xsys, ysys, x0, y0, tlims, xlims, xderiv=False, pw=False, plot=
         pwdiff = [np.amax(dif, axis=0) for dif in absdif]
         return pwdiff if pw else np.amax(pwdiff)
     else:
-        return np.max(absdif, axis=0 if pw else None)
+        return np.max(absdif, axis=-1 if pw else None)
 
 def sys_max_xdiff(sys, x0, t0, T):
     dt = sys.dt
@@ -595,13 +596,33 @@ def sosys_max_der_diff(sys, x0, tlims, xderiv=False):
     x, vx = newm_integrate(sys, x0[0], x0[1], tlims[1], sys.dt)
     x = x[int(round(tlims[0]/sys.dt)):]
     # draw.draw_pde_trajectory(x, sys.xpart, np.linspace(0, tlims[1], (int(round(tlims[1] / sys.dt)))), animate=False)
-    if xderiv:
-        x = np.true_divide(np.diff(x), np.diff(sys.xpart))
+    if sys.xpart is not None:
+        if xderiv:
+            x = np.true_divide(np.diff(x), np.diff(sys.xpart))
 
-    dx = np.abs(np.diff(x))
-    dtx = np.abs(np.diff(x, axis=0))
-    mdx = np.max(dx, axis=0)
-    mdtx = np.max(dtx, axis=0)
+        dx = np.abs(np.diff(x))
+        dtx = np.abs(np.diff(x, axis=0))
+        mdx = np.max(dx, axis=0)
+        mdtx = np.max(dtx, axis=0)
+    else:
+        if xderiv:
+            raise NotImplementedError("xderiv > 0 not implemented yet")
+
+        interps = [sys.mesh.interpolate_derivatives(d) for d in x]
+        dxs = []
+        for interp in interps:
+            dx = []
+            for e in range(sys.mesh.nelems):
+                partials = np.abs(
+                    np.array([interp(*coords) for coords in sys.mesh.elem_coords(e)]))
+                # logger.debug(partials)
+                dx.append(np.max(partials, axis=0))
+            dxs.append(dx)
+        mdx = np.max(dxs, axis=0)
+
+        dtx = np.abs(np.diff(x, axis=0))
+        mdtx = np.max(dtx, axis=0)
+
     # logger.debug("dx = \n{}".format(dx[:,0]))
     # logger.debug("mdx = \n{}".format(mdx))
 

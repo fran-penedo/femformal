@@ -98,8 +98,6 @@ class TestGridQ4(unittest.TestCase):
                 self.mesh.find_containing_elem(coordss[i]), expected[i])
 
 
-
-
 class TestMeshGlobals(unittest.TestCase):
     def setUp(self):
         self.L = 16

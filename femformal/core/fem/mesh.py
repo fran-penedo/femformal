@@ -16,19 +16,51 @@ class Mesh(object):
     def nnodes(self):
         return self.nodes_coords.shape[0]
 
-    def interpolate(self, d):
-        if d.shape[0] != self.nnodes:
-            raise ValueError("Interpolating values do not agree with number of "
-                             "nodes: nvalues = {}, nnnodes = {}".format(
-                                 d.shape[0], self.nnodes))
+    def _interpolate(self, d, fn):
+        d = self._reshape_int_values(d)
+
         def _interp(*args):
             x = np.array(args)
             e = self.find_containing_elem(x)
-            d_elem = d[self.elem_nodes(e)]
-            # logger.debug((e, d_elem))
-            return self.elements[e].interpolate_phys(d_elem, x)
+            d_elem = d.take(self.elem_nodes(e), axis=-2)
+            return getattr(self.elements[e], fn)(d_elem, x)
 
         return _interp
+
+    def _reshape_int_values(self, d):
+        if d.shape[-1] % self.nnodes != 0:
+            raise ValueError("Interpolating values do not agree with number of "
+                            "nodes: nvalues = {}, nnnodes = {}".format(
+                                d.shape[-1], self.nnodes))
+        dofs = d.shape[-1] / self.nnodes
+        if len(d.shape) == 1:
+            ret = d.reshape(self.nnodes, dofs)
+        else:
+            if dofs > 1:
+                ret = d.reshape(d.shape[0], self.nnodes, dofs).T
+            else:
+                ret = d.T
+
+        return ret
+
+    def interpolate(self, d):
+        return self._interpolate(d, 'interpolate_phys')
+
+    def interpolate_derivatives(self, d):
+        if len(d.shape) > 1:
+            raise ValueError("Calling non vectorized function with vector")
+        return self._interpolate(d, 'interpolate_derivatives_phys')
+
+    def interpolate_strain(self, d):
+        dofs = d.shape[-1] / self.nnodes
+        logger.debug(d.shape)
+        if dofs != 2:
+            raise ValueError("Need dofs = 2 for strain interpolation. Given {}".format(dofs))
+        return self._interpolate(d, 'interpolate_strain')
+
+    def max_diffs(self, d):
+        d = _reshape_int_values(d)
+
 
     def find_containing_elem(self, coords):
         raise NotImplementedError()

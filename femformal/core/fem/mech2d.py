@@ -26,9 +26,9 @@ def mech2d(xpart, ypart, rho, C, g, f_nodal, dt):
     for e in range(nelems):
         elem_nodes = mesh.elem_nodes(e)
         x, y = zip(*mesh.nodes_coords[elem_nodes])
-        kelem = elem_stiffness(x, y, C)
+        kelem = elem_stiffness(x, y, C, mesh.build_elem)
         assemble_into_big_matrix(bigk, kelem, elem_nodes)
-        melem = elem_mass(x, y, rho)
+        melem = elem_mass(x, y, rho, mesh.build_elem)
         assemble_into_big_matrix(bigm, melem, elem_nodes)
 
     bigm = lumped(bigm)
@@ -74,75 +74,42 @@ def assemble_into_big_matrix(matrix, elem_matrix, elem_nodes):
     eqs = [el for p in eqs_grouped for el in p]
     matrix[np.ix_(eqs, eqs)] += elem_matrix
 
-def elem_stiffness(x, y, c):
+def elem_stiffness(x, y, c, build_elem):
     weights = [1, 1]
     sample_pts = [-1/np.sqrt(3), 1/np.sqrt(3)]
     stiff = np.zeros((8, 8))
 
-    dshapes = element.BLQuadQ4.shapes_derivatives
-    jcob_inv, jcob_det = jacobian(dshapes, x, y)
-    strain_disp = strain_displacement(dshapes, jcob_inv)
-    integ = integrand(strain_disp, c, jcob_det)
-
     for i in range(len(weights)):
         for j in range(len(weights)):
-            stiff += integ(sample_pts[i], sample_pts[j]) * weights[i] * weights[j]
+            a, b = sample_pts[i], sample_pts[j]
+            _, jac_det = build_elem.jacobian(a, b, x, y)
+            strain_disp = build_elem.strain_displacement(a, b, x, y)
+            stiff += (strain_disp.T.dot(c).dot(strain_disp)
+                      * weights[i] * weights[j] / jac_det)
 
     return stiff
 
-def elem_mass(x, y, rho):
+def elem_mass(x, y, rho, build_elem):
     weights = [1, 1]
     sample_pts = [-1/np.sqrt(3), 1/np.sqrt(3)]
     mass = np.zeros((8, 8))
 
-    _, jcob_det = jacobian(element.BLQuadQ4.shapes_derivatives, x, y)
-    integ = integrand(shape_interp, rho * np.identity(2), jcob_det)
-
     for i in range(len(weights)):
         for j in range(len(weights)):
-            mass += integ(sample_pts[i], sample_pts[j]) * weights[i] * weights[j]
+            a, b = sample_pts[i], sample_pts[j]
+            _, jac_det = build_elem.jacobian(a, b, x, y)
+            shape = shape_interp(a, b, build_elem)
+            mass += (shape.T.dot(rho * np.identity(2)).dot(shape)
+                      * weights[i] * weights[j] / jac_det)
 
     return mass
 
-
-def shape_interp(a, b):
-    sh = element.BLQuadQ4.shapes(a, b)
+def shape_interp(a, b, build_elem):
+    sh = build_elem.shapes(a, b)
     ret = np.zeros((2, 8))
     ret[0, 0:8:2] = sh
     ret[1, 1:8:2] = sh
     return ret
-
-def jacobian(dshapes, x, y):
-    jac = lambda a, b: dshapes(a,b).dot(np.vstack([x,y]).T)
-    jac_inv = invert_2x2(jac)
-    jac_det = lambda a, b: np.linalg.det(jac(a,b))
-    return jac_inv, jac_det
-
-def strain_displacement(dshapes, jcob_inv):
-    def B(a, b):
-        dshapes_phy = jcob_inv(a,b).dot(dshapes(a,b))
-        ret = np.zeros((3,8))
-        ret[0, 0:8:2] = dshapes_phy[0]
-        ret[1, 1:8:2] = dshapes_phy[1]
-        ret[2, 0:8:2] = dshapes_phy[1]
-        ret[2, 1:8:2] = dshapes_phy[0]
-        return ret
-
-    return B
-
-def integrand(strain_disp, c, jcob_det):
-    def integ(a, b):
-        B = strain_disp(a, b)
-        return B.T.dot(c).dot(B) / jcob_det(a, b)
-    return integ
-
-def invert_2x2(jac):
-    def jac_inv(a, b):
-        j = jac(a, b)
-        return np.array([[j[1,1], -j[0, 1]], [-j[1,0], j[0,0]]])
-
-    return jac_inv
-
 
 def state(u0, du0, node_coords, g):
     d0 = []
