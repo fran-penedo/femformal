@@ -156,3 +156,8 @@ class BLQuadQ4(Element):
         else:
             raise ValueError("Axis must be 0 or 1. Given: {}".format(axis))
 
+    def chebyshev_radius(self):
+        return np.linalg.norm(self.coords[0] - self.coords[2]) / 2.0
+
+    def chebyshev_center(self):
+        return self.interpolate(self.coords, [0, 0])

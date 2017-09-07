@@ -150,9 +150,10 @@ def _build_f(p, op, isnode, uderivs, elem_len):
 
 def _build_f_elem(p, op, uderivs, elem):
     if uderivs == 0:
-        return lambda vs: (elem.interpolate(vs, [0 for i in range(elem.dimension)])
+        return lambda vs: (elem.interpolate_phys(vs, elem.chebyshev_center())
                            - p) * (-1 if op == stl.LE else 1)
     else:
+        #FIXME think about this when implementing derivatives
         return lambda vs: (elem.interpolate_derivatives(vs, [0 for i in range(elem.dimension)])
                            - p) * (-1 if op == stl.LE else 1)
 
@@ -193,7 +194,7 @@ class SysSignal(stl.Signal):
 
     # eps :: index -> isnode -> d/dx mu -> pert
     def perturb(self, eps):
-        pert = -eps(self.index, self.isnode, self.dp, self.uderivs)
+        pert = -eps(self.index, self.isnode, self.dp, self.uderivs, self.u_comp)
         self.p = self.p + (pert if self.op == stl.LE else -pert)
         if self.xpart is not None:
             self.f = _build_f(self.p, self.op, self.isnode, self.uderivs, self.elem_len)

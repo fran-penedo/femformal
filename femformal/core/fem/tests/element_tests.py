@@ -142,4 +142,8 @@ class TestBLQuadQ4(unittest.TestCase):
         npt.assert_array_equal(self.elem.max_diff(vs, axis=0), [2, 2])
         npt.assert_array_equal(self.elem.max_diff(vs, axis=1), [3, 3])
 
+    def test_chebyshev_radius(self):
+        npt.assert_almost_equal(self.elem.chebyshev_radius(), np.sqrt(13) / 2.0)
 
+    def test_chebyshev_center(self):
+        npt.assert_almost_equal(self.elem.chebyshev_center(), [0, 0.5])

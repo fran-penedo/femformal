@@ -43,45 +43,16 @@ def build_cs(system, d0, g, cregions, cspec, fdt_mult=1, bounds=None,
         T = max(spec.horizon(), 0)
         # if discretize_system:
         logic.scale_time(spec, dt * fdt_mult)
+
         if error_bounds is not None:
             ((eps, eps_xderiv), (eta, eta_xderiv), (nu, nu_xderiv)) = error_bounds
+        eps_pert = EpsPerturbation(eps, eps_xderiv)
+        eta_pert = EtaPerturbation(eta, xpart, system.mesh)
+        nu_pert = NuPerturbation(nu, nu_xderiv, fdt_mult)
 
-        if eps is not None:
-            eps_list = [eps, eps_xderiv]
-            if isinstance(eps, list):
-                kd = lambda i, isnode, dmu, uderivs: (
-                    eps_list[uderivs][i] if not isnode else
-                    (max(eps_list[uderivs][i], eps_list[uderivs][i+1])
-                     if i > 0 and i < len(eps_list[uderivs]) - 1 else eps_list[uderivs][i]))
-            else:
-                kd = lambda i, isnode, dmu, uderivs: eps_list[uderivs]
-        else:
-            kd = lambda i, isnode, dmu, uderivs: 0.0
-        if eta is not None:
-            ke = lambda i, isnode, dmu, uderivs: (
-                (eta[i] / 2.0 if uderivs == 0 else 0.0)
-                + dmu * (xpart[i+1] - xpart[i]) / 2.0)
-        else:
-            ke = lambda i, isnode, dmu, uderivs: 0.0
-
-        if nu is not None and nu_xderiv is not None:
-            mn = [nu, nu_xderiv]
-        else:
-            if xpart is not None:
-                mn = [[0.0 for i in range(len(xpart) - 1)] for i in range(2)]
-            else:
-                mn = [[0.0 for i in range(system.mesh.nnodes - 1)] for i in range(2)]
-
-        if xpart is not None:
-            kn = lambda i, isnode, dmu, uderivs: (
-                fdt_mult * (mn[uderivs][i] if isnode else
-                            ((mn[uderivs][i] + mn[uderivs][i+1]) / 2.0)))
-        else:
-            kn = lambda i, isnode, dmu, uderivs: 0.0
-
-        logic.perturb(spec, kd)
-        logic.perturb(spec, ke)
-        logic.perturb(spec, kn)
+        logic.perturb(spec, eps_pert)
+        logic.perturb(spec, eta_pert)
+        logic.perturb(spec, nu_pert)
     else:
         spec = None
         regions = None
@@ -100,6 +71,92 @@ def build_cs(system, d0, g, cregions, cspec, fdt_mult=1, bounds=None,
         'spec': spec,
         'T': T
     })
+
+
+class Perturbation(object):
+    def __init__(self):
+        pass
+
+    def perturb(self, **kwargs):
+        raise NotImplementedError()
+
+    def __call__(self, i=0, isnode=False, dmu=0, uderivs=0, ucomp=0):
+        p = self.perturb(**locals())
+        if p is None:
+            return 0.0
+        else:
+            return p
+
+
+class EpsPerturbation(Perturbation):
+    def __init__(self, eps, eps_xderiv):
+        Perturbation.__init__(self)
+        self.eps_list = np.array([eps, eps_xderiv])
+
+    def perturb(self, **kwargs):
+        i = kwargs['i']
+        isnode = kwargs['isnode']
+        uderivs = kwargs['uderivs']
+        ucomp = kwargs['ucomp']
+        eps = self.eps_list[uderivs]
+        if len(self.eps_list.shape) == 1:
+            return eps
+        else:
+            if len(eps.shape) == 1:
+                eps = eps[None]
+            if isnode and i > 0 and i < len(eps):
+                return max(eps[i][ucomp], eps[i+1][ucomp])
+            else:
+                return eps[i][ucomp]
+
+
+class EtaPerturbation(Perturbation):
+    def __init__(self, eta, xpart, mesh):
+        Perturbation.__init__(self)
+        self.eta = eta
+        self.xpart = xpart
+        self.mesh = mesh
+
+    def perturb(self, **kwargs):
+        i = kwargs['i']
+        dmu = kwargs['dmu']
+        uderivs = kwargs['uderivs']
+        ucomp = kwargs['ucomp']
+        if self.eta is None:
+            return 0.0
+        else:
+            if len(self.eta.shape) == 1:
+                return ((self.eta[i] / 2.0 if uderivs == 0 else 0.0)
+                        + dmu * (self.xpart[i+1] - self.xpart[i]) / 2.0)
+            else:
+                cheby_radius = self.mesh.build_elem(
+                    self.mesh.elem_coords(i)).chebyshev_radius()
+                return cheby_radius * (
+                    dmu +
+                    np.sqrt(self.eta.shape[-1]) *
+                    np.linalg.norm(self.eta[i, ucomp]))
+
+
+class NuPerturbation(Perturbation):
+    def __init__(self, nu, nu_xderiv, fdt_mult):
+        self.nu_list = np.array([nu, nu_xderiv])
+        self.fdt_mult = fdt_mult
+
+    def perturb(self, **kwargs):
+        i = kwargs['i']
+        isnode = kwargs['isnode']
+        uderivs = kwargs['uderivs']
+        ucomp = kwargs['ucomp']
+        nu = self.nu_list[uderivs]
+        if nu is None:
+            return 0.0
+        else:
+            if len(nu.shape) == 1:
+                nu = nu[None]
+            if isnode:
+                return fdt_mult * nu[i, ucomp]
+            else:
+                return fdt_mult * (nu[i, ucomp] + nu[i+1, ucomp]) / 2.0
 
 
 def lin_sample(bounds, g, xpart_x, xpart_y=None):
