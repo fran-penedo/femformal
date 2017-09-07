@@ -2,6 +2,7 @@ import unittest
 from os import path
 
 import numpy as np
+import numpy.testing as npt
 from scipy import io
 
 from .. import mech2d as mech2d
@@ -76,3 +77,20 @@ class TestMech2d(unittest.TestCase):
         self.assertEqual(sosys.K.nnz, expected.nnz)
         np.testing.assert_array_almost_equal(
             sosys.K.toarray(), expected.toarray(), decimal=4)
+
+
+    def test_parabolic_traction(self):
+        traction = mech2d.parabolic_traction(self.L, self.c)
+        npt.assert_array_almost_equal(traction(0, 0.211324865405187, -1),
+                                      [-0.633974596215561, 0.370813293868264])
+        npt.assert_array_almost_equal(traction(self.L, 0.211324865405187, -1),
+                                      [0.0, -0.370813293868264])
+
+    def test_traction_nodal(self):
+        expected = np.array([-500.000000000000e-003, 179.687500000000e-003, 0.00000000000000e+000, 0.00000000000000e+000, 0.00000000000000e+000, 0.00000000000000e+000, 0.00000000000000e+000, 0.00000000000000e+000, 0.00000000000000e+000, -179.687500000000e-003, -3.00000000000000e+000, 265.625000000000e-003, 0.00000000000000e+000, 0.00000000000000e+000, 0.00000000000000e+000, 0.00000000000000e+000, 0.00000000000000e+000, 0.00000000000000e+000, 0.00000000000000e+000, -265.625000000000e-003, -2.50000000000000e+000, 54.6875000000000e-003, 0.00000000000000e+000, 0.00000000000000e+000, 0.00000000000000e+000, 0.00000000000000e+000, 0.00000000000000e+000, 0.00000000000000e+000, 0.00000000000000e+000, -54.6875000000000e-003])
+        mesh = mech2d.grid_mesh(self.xs, self.ys)
+        P = -1
+        traction = mech2d.parabolic_traction(self.L, self.c)
+
+        f_nodal = mech2d.traction_nodal_force(lambda x, y: traction(x, y, P), mesh)
+        npt.assert_array_almost_equal(f_nodal, expected)

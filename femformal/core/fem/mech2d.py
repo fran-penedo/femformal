@@ -128,3 +128,50 @@ def state(u0, du0, node_coords, g):
 
     return d0, v0
 
+def traction_nodal_force(traction, mesh_):
+    f = np.zeros(mesh_.nnodes * 2)
+    for e in range(len(mesh_.elems1d_nodes)):
+        e_traction = element_traction_nodal_force(traction, e, mesh_)
+        ns = mesh_.elem_nodes(e, dim=1)
+        for i in [0, 2]:
+            f[2*ns[i]] += e_traction[i / 2][0]
+            f[2*ns[i] + 1] += e_traction[i / 2][1]
+
+    return f
+
+def element_traction_nodal_force(traction, e, mesh_):
+    weights = [1, 1]
+    sample_pts = [-1/np.sqrt(3), 1/np.sqrt(3)]
+    coords = mesh_.elem_coords(e, dim=1)
+    f = np.zeros((2,2))
+    ns = mesh_.elem_nodes(e, dim=1)
+    shapes = mesh_.build_elem.shapes
+    sample_coords = [shapes(sample_pts[i], sample_pts[i]).dot(coords)
+                     for i in range(len(sample_pts))]
+    # If vertical
+    if ns[0] == ns[1]:
+        Ns = [shapes(1, p)[1:3] for p in sample_pts]
+        l = np.linalg.norm(coords[2] - coords[1])
+    else:
+        Ns = [shapes(p, -1)[:2] for p in sample_pts]
+        l = np.linalg.norm(coords[1] - coords[0])
+
+    f = [np.sum([weights[i] * traction(*sample_coords[i]) * Ns[i][j] * l / 2
+                    for i in range(2)], axis=0)
+                for j in range(2)]
+
+    return f
+
+def parabolic_traction(L, c):
+    I = 2.0 * (c ** 3) / 3.0
+    def traction(x, y, *kargs):
+        P, = kargs
+        if np.isclose(x, 0):
+            return np.array([P * L * y / I, - P * (c * c - y * y) / (2 * I)])
+        elif np.isclose(x, L):
+            return np.array([0.0, P * (c * c - y * y) / (2 * I)])
+        else:
+            return np.array([0.0, 0.0])
+
+    return traction
+
