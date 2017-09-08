@@ -139,8 +139,10 @@ class SOSystem(object):
         self.F = self.F + f_nodal
 
     def copy(self):
+        """Returns a copy of this system. Structural properties (mesh) are
+        shallow copied, while system matrices are deep copied"""
         return SOSystem(self.M.copy(), self.K.copy(), self.F.copy(),
-                        self.xpart.copy(), self.dt)
+                        self.xpart, self.dt, self.mesh, self.build_elem)
 
     def __str__(self):
         return "M:\n{0}\nK:\n{1}\nF:\n{2}".format(self.M, self.K, self.F)

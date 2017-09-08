@@ -174,4 +174,3 @@ def parabolic_traction(L, c):
             return np.array([0.0, 0.0])
 
     return traction
-

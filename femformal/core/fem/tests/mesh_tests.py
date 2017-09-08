@@ -3,6 +3,7 @@ import unittest
 from itertools import product as cartesian_product
 
 import numpy as np
+import numpy.testing as npt
 
 from .. import mesh as mesh
 
@@ -96,6 +97,18 @@ class TestGridQ4(unittest.TestCase):
         for i in range(len(expected)):
             np.testing.assert_equal(
                 self.mesh.find_containing_elem(coordss[i]), expected[i])
+
+    def test_find_near_node(self):
+        npt.assert_equal(self.mesh.find_near_node([0, 0], 0), 0)
+        npt.assert_equal(self.mesh.find_near_node([0.5, 0.5], 0), 0)
+        npt.assert_equal(self.mesh.find_near_node([0.5, 0.5], 1), 1)
+        npt.assert_equal(self.mesh.find_near_node([0.5, 0.5], 2), 6)
+        npt.assert_equal(self.mesh.find_near_node([0.5, 0.5], 3), 5)
+
+    def test_elems_covering(self):
+        c1 = np.array([0.5, 0.5])
+        c2 = np.array([0.6, 0.6])
+        npt.assert_equal(set(self.mesh.find_elems_covering(c1, c2).elems), set([0]))
 
 
 class TestMeshGlobals(unittest.TestCase):

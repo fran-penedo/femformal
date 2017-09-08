@@ -203,6 +203,19 @@ class GridQ4(GridMesh):
                                   for i in range(e1 / nelemsx, e2 / nelemsx + 1)
                                   for j in range(e1 % nelemsx, e2 % nelemsx + 1)})
 
+    def find_elems_covering(self, coords1, coords2):
+        n1 = self.find_near_node(coords1, 0)
+        n2 = self.find_near_node(coords2, 2)
+        return self.find_elems_between(self.nodes_coords[n1], self.nodes_coords[n2])
+
+    def find_near_node(self, coords, position):
+        try:
+            n = find_node(coords, self.nodes_coords)
+        except:
+            e = self.find_containing_elem(coords)
+            n = self.elem_nodes(e)[position]
+        return n
+
     def find_containing_elem(self, coords):
         """Returns an arbitrary element containing the point"""
 

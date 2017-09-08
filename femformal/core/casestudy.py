@@ -223,7 +223,10 @@ def max_diff(system, g, tlims, xlims, sys_true,
             logger.debug("Iteration: {}, mdiff = {}".format(i, mdiff))
 
         if sample_f is not None:
-            f_nodal_x, f_nodal_y = sample_f(bounds_f, g, system.xpart, sys_true.xpart)
+            if system.mesh is None:
+                f_nodal_x, f_nodal_y = sample_f(bounds_f, g, system.xpart, sys_true.xpart)
+            else:
+                f_nodal_x, f_nodal_y = sample_f(bounds_f, g, system, sys_true)
             sys_x, sys_y = system.copy(), sys_true.copy()
             try:
                 sys_x.add_f_nodal(f_nodal_x)
@@ -231,7 +234,10 @@ def max_diff(system, g, tlims, xlims, sys_true,
             except AttributeError:
                 raise Exception("Can't sample f_nodal for this kind of system:"
                                 "sysx: {}, sysy: {}".format(type(sys_x), type(sys_y)))
-        x0, y0 = sample_ic(bounds_ic, g, sys_x.xpart, sys_y.xpart)
+        if system.mesh is None:
+            x0, y0 = sample_ic(bounds_ic, g, sys_x.xpart, sys_y.xpart)
+        else:
+            x0, y0 = sample_ic(bounds_ic, g, sys_x, sys_y)
 
         diff = sys.sys_max_diff(sys_x, sys_y, x0, y0, tlims, xlims, pw=pw,
                               xderiv=xderiv, plot=False)
@@ -240,19 +246,31 @@ def max_diff(system, g, tlims, xlims, sys_true,
         else:
             mdiff = np.amax([mdiff, diff], axis=0)
 
-    if xderiv:
-        xpart = (system.xpart[1:] + system.xpart[:-1] ) / 2.0
-        xpart_true = (sys_true.xpart[1:] + sys_true.xpart[:-1] ) / 2.0
-    else:
-        xpart = system.xpart
-        xpart_true = sys_true.xpart
-    ratio = float(len(xpart_true)) / len(xpart)
-    cover = int(np.ceil(ratio))
-    mdiffgrouped = np.amax(
-        [mdiff[int(np.floor(i * ratio)):int(np.floor(i * ratio) + cover + 1)]
-         for i in range(len(xpart) - 1)], axis=1)
+    mdiffgrouped = _downsample_diffs(mdiff, system, sys_true, xderiv)
     if log:
         logger.debug("mdiff = {}".format(mdiffgrouped))
+    return mdiffgrouped
+
+def _downsample_diffs(mdiff, system, sys_true, xderiv):
+    if system.xpart is not None:
+        if xderiv:
+            xpart = (system.xpart[1:] + system.xpart[:-1] ) / 2.0
+            xpart_true = (sys_true.xpart[1:] + sys_true.xpart[:-1] ) / 2.0
+        else:
+            xpart = system.xpart
+            xpart_true = sys_true.xpart
+        ratio = float(len(xpart_true)) / len(xpart)
+        cover = int(np.ceil(ratio))
+        mdiffgrouped = np.amax(
+            [mdiff[int(np.floor(i * ratio)):int(np.floor(i * ratio) + cover + 1)]
+            for i in range(len(xpart) - 1)], axis=1)
+    else:
+        mdiffgrouped = np.zeros((system.mesh.nelems, mdiff.shape[-1]))
+        for e in range(system.mesh.nelems):
+            e_coords = system.mesh.elem_coords(e)
+            covering = sys_true.mesh.find_elems_covering(e_coords[0], e_coords[2])
+            mdiffgrouped[e] = np.max(mdiff.take(covering.elems, axis=0), axis=0)
+
     return mdiffgrouped
 
 def max_xdiff(system, g, tlims, bounds, sample=None, n=50, log=True):
@@ -324,9 +342,13 @@ def max_der_diff(system, g, tlims, bounds, sample, xderiv=False, n=50, log=True)
 
     bounds_ic, bounds_f = bounds
     sys_x = system
-    xderiv_correct = -1 if xderiv else 0
-    mdiff_x = np.zeros((len(system.xpart) - 1 + xderiv_correct,))
-    mdiff_t = np.zeros((len(system.xpart) + xderiv_correct,))
+    if system.xpart is not None:
+        xderiv_correct = -1 if xderiv else 0
+        mdiff_x = np.zeros((len(system.xpart) - 1 + xderiv_correct,))
+        mdiff_t = np.zeros((len(system.xpart) + xderiv_correct,))
+    else:
+        mdiff_x = np.zeros((system.mesh.nelems, 2, 2))
+        mdiff_t = np.zeros((2 * system.mesh.nnodes,))
     if log:
         logger.debug("Starting max_der_diff")
     for i in range(n):
@@ -334,13 +356,19 @@ def max_der_diff(system, g, tlims, bounds, sample, xderiv=False, n=50, log=True)
             logger.debug("Iteration: {}, mdiff_x = {}".format(i, mdiff_x))
             logger.debug("Iteration: {}, mdiff_t = {}".format(i, mdiff_t))
         if sample_f is not None:
-            f_nodal = sample_f(bounds_f, g, system.xpart)
+            if system.xpart is not None:
+                f_nodal = sample_f(bounds_f, g, system.xpart)
+            else:
+                f_nodal = sample_f(bounds_f, g, system)
             try:
                 sys_x = system.copy()
                 sys_x.add_f_nodal(f_nodal)
             except AttributeError:
                 raise Exception("Can't sample f_nodal for this kind of system")
-        x0 = sample_ic(bounds_ic, g, sys_x.xpart)
+        if system.xpart is not None:
+            x0 = sample_ic(bounds_ic, g, sys_x.xpart)
+        else:
+            x0 = sample_ic(bounds_ic, g, sys_x)
         dx, dtx = sys.sosys_max_der_diff(sys_x, x0, tlims, xderiv=xderiv)
         mdiff_x = np.max([mdiff_x, dx], axis=0)
         mdiff_t = np.max([mdiff_t, dtx], axis=0)
