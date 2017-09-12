@@ -680,6 +680,16 @@ def draw_system(sys, d0, g, T, t0=0, **kargs):
                 sys.__class__.__name__))
 
 
+def draw_system_2d(sys, d0, g, T, t0=0, **kwargs):
+    dt = sys.dt
+    ts = np.linspace(t0, T, int(round((T - t0) / dt)))
+    d, v = newm_integrate(sys, d0[0], d0[1], T, dt)
+    # d = d[int(round(t0/dt)):]
+    draw.draw_2d_pde_trajectory(
+        d, sys.mesh.nodes_coords, sys.mesh.elems_nodes, ts, **kwargs)
+    return draw.pop_holds()
+
+
 def draw_pwlf(pwlf, ylabel='Force $u_L$', xlabel='Time t', axes=None):
     return draw.draw_linear(pwlf.ys, pwlf.ts, ylabel, xlabel, axes=axes)
 

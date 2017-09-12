@@ -143,6 +143,9 @@ class GridQ4(GridMesh):
     def elem_coords(self, elem, dim=2):
         return np.array([self.nodes_coords[n] for n in self.elem_nodes(elem, dim)])
 
+    def get_elem(self, elem, dim=2):
+        return self.build_elem(self.elem_coords(elem, dim))
+
     @staticmethod
     def _elem1d_nodes(e, shape):
         nelems1dh = GridQ4._num_elems1dh(shape)
@@ -233,6 +236,25 @@ class GridQ4(GridMesh):
         vnode = _flatten_coord(node_mesh_coords, self.shape)
         return find_elem_with_vertex(vnode, position, self.elems_nodes)
 
+    def find_2d_containing_elems(self, elem, dim=2):
+        """Returns all full dimension elements containing the element"""
+
+        if dim == 2:
+            return ElementSet(2, {elem: self.elem_coords(elem)})
+        elif dim == 1:
+            ns = self.elem_nodes(elem, dim)
+            return self.find_2d_containing_elems(ns[0], dim=0).intersection(
+                self.find_2d_containing_elems(ns[2], dim=0))
+        elif dim == 0:
+            elem_coords_map = {}
+            for i in range(4):
+                try:
+                    cont_elem = find_elem_with_vertex(elem, i, self.elems_nodes)
+                    elem_coords_map[cont_elem] = self.elem_coords(cont_elem)
+                except ValueError:
+                    pass
+            return ElementSet(2, elem_coords_map)
+
 
 class ElementSet(object):
     def __init__(self, dimension, elem_coords_map):
@@ -242,6 +264,15 @@ class ElementSet(object):
     @property
     def elems(self):
         return sorted(self.elem_coords_map.keys())
+
+    def intersection(self, other):
+        if self.dimension != other.dimension:
+            raise ValueError("Intersection undefined for sets of elements of different dimension")
+        else:
+            elem_coords_map = {
+                e: self[e] for e in self.elem_coords_map.viewkeys() &
+                other.elem_coords_map.viewkeys()}
+            return ElementSet(self.dimension, elem_coords_map)
 
     def __getitem__(self, el):
         return self.elem_coords_map[el]

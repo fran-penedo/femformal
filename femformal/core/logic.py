@@ -194,7 +194,7 @@ class SysSignal(stl.Signal):
 
     # eps :: index -> isnode -> d/dx mu -> pert
     def perturb(self, eps):
-        pert = -eps(self.index, self.isnode, self.dp, self.uderivs, self.u_comp)
+        pert = -eps(self.index, self.isnode, self.dp, self.uderivs, self.u_comp, self.region_dim)
         self.p = self.p + (pert if self.op == stl.LE else -pert)
         if self.xpart is not None:
             self.f = _build_f(self.p, self.op, self.isnode, self.uderivs, self.elem_len)

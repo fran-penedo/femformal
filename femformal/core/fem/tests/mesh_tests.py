@@ -110,6 +110,11 @@ class TestGridQ4(unittest.TestCase):
         c2 = np.array([0.6, 0.6])
         npt.assert_equal(set(self.mesh.find_elems_covering(c1, c2).elems), set([0]))
 
+    def test_find_2d_containing_elems(self):
+        npt.assert_array_equal(self.mesh.find_2d_containing_elems(1, dim=2).elems, [1])
+        npt.assert_array_equal(self.mesh.find_2d_containing_elems(1, dim=0).elems, [0, 1])
+        npt.assert_array_equal(self.mesh.find_2d_containing_elems(5, dim=1).elems, [1, 5])
+        npt.assert_array_equal(self.mesh.find_2d_containing_elems(14, dim=1).elems, [0, 1])
 
 class TestMeshGlobals(unittest.TestCase):
     def setUp(self):

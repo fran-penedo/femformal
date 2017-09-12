@@ -1,4 +1,5 @@
 from bisect import bisect_left, bisect_right
+import logging
 
 import matplotlib
 import networkx as nx
@@ -8,6 +9,8 @@ from matplotlib.collections import LineCollection
 from matplotlib.widgets import Slider
 from mpl_toolkits import mplot3d as p3
 
+
+logger = logging.getLogger(__name__)
 
 _figcounter = 0
 _holds = []
@@ -276,14 +279,15 @@ def draw_pde_trajectory(ds, xs, ts, hold=False,
     _render(fig, savefun, hold)
 
 
-def draw_2d_pde_trajectory(ds, nodes_coords, elems_nodes, ts):
+def draw_2d_pde_trajectory(ds, nodes_coords, elems_nodes, ts, **kwargs):
+    global _holds
     fig = plt.figure()
     axl = fig.add_subplot(121, projection='3d')
     axr = fig.add_subplot(122, projection='3d')
     axes = [axl, axr]
 
     poly_update_fs = []
-    polys_verts = np.array([_polygon_vertices(nodes_coords, d, elems_nodes)
+    polys_verts = np.array([_polygon_vertices_2dof(nodes_coords, d, elems_nodes)
                             for d in ds])
     for i in range(2):
         poly_update = set_traj_poly(axes[i], polys_verts[:, i], ts)
@@ -297,7 +301,7 @@ def draw_2d_pde_trajectory(ds, nodes_coords, elems_nodes, ts):
     set_animation(fig, ts, _combine_lines(poly_update_fs))
 
     fig.tight_layout()
-    plt.show()
+    _holds.append(fig)
 
 def set_traj_poly(ax, verts, ts):
     time_text = ax.text2D(.02, .95, '', transform=ax.transAxes)
@@ -310,14 +314,15 @@ def set_traj_poly(ax, verts, ts):
 
     return update_line
 
+def _polygon_vertices_2dof(nodes_coords, d, elems_nodes):
+    return np.array([_polygon_vertices(nodes_coords, d[i::2], elems_nodes)
+                     for i in range(2)])
+
 def _polygon_vertices(nodes_coords, d, elems_nodes):
-    verts = [[], []]
-    for elem_nodes in elems_nodes:
-        for i in range(2):
-            node_verts = [np.hstack([nodes_coords[n], d[2*n + i]])
-                          for n in elem_nodes]
-            verts[i].append(node_verts)
-    return np.array(verts)
+    verts = np.array([
+        [np.hstack([nodes_coords[n], d[n]]) for n in elem_nodes]
+        for elem_nodes in elems_nodes])
+    return verts
 
 def _set_snap_figure(t, xlabel, ylabel, font_size, ylims=None):
     fig = plt.figure()
@@ -420,11 +425,41 @@ def draw_predicates(apcs, labels, xpart, axs, perts=None):
     for ax in axs:
         ax.legend(loc='lower left', fontsize='6', labelspacing=0.05, handletextpad=0.1)
 
+def draw_predicates_2d(apcs, labels, mesh, axs, perts=None):
+    for i, apc in enumerate(apcs):
+        ax = axs[apc.u_comp]
+        vs = np.array([apc.A[0], apc.A[0], apc.A[1], apc.A[1]])
+        vs[1][0] = vs[2][0]
+        vs[3][0] = vs[0][0]
+        verts = np.array([
+            np.hstack([vs[i], apc.p(*vs[i])]) for i in range(vs.shape[0])])
+        ax.add_collection(p3.art3d.Poly3DCollection([verts]))
+        update_ax_ylim(ax, verts[:, -1])
+        if perts is not None:
+            elems = mesh.find_elems_between(apc.A[0], apc.A[1])
+            el_values = [{
+                e: perts[i](*mesh.get_elem(e, elems.dimension).chebyshev_center())
+                for e in elems.elems} for i in range(len(perts))]
+            for el_value in el_values:
+                logger.debug(el_value[elems.elems[0]])
+                verts_pert = np.array([
+                    np.hstack(
+                        [elems[e], np.ones((elems[e].shape[0], 1)) * el_value[e]])
+                    for e in elems.elems
+                ])
+                ax.add_collection(p3.art3d.Poly3DCollection(verts_pert))
+                update_ax_ylim(ax, verts_pert[:, :, -1])
+    # for ax in axs:
+    #     ax.legend(loc='lower left', fontsize='6', labelspacing=0.05, handletextpad=0.1)
+
 def update_ax_ylim(ax, ys):
-    m, M = min(ys), max(ys)
+    m, M = np.min(ys), np.max(ys)
     m -= 0.03 * abs(M - m)
     M += 0.03 * abs(M - m)
-    ax.set_ylim([min(ax.get_ylim()[0], m), max(ax.get_ylim()[1], M)])
+    try:
+        ax.set_zlim3d([min(ax.get_zlim3d()[0], m), max(ax.get_zlim3d()[1], M)])
+    except:
+        ax.set_ylim([min(ax.get_ylim()[0], m), max(ax.get_ylim()[1], M)])
 
 
 class DrawOpts(object):

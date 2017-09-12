@@ -46,9 +46,9 @@ def build_cs(system, d0, g, cregions, cspec, fdt_mult=1, bounds=None,
 
         if error_bounds is not None:
             ((eps, eps_xderiv), (eta, eta_xderiv), (nu, nu_xderiv)) = error_bounds
-        eps_pert = EpsPerturbation(eps, eps_xderiv)
-        eta_pert = EtaPerturbation(eta, xpart, system.mesh)
-        nu_pert = NuPerturbation(nu, nu_xderiv, fdt_mult)
+        eps_pert = EpsPerturbation(eps, eps_xderiv, xpart=xpart, mesh=system.mesh)
+        eta_pert = EtaPerturbation(eta, xpart=xpart, mesh=system.mesh)
+        nu_pert = NuPerturbation(nu, nu_xderiv, fdt_mult, xpart=xpart, mesh=system.mesh)
 
         logic.perturb(spec, eps_pert)
         logic.perturb(spec, eta_pert)
@@ -74,14 +74,17 @@ def build_cs(system, d0, g, cregions, cspec, fdt_mult=1, bounds=None,
 
 
 class Perturbation(object):
-    def __init__(self):
-        pass
+    def __init__(self, xpart=None, mesh=None):
+        self.xpart = xpart
+        self.mesh = mesh
 
     def perturb(self, **kwargs):
         raise NotImplementedError()
 
-    def __call__(self, i=0, isnode=False, dmu=0, uderivs=0, ucomp=0):
-        p = self.perturb(**locals())
+    def __call__(self, i=0, isnode=False, dmu=0, uderivs=0, ucomp=0, region_dim=1):
+        kwargs = locals().copy()
+        del kwargs['self']
+        p = self.perturb(**kwargs)
         if p is None:
             return 0.0
         else:
@@ -89,8 +92,8 @@ class Perturbation(object):
 
 
 class EpsPerturbation(Perturbation):
-    def __init__(self, eps, eps_xderiv):
-        Perturbation.__init__(self)
+    def __init__(self, eps, eps_xderiv, **kwargs):
+        Perturbation.__init__(self, **kwargs)
         self.eps_list = np.array([eps, eps_xderiv])
 
     def perturb(self, **kwargs):
@@ -98,30 +101,34 @@ class EpsPerturbation(Perturbation):
         isnode = kwargs['isnode']
         uderivs = kwargs['uderivs']
         ucomp = kwargs['ucomp']
+        region_dim = kwargs['region_dim']
         eps = self.eps_list[uderivs]
         if len(self.eps_list.shape) == 1:
             return eps
         else:
             if len(eps.shape) == 1:
                 eps = eps[None]
-            if isnode and i > 0 and i < len(eps):
-                return max(eps[i][ucomp], eps[i+1][ucomp])
+            if self.xpart is not None:
+                if isnode and i > 0 and i < len(eps):
+                    return max(eps[i][ucomp], eps[i+1][ucomp])
+                else:
+                    return eps[i][ucomp]
             else:
-                return eps[i][ucomp]
+                elems = mesh.find_2d_containing_elems(i, region_dim)
+                return max([eps[e][ucomp] for e in elems.elems])
 
 
 class EtaPerturbation(Perturbation):
-    def __init__(self, eta, xpart, mesh):
-        Perturbation.__init__(self)
+    def __init__(self, eta, **kwargs):
+        Perturbation.__init__(self, **kwargs)
         self.eta = eta
-        self.xpart = xpart
-        self.mesh = mesh
 
     def perturb(self, **kwargs):
         i = kwargs['i']
         dmu = kwargs['dmu']
         uderivs = kwargs['uderivs']
         ucomp = kwargs['ucomp']
+        region_dim = kwargs['region_dim']
         if self.eta is None:
             return 0.0
         else:
@@ -129,34 +136,39 @@ class EtaPerturbation(Perturbation):
                 return ((self.eta[i] / 2.0 if uderivs == 0 else 0.0)
                         + dmu * (self.xpart[i+1] - self.xpart[i]) / 2.0)
             else:
-                cheby_radius = self.mesh.build_elem(
-                    self.mesh.elem_coords(i)).chebyshev_radius()
-                return cheby_radius * (
-                    dmu +
-                    np.sqrt(self.eta.shape[-1]) *
-                    np.linalg.norm(self.eta[i, ucomp]))
+                elem = self.mesh.get_elem(i, region_dim)
+                cheby_radius = elem.chebyshev_radius()
+                if region_dim == 0:
+                    grad = 0
+                elif region_dim == 1:
+                    # FIXME
+                    # grad = np.linalg.norm(self.eta[i, ucomp]) * np.sqrt(self.eta.shape[-1])
+                    grad = 0
+                elif region_dim == 2:
+                    grad = np.linalg.norm(self.eta[i, ucomp]) * np.sqrt(self.eta.shape[-1])
+                return cheby_radius * (dmu + grad)
 
 
 class NuPerturbation(Perturbation):
-    def __init__(self, nu, nu_xderiv, fdt_mult):
+    def __init__(self, nu, nu_xderiv, fdt_mult, **kwargs):
+        Perturbation.__init__(self, **kwargs)
         self.nu_list = np.array([nu, nu_xderiv])
         self.fdt_mult = fdt_mult
+        self.interpolations = [
+            self.mesh.interpolate(x) for x in self.nu_list if x is not None]
 
     def perturb(self, **kwargs):
         i = kwargs['i']
-        isnode = kwargs['isnode']
         uderivs = kwargs['uderivs']
         ucomp = kwargs['ucomp']
+        region_dim = kwargs['region_dim']
+        fdt_mult = self.fdt_mult
         nu = self.nu_list[uderivs]
         if nu is None:
             return 0.0
         else:
-            if len(nu.shape) == 1:
-                nu = nu[None]
-            if isnode:
-                return fdt_mult * nu[i, ucomp]
-            else:
-                return fdt_mult * (nu[i, ucomp] + nu[i+1, ucomp]) / 2.0
+            x = self.mesh.get_elem(i, region_dim).chebyshev_center()
+            return fdt_mult * self.interpolations[uderivs](*x)[ucomp]
 
 
 def lin_sample(bounds, g, xpart_x, xpart_y=None):
@@ -398,14 +410,41 @@ def _perturb_profile_nu(p, nu, xpart, fdt_mult, direction):
         return p(x) + direction * (fdt_mult * (nu[i + 1] + nu[i]) / 2.0)
     return pp
 
+def _perturb_profile_eps_2d(p, eps, mesh, direction):
+    logger.debug(eps.shape)
+    def pp(*x):
+        i = mesh.find_containing_elem(x)
+        return p(*x) + direction * eps[i]
+    return pp
 
-def perturb_profile(apc, eps, eta, nu, xpart, fdt_mult):
+def _perturb_profile_eta_2d(p, dp, eta, mesh, direction):
+    def pp(*x):
+        i = mesh.find_containing_elem(x)
+        elem = mesh.get_elem(i)
+        h = elem.chebyshev_radius()
+        return p(*x) + direction * h * (
+            np.linalg.norm(eta[i]) * np.sqrt(eta.shape[-1]) + dp(*x))
+    return pp
+
+def _perturb_profile_nu_2d(p, nu, mesh, fdt_mult, direction):
+    interp = mesh.interpolate(nu)
+    def pp(*x):
+        return p(*x) + direction * fdt_mult * interp(*x)
+    return pp
+
+def perturb_profile(apc, eps, eta, nu, xpart, fdt_mult, mesh):
     direction = -1 * apc.r
-    eps_p = _perturb_profile_eps(apc.p, eps[apc.uderivs], xpart, direction)
-    eta_p = _perturb_profile_eta(eps_p, apc.dp, eta[apc.uderivs], xpart, direction)
-    nu_p = _perturb_profile_nu(eta_p, nu[apc.uderivs], xpart, fdt_mult, direction)
+    if xpart is not None:
+        eps_p = _perturb_profile_eps(apc.p, eps[apc.uderivs], xpart, direction)
+        eta_p = _perturb_profile_eta(eps_p, apc.dp, eta[apc.uderivs], xpart, direction)
+        nu_p = _perturb_profile_nu(eta_p, nu[apc.uderivs], xpart, fdt_mult, direction)
+    else:
+        eps_p = _perturb_profile_eps_2d(apc.p, eps[apc.uderivs][:,apc.u_comp], mesh, direction)
+        eta_p = _perturb_profile_eta_2d(eps_p, apc.dp, eta[apc.uderivs][:,apc.u_comp,:], mesh, direction)
+        nu_p = _perturb_profile_nu_2d(eta_p, nu[apc.uderivs][apc.u_comp::2], mesh, fdt_mult, direction)
 
     return nu_p
+
 
 class CaseStudy(object):
     def __init__(self, dic):

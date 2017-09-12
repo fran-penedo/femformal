@@ -101,12 +101,38 @@ def run_draw(m, args):
     else:
         parser.print_help()
 
+def run_draw_animated_2d(m, inputm, draw_opts, args):
+    cs = getattr(m, 'cs')
+    cregions = getattr(m, 'cregions', None)
+    error_bounds = getattr(m, 'error_bounds', None)
+
+    if inputm is not None and hasattr(inputm, 'inputs'):
+        inputs = inputm.inputs
+        m.pwlf.ys = inputs
+        def f_nodal_control(t):
+            f = np.zeros(m.N + 1)
+            f[-1] = m.pwlf(t, x=m.pwlf.x)
+            return f
+        cs.system = sys.ControlSOSystem.from_sosys(cs.system, f_nodal_control)
+
+    (fig, ) = sys.draw_system_2d(
+        cs.system, cs.d0, cs.g, cs.T, t0=0, hold=True, xlabel=draw_opts.xlabel,
+        ylabel=draw_opts.ylabel, derivative_ylabel=draw_opts.derivative_ylabel)
+
+    if cregions is not None:
+        draw_predicates_to_axs_2d(fig.get_axes()[0:2], cregions, error_bounds,
+                                  cs.system.mesh, cs.fdt_mult)
+
+    _set_fig_opts(fig, [0, 1], draw_opts, tight=False)
+
+    draw.plt.show()
+
 def run_draw_animated(m, inputm, draw_opts, args):
     cs = getattr(m, 'cs')
     cregions = getattr(m, 'cregions', None)
     error_bounds = getattr(m, 'error_bounds', None)
 
-    if inputm is not None:
+    if inputm is not None and hasattr(inputm, 'inputs'):
         inputs = inputm.inputs
         m.pwlf.ys = inputs
         def f_nodal_control(t):
@@ -173,6 +199,27 @@ def run_draw_snapshots(m, inputm, draw_opts, args):
             figb.savefig(_fix_filename(prefix + "_strain_t{}".format(t)) + ".png",
                          bbox_inches='tight', pad_inches=0)
 
+def run_draw_inputs(m, inputm, draw_opts, args):
+    if inputm is None:
+        raise Exception("Input file needed to draw snapshots")
+    inputs = inputm.inputs
+    m.pwlf.ys = inputs
+    fig = sys.draw_pwlf(m.pwlf)
+
+    ax = fig.get_axes()[0]
+    ax.autoscale()
+    ax.set_ylabel(draw_opts.input_ylabel)
+    ax.set_xlabel(draw_opts.input_xlabel)
+    _set_fig_opts(fig, [], draw_opts, tight=False)
+
+    prefix = draw_opts.file_prefix
+    if prefix is None:
+        draw.plt.show()
+    else:
+        fig.savefig(_fix_filename(prefix + "_inputs") + ".png",
+                         bbox_inches='tight', pad_inches=0)
+
+
 def _set_fig_opts(fig, ax_indices, draw_opts, tight=True):
     fig.set_size_inches(draw_opts.plot_size_inches)
     fig.canvas.set_window_title(draw_opts.window_title)
@@ -194,35 +241,24 @@ def _set_fig_opts(fig, ax_indices, draw_opts, tight=True):
 def _fix_filename(s):
     return s.replace('.', '_')
 
-def run_draw_inputs(m, inputm, draw_opts, args):
-    if inputm is None:
-        raise Exception("Input file needed to draw snapshots")
-    inputs = inputm.inputs
-    m.pwlf.ys = inputs
-    fig = sys.draw_pwlf(m.pwlf)
-
-    ax = fig.get_axes()[0]
-    ax.autoscale()
-    ax.set_ylabel(draw_opts.input_ylabel)
-    ax.set_xlabel(draw_opts.input_xlabel)
-    _set_fig_opts(fig, [], draw_opts, tight=False)
-
-    prefix = draw_opts.file_prefix
-    if prefix is None:
-        draw.plt.show()
-    else:
-        fig.savefig(_fix_filename(prefix + "_inputs") + ".png",
-                         bbox_inches='tight', pad_inches=0)
-
 def draw_predicates_to_axs(axs, cregions, error_bounds, xpart, fdt_mult):
+    apcs, perts = _get_apcs_perts(cregions, error_bounds, fdt_mult, xpart=xpart)
+    draw.draw_predicates(apcs, sorted(cregions.keys()), xpart, axs, perts=perts)
+
+def draw_predicates_to_axs_2d(axs, cregions, error_bounds, mesh, fdt_mult):
+    apcs, perts = _get_apcs_perts(cregions, error_bounds, fdt_mult, mesh=mesh)
+    draw.draw_predicates_2d(apcs, sorted(cregions.keys()), mesh, axs, perts=perts)
+
+def _get_apcs_perts(cregions, error_bounds, fdt_mult, xpart=None, mesh=None):
     apcs = zip(*sorted(cregions.items()))[1]
     if error_bounds is not None:
         epss, etas, nus = error_bounds
-        perts = [fem.perturb_profile(apc, epss, etas, nus, xpart, fdt_mult)
+        perts = [fem.perturb_profile(apc, epss, etas, nus, xpart, fdt_mult, mesh)
                 for apc in apcs]
     else:
         perts = None
-    draw.draw_predicates(apcs, sorted(cregions.keys()), xpart, axs, perts=perts)
+
+    return apcs, perts
 
 
 def get_argparser():
@@ -259,6 +295,7 @@ def get_argparser():
 def _add_draw_argparser(parser):
     subparsers = parser.add_subparsers(dest='draw_action')
     subparsers.add_parser('animated')
+    subparsers.add_parser('animated_2d')
     subparsers.add_parser('inputs')
     subparsers.add_parser('snapshots')
 
@@ -270,6 +307,7 @@ def load_module(f):
         print "Couldn't load module {}".format(f)
         traceback.print_exc()
         return None
+
 
 def main():
     import logging.config

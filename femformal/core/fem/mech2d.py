@@ -12,7 +12,7 @@ from .. import system as sys
 logger = logging.getLogger(__name__)
 
 
-def mech2d(xpart, ypart, rho, C, g, f_nodal, dt):
+def mech2d(xpart, ypart, rho, C, g, f_nodal, dt, traction=None):
     mesh = grid_mesh(xpart, ypart)
     nnodes = mesh.nnodes
     nelems = mesh.nelems
@@ -21,7 +21,10 @@ def mech2d(xpart, ypart, rho, C, g, f_nodal, dt):
     # bigm = np.zeros((nnodes*2, nnodes*2))
     bigk = scipy.sparse.lil_matrix((nnodes*2, nnodes*2))
     bigm = scipy.sparse.lil_matrix((nnodes*2, nnodes*2))
-    bigf = np.zeros(nnodes*2)
+    if traction is None:
+        bigf = np.zeros(nnodes*2)
+    else:
+        bigf = traction_nodal_force(traction, mesh)
 
     for e in range(nelems):
         elem_nodes = mesh.elem_nodes(e)
@@ -43,7 +46,8 @@ def mech2d(xpart, ypart, rho, C, g, f_nodal, dt):
                 bigk[2*node + i,2*node + i] = 1
                 bigf[2*node + i] = gnode[i]
 
-    bigf += f_nodal
+    if f_nodal is not None:
+        bigf += f_nodal
 
     _remove_close_zeros(bigk)
     _remove_close_zeros(bigm)
@@ -59,15 +63,11 @@ def _remove_close_zeros(matrix):
     for i in zip(*indices):
         matrix[i] = 0
 
-
 def lumped(m):
     return scipy.sparse.diags(np.ravel(m.sum(axis=1)), format='lil')
 
-
-
 def grid_mesh(xs, ys):
     return mesh.GridQ4([xs, ys], element.BLQuadQ4)
-
 
 def assemble_into_big_matrix(matrix, elem_matrix, elem_nodes):
     eqs_grouped = [(2 * x, 2 * x + 1) for x in elem_nodes]
