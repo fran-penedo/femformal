@@ -1,5 +1,6 @@
 import itertools as it
 from bisect import bisect_left, bisect_right
+import logging
 
 import numpy as np
 from pyparsing import Word, Literal, MatchFirst, nums, alphas
@@ -8,6 +9,8 @@ from stlmilp import stl as stl
 from . import system as sys
 from .util import state_label, label, unlabel
 
+
+logger = logging.getLogger(__name__)
 
 class APCont(object):
     def __init__(self, A, r, p, dp = None, uderivs = 0):
@@ -149,6 +152,10 @@ def _build_f(p, op, isnode, uderivs, elem_len):
             return lambda vs: ((vs[1] - vs[0]) / elem_len - p) * (-1 if op == stl.LE else 1)
 
 def _build_f_elem(p, op, uderivs, elem):
+    try:
+        logger.debug(p.shape)
+    except:
+        pass
     if uderivs == 0:
         return lambda vs: (elem.interpolate_phys(vs, elem.chebyshev_center())
                            - p) * (-1 if op == stl.LE else 1)
@@ -195,6 +202,10 @@ class SysSignal(stl.Signal):
     # eps :: index -> isnode -> d/dx mu -> pert
     def perturb(self, eps):
         pert = -eps(self.index, self.isnode, self.dp, self.uderivs, self.u_comp, self.region_dim)
+        try:
+            logger.debug(pert.shape)
+        except:
+            pass
         self.p = self.p + (pert if self.op == stl.LE else -pert)
         if self.xpart is not None:
             self.f = _build_f(self.p, self.op, self.isnode, self.uderivs, self.elem_len)

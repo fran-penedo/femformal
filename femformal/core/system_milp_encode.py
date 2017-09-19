@@ -102,9 +102,11 @@ def add_newmark_constr_x0_set(m, l, system, pset, f, N):
     x = add_newmark_constr(m, l, system, N, None)
 
     xpart = system.xpart
+    mesh = system.mesh
     dset, vset, fset = pset
     fd, fv, ff = f
 
+    logger.debug("Adding parameter constraints")
     pd = [m.addVar(obj=0, lb=-g.GRB.INFINITY, ub=g.GRB.INFINITY, name=label('pd', i, 0))
           for i in range(dset.shape[1] - 1)]
     pv = [m.addVar(obj=0, lb=-g.GRB.INFINITY, ub=g.GRB.INFINITY, name=label('pv', i, 0))
@@ -124,11 +126,21 @@ def add_newmark_constr_x0_set(m, l, system, pset, f, N):
         m.addConstr(g.quicksum(
             pf[j] * fset[i][j] for j in range(fset.shape[1] - 1)) <= fset[i][-1])
 
-    for i in range(len(xpart)):
-        m.addConstr(x[label(l, i, 0)] == fd(xpart[i], pd))
-        m.addConstr(x[label('d' + l, i, 0)] == fv(xpart[i], pv))
-        for j in range(N):
-            m.addConstr(x[label('f', i, j)] == ff(j * system.dt, pf, xpart[i]))
+    logger.debug("Adding initial and boundary conditions")
+    if xpart is not None:
+        for i in range(len(xpart)):
+            m.addConstr(x[label(l, i, 0)] == fd(xpart[i], pd))
+            m.addConstr(x[label('d' + l, i, 0)] == fv(xpart[i], pv))
+            for j in range(N):
+                m.addConstr(x[label('f', i, j)] == ff(j * system.dt, pf, xpart[i]))
+    else:
+        for i in range(mesh.nnodes):
+            logger.debug("Adding IC and BC for node {}".format(i))
+            for dof in range(2):
+                m.addConstr(x[label(l, i * 2 + dof, 0)] == fd(mesh.nodes_coords[i], pd))
+                m.addConstr(x[label('d' + l, i * 2 + dof, 0)] == fv(mesh.nodes_coords[i], pv))
+                for j in range(N):
+                    m.addConstr(x[label('f', i * 2 + dof, j)] == ff(j * system.dt, pf, i * 2 + dof))
 
     return x
 

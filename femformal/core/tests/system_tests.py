@@ -331,9 +331,9 @@ class TestSystemDiff2D2DOF(unittest.TestCase):
         xn, yn = 2 * self.xmesh.nnodes, 2 * self.ymesh.nnodes
         self.T = 10
         self.xsys = sys.SOSystem(
-            np.zeros((xn, xn)), np.identity(xn), np.zeros(xn), dt=2.0, mesh=self.xmesh)
+            np.zeros((xn, xn)), np.identity(xn), np.ones(xn), dt=2.0, mesh=self.xmesh)
         self.ysys = sys.SOSystem(
-            np.zeros((yn, yn)), np.identity(yn), np.zeros(yn), dt=1.0, mesh=self.ymesh)
+            np.zeros((yn, yn)), np.identity(yn), np.ones(yn), dt=1.0, mesh=self.ymesh)
         self.x0 = [1 + np.zeros(xn), np.zeros(xn)]
         self.y0 = [2 + np.zeros(yn), np.zeros(yn)]
         self.x, _ = sys.newm_integrate(

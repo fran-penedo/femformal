@@ -103,7 +103,7 @@ class EpsPerturbation(Perturbation):
         ucomp = kwargs['ucomp']
         region_dim = kwargs['region_dim']
         eps = self.eps_list[uderivs]
-        if len(self.eps_list.shape) == 1:
+        if not hasattr(eps, 'shape'):
             return eps
         else:
             if len(eps.shape) == 1:
@@ -114,8 +114,9 @@ class EpsPerturbation(Perturbation):
                 else:
                     return eps[i][ucomp]
             else:
-                elems = mesh.find_2d_containing_elems(i, region_dim)
-                return max([eps[e][ucomp] for e in elems.elems])
+                elems = self.mesh.find_2d_containing_elems(i, region_dim)
+                ret = max([eps[e][ucomp] for e in elems.elems])
+                return ret.tolist()
 
 
 class EtaPerturbation(Perturbation):
@@ -146,7 +147,8 @@ class EtaPerturbation(Perturbation):
                     grad = 0
                 elif region_dim == 2:
                     grad = np.linalg.norm(self.eta[i, ucomp]) * np.sqrt(self.eta.shape[-1])
-                return cheby_radius * (dmu + grad)
+                ret = cheby_radius * (dmu + grad)
+                return ret.tolist()
 
 
 class NuPerturbation(Perturbation):
@@ -168,7 +170,8 @@ class NuPerturbation(Perturbation):
             return 0.0
         else:
             x = self.mesh.get_elem(i, region_dim).chebyshev_center()
-            return fdt_mult * self.interpolations[uderivs](*x)[ucomp]
+            ret = fdt_mult * self.interpolations[uderivs](*x)[ucomp]
+            return ret.tolist()
 
 
 def lin_sample(bounds, g, xpart_x, xpart_y=None):
@@ -281,7 +284,10 @@ def _downsample_diffs(mdiff, system, sys_true, xderiv):
         for e in range(system.mesh.nelems):
             e_coords = system.mesh.elem_coords(e)
             covering = sys_true.mesh.find_elems_covering(e_coords[0], e_coords[2])
-            mdiffgrouped[e] = np.max(mdiff.take(covering.elems, axis=0), axis=0)
+            nodes = set(
+                np.array([sys_true.mesh.elems_nodes[cov_elem]
+                          for cov_elem in covering.elems]).flatten().tolist())
+            mdiffgrouped[e] = np.max(mdiff.take(list(nodes), axis=0), axis=0)
 
     return mdiffgrouped
 

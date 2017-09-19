@@ -83,7 +83,7 @@ def elem_stiffness(x, y, c, build_elem):
         for j in range(len(weights)):
             a, b = sample_pts[i], sample_pts[j]
             _, jac_det = build_elem.jacobian(a, b, x, y)
-            strain_disp = build_elem.strain_displacement(a, b, x, y)
+            strain_disp = build_elem.strain_displacement(a, b, x, y) * jac_det
             stiff += (strain_disp.T.dot(c).dot(strain_disp)
                       * weights[i] * weights[j] / jac_det)
 
@@ -100,7 +100,10 @@ def elem_mass(x, y, rho, build_elem):
             _, jac_det = build_elem.jacobian(a, b, x, y)
             shape = shape_interp(a, b, build_elem)
             mass += (shape.T.dot(rho * np.identity(2)).dot(shape)
-                      * weights[i] * weights[j] / jac_det)
+                      * weights[i] * weights[j] * jac_det)
+            # shape = np.sum(shape, axis=0)
+            # mass += (shape.T.dot(shape)
+            #           * rho * weights[i] * weights[j] * jac_det)
 
     return mass
 
@@ -129,15 +132,15 @@ def state(u0, du0, node_coords, g):
     return d0, v0
 
 def traction_nodal_force(traction, mesh_):
-    f = np.zeros(mesh_.nnodes * 2)
+    f = np.zeros(mesh_.nnodes * 2).tolist()
     for e in range(len(mesh_.elems1d_nodes)):
         e_traction = element_traction_nodal_force(traction, e, mesh_)
         ns = mesh_.elem_nodes(e, dim=1)
         for i in [0, 2]:
-            f[2*ns[i]] += e_traction[i / 2][0]
-            f[2*ns[i] + 1] += e_traction[i / 2][1]
+            f[2*ns[i]] = f[2*ns[i]] + e_traction[i / 2][0]
+            f[2*ns[i] + 1] = f[2*ns[i] + 1] + e_traction[i / 2][1]
 
-    return f
+    return np.array(f)
 
 def element_traction_nodal_force(traction, e, mesh_):
     weights = [1, 1]

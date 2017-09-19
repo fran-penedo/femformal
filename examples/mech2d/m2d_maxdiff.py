@@ -6,16 +6,17 @@ from femformal.core.fem import mech2d
 
 N = 100
 
-length = 16
-width = 2
-elem_num_x = 4
-elem_num_y = 2
+length = 16.0
+width = 2.0
+elem_num_x = 8
+elem_num_y = 4
 xs = np.linspace(0, length, elem_num_x + 1)
 ys = np.linspace(0, width, elem_num_y + 1)
 C = np.array([[1.346153846153846e+07, 5.769230769230769e+06, 0.000000000000000e+00],
                        [5.769230769230769e+06, 1.346153846153846e+07, 0.000000000000000e+00],
                        [0.000000000000000e+00, 0.000000000000000e+00, 3.846153846153846e+06]])
 rho = 8e3
+E = 1e7
 # force = np.array([0.000000000000000e+00, 0.000000000000000e+00, 0.000000000000000e+00, 0.000000000000000e+00, 0.000000000000000e+00, 0.000000000000000e+00, 0.000000000000000e+00, 0.000000000000000e+00, 0.000000000000000e+00, -1.796875000000000e-01, -3.000000000000000e+00, 2.656250000000000e-01, 0.000000000000000e+00, 0.000000000000000e+00, 0.000000000000000e+00, 0.000000000000000e+00, 0.000000000000000e+00, 0.000000000000000e+00, 0.000000000000000e+00, -2.656250000000000e-01, 0.000000000000000e+00, 5.468750000000001e-02, 0.000000000000000e+00, 0.000000000000000e+00, 0.000000000000000e+00, 0.000000000000000e+00, 0.000000000000000e+00, 0.000000000000000e+00, 0.000000000000000e+00, -5.468750000000001e-02])
 force = np.zeros(2 * len(xs) * len(ys))
 u0 = lambda x, y: [0.0, 0.0]
@@ -32,18 +33,19 @@ def g(x, y):
         return [None, None]
 
 
-dt = 0.01
+dt = .80 * (width / elem_num_y) / np.sqrt(E / rho)
 sosys = mech2d.mech2d(xs, ys, rho, C, g, force, dt)
 # d0, v0 = mech2d.state(u0, du0, sosys.mesh.nodes_coords, g)
 
 
-elem_num_x_t = elem_num_x * 8
-elem_num_y_t = elem_num_y * 8
+mult = 8
+elem_num_x_t = elem_num_x * mult
+elem_num_y_t = elem_num_y * mult
 xs_t = np.linspace(0, length, elem_num_x_t + 1)
 ys_t = np.linspace(0, width, elem_num_y_t + 1)
 force_t = np.zeros(2 * len(xs_t) * len(ys_t))
 
-dt_t = 0.001
+dt_t = .80 * (width / elem_num_y_t) / np.sqrt(E / rho)
 sosys_t = mech2d.mech2d(xs_t, ys_t, rho, C, g, force_t, dt_t)
 
 def f_sample(bounds, g, sys_x, sys_y=None):
@@ -82,7 +84,7 @@ def ic_id_sample(bounds, g, sys_x, sys_y=None):
 
 tlims = [int(round(0.0 / dt)) * dt, int(round(5.0 / dt)) * dt]
 xlims = np.array([[0.0, 0.0], [length, width]])
-fbounds = [-1.5, -0.5]
+fbounds = [-5e3, 0.0]
 
 mds = casestudy.max_diff(
     sosys, g, tlims, xlims, sosys_t,
