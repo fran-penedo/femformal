@@ -90,6 +90,15 @@ class GridMesh(Mesh):
                     *[range(n2s[i] - n1s[i] + 1) for i in range(len(n1s))])]
         return ElementSet(0, {n: self.nodes_coords[n] for n in nodes})
 
+    def connected_fwd(self, node):
+        conn = []
+        mesh_coord = np.array(_unflatten_coord(node, self.shape))
+        for i in range(len(self.shape)):
+            if mesh_coord[i] != self.shape[i] - 1:
+                conn.append(_flatten_coord(
+                    [1 if x == i else 0 for x in range(mesh_coord.shape[0])] +
+                    mesh_coord, self.shape))
+        return conn
 
 def _unflatten_coord(x, shape):
     i = x % shape[0]

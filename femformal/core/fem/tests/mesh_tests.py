@@ -193,6 +193,14 @@ class TestGridMesh(unittest.TestCase):
         expected = [21, 22, 26, 27, 36, 37, 41, 42]
         np.testing.assert_array_equal(self.mesh.find_nodes_between(c1, c2).elems, expected)
 
+    def test_connected_fwd(self):
+        test_dict = {0: [1, 5, 15],
+                     4: [9, 19],
+                     14: [29],
+                     45: [46, 50]}
+        for k, v in test_dict.items():
+            npt.assert_array_equal(self.mesh.connected_fwd(k), v)
+
 
 class TestMesh(unittest.TestCase):
     def setUp(self):

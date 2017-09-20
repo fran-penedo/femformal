@@ -350,6 +350,34 @@ def draw_pde_snapshot(
     _render(fig, None, hold)
 
 
+def draw_displacement_2d(ds, mesh, ts, **kwargs):
+    global _holds
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+
+    ax.set_xlim(mesh.partitions[0][0], mesh.partitions[0][-1])
+    ax.set_xticks(mesh.partitions[0])
+    ax.set_ylim(mesh.partitions[1][0], mesh.partitions[1][-1])
+    ax.set_yticks(mesh.partitions[1])
+    zoom_axes(ax, .9)
+    ax.grid()
+
+    ls = ax.add_collection(LineCollection([], colors='k'))
+    time_text = ax.text(.02, .95, '', transform=ax.transAxes)
+
+    def lines(i):
+        nodes = mesh.nodes_coords + ds[i].reshape(mesh.nodes_coords.shape[0], 2)
+        ls.set_segments([[nodes[n], nodes[nex]]
+                         for n in range(mesh.nnodes)
+                         for nex in mesh.connected_fwd(n)])
+        time_text.set_text('t = {}'.format(ts[i]))
+        return ls, time_text
+
+    set_animation(fig, ts, lines)
+    fig.tight_layout()
+
+    _render(fig, None, kwargs['hold'])
+
 
 def _render(fig, savefun, hold):
     global _holds
@@ -452,6 +480,34 @@ def draw_predicates_2d(apcs, labels, mesh, axs, perts=None):
     # for ax in axs:
     #     ax.legend(loc='lower left', fontsize='6', labelspacing=0.05, handletextpad=0.1)
 
+def draw_predicates_displacement(apcs, labels, mesh, ax, perts=None):
+    for i, apc in enumerate(apcs):
+        elem_set = mesh.find_elems_between(apc.A[0], apc.A[1])
+        if elem_set.dimension > 1:
+            logger.info("Skipping {} predicate of dimension {}".format(
+                labels[i], apc.dimension))
+            continue
+        mus = np.linspace(0, 1, 30)
+        pts = [apc.A[0] * (1 - mu) + mu * apc.A[1] for mu in mus]
+        disps = zip(*[pt + apc.p(*pt) for pt in pts])
+        ax.plot(disps[0], disps[1], lw=1, label=labels[i])
+
+        if perts is not None:
+            elems = mesh.find_elems_between(apc.A[0], apc.A[1])
+            el_values = [{
+                e: perts[i](*mesh.get_elem(e, elems.dimension).chebyshev_center())
+                for e in elems.elems} for i in range(len(perts))]
+            for el_value in el_values:
+                logger.debug(el_value[elems.elems[0]])
+                verts_pert = np.array([
+                    np.hstack(
+                        [elems[e], np.ones((elems[e].shape[0], 1)) * el_value[e]])
+                    for e in elems.elems
+                ])
+                ax.add_collection(p3.art3d.Poly3DCollection(verts_pert))
+                update_ax_ylim(ax, verts_pert[:, :, -1])
+    ax.legend(loc='lower left', fontsize='6', labelspacing=0.05, handletextpad=0.1)
+
 def update_ax_ylim(ax, ys):
     m, M = np.min(ys), np.max(ys)
     m -= 0.03 * abs(M - m)
@@ -460,6 +516,13 @@ def update_ax_ylim(ax, ys):
         ax.set_zlim3d([min(ax.get_zlim3d()[0], m), max(ax.get_zlim3d()[1], M)])
     except:
         ax.set_ylim([min(ax.get_ylim()[0], m), max(ax.get_ylim()[1], M)])
+
+def zoom_axes(ax, factor):
+    lims = [ax.get_xlim(), ax.get_ylim()]
+    newlims = [sum(lim)/2.0 + np.array([-.5, .5]) * (lim[1] - lim[0]) * (1 + factor)
+               for lim in lims]
+    ax.set_xlim(newlims[0])
+    ax.set_ylim(newlims[1])
 
 
 class DrawOpts(object):

@@ -33,6 +33,8 @@ def mech2d(xpart, ypart, rho, C, g, f_nodal, dt, traction=None):
         assemble_into_big_matrix(bigk, kelem, elem_nodes)
         melem = elem_mass(x, y, rho, mesh.build_elem)
         assemble_into_big_matrix(bigm, melem, elem_nodes)
+        if e == 0:
+            logger.debug(np.sum(melem))
 
     bigm = lumped(bigm)
 
@@ -99,11 +101,8 @@ def elem_mass(x, y, rho, build_elem):
             a, b = sample_pts[i], sample_pts[j]
             _, jac_det = build_elem.jacobian(a, b, x, y)
             shape = shape_interp(a, b, build_elem)
-            mass += (shape.T.dot(rho * np.identity(2)).dot(shape)
-                      * weights[i] * weights[j] * jac_det)
-            # shape = np.sum(shape, axis=0)
-            # mass += (shape.T.dot(shape)
-            #           * rho * weights[i] * weights[j] * jac_det)
+            mass += (shape.T.dot(shape)
+                      * rho * weights[i] * weights[j] * jac_det)
 
     return mass
 

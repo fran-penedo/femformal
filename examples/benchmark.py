@@ -127,6 +127,33 @@ def run_draw_animated_2d(m, inputm, draw_opts, args):
 
     draw.plt.show()
 
+def run_draw_displacement(m, inputm, draw_opts, args):
+    cs = getattr(m, 'cs')
+    cregions = getattr(m, 'cregions', None)
+    error_bounds = getattr(m, 'error_bounds', None)
+
+    if inputm is not None and hasattr(inputm, 'inputs'):
+        inputs = inputm.inputs
+        m.pwlf.ys = inputs
+        def f_nodal_control(t):
+            f = np.zeros(m.N + 1)
+            f[-1] = m.pwlf(t, x=m.pwlf.x)
+            return f
+        cs.system = sys.ControlSOSystem.from_sosys(cs.system, f_nodal_control)
+
+    (fig, ) = sys.draw_displacement_plot(
+        cs.system, cs.d0, cs.g, cs.T, t0=0, hold=True, xlabel=draw_opts.xlabel,
+        ylabel=draw_opts.ylabel, derivative_ylabel=draw_opts.derivative_ylabel)
+
+    if cregions is not None:
+        draw_predicates_to_axs_disp(
+            fig.get_axes()[0], cregions, error_bounds, cs.system.mesh, cs.fdt_mult)
+
+    _set_fig_opts(fig, [0], draw_opts, tight=False)
+
+    draw.plt.show()
+
+
 def run_draw_animated(m, inputm, draw_opts, args):
     cs = getattr(m, 'cs')
     cregions = getattr(m, 'cregions', None)
@@ -249,6 +276,11 @@ def draw_predicates_to_axs_2d(axs, cregions, error_bounds, mesh, fdt_mult):
     apcs, perts = _get_apcs_perts(cregions, error_bounds, fdt_mult, mesh=mesh)
     draw.draw_predicates_2d(apcs, sorted(cregions.keys()), mesh, axs, perts=perts)
 
+def draw_predicates_to_axs_disp(ax, cregions, error_bounds, mesh, fdt_mult):
+    apcs, perts = _get_apcs_perts(cregions, error_bounds, fdt_mult, mesh=mesh)
+    draw.draw_predicates_displacement(
+        apcs, sorted(cregions.keys()), mesh, ax, perts=perts)
+
 def _get_apcs_perts(cregions, error_bounds, fdt_mult, xpart=None, mesh=None):
     apcs = zip(*sorted(cregions.items()))[1]
     if error_bounds is not None:
@@ -298,6 +330,7 @@ def _add_draw_argparser(parser):
     subparsers.add_parser('animated_2d')
     subparsers.add_parser('inputs')
     subparsers.add_parser('snapshots')
+    subparsers.add_parser('displacement')
 
 
 def load_module(f):
