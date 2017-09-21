@@ -6,7 +6,7 @@ from femformal.core import system as sys
 
 length = 16.0
 width = 2.0
-mults = [1, 2, 16, 20]
+mults = [1, 2, 4]
 elem_num_x = [4 * mult for mult in mults]
 elem_num_y = [2 * mult for mult in mults]
 xss = [np.linspace(0, length, e + 1) for e in elem_num_x]

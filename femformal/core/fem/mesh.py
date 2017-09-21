@@ -264,6 +264,14 @@ class GridQ4(GridMesh):
                     pass
             return ElementSet(2, elem_coords_map)
 
+    def find_border_elems(self):
+        bottom = list(range(self.shape[0] - 1))
+        top = [(self.shape[0] - 1) * (self.shape[1] - 1) + e for e in bottom]
+        left = [self._num_elems1dh(self.shape) + i for i in range(self.shape[1] - 1)]
+        right = [len(self.elems1d_nodes) - i for i in range(1, self.shape[1])]
+        return bottom + top + left + right
+
+
 
 class ElementSet(object):
     def __init__(self, dimension, elem_coords_map):

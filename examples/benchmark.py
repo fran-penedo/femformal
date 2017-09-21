@@ -135,19 +135,13 @@ def run_draw_displacement(m, inputm, draw_opts, args):
     if inputm is not None and hasattr(inputm, 'inputs'):
         inputs = inputm.inputs
         m.pwlf.ys = inputs
-        def f_nodal_control(t):
-            f = np.zeros(m.N + 1)
-            f[-1] = m.pwlf(t, x=m.pwlf.x)
-            return f
-        cs.system = sys.ControlSOSystem.from_sosys(cs.system, f_nodal_control)
+        cs.system = sys.ControlSOSystem.from_sosys(cs.system, m.traction_force.traction_force)
 
+    apcs, perts = _get_apcs_perts(cregions, error_bounds, cs.fdt_mult, mesh=cs.system.mesh)
     (fig, ) = sys.draw_displacement_plot(
         cs.system, cs.d0, cs.g, cs.T, t0=0, hold=True, xlabel=draw_opts.xlabel,
-        ylabel=draw_opts.ylabel, derivative_ylabel=draw_opts.derivative_ylabel)
-
-    if cregions is not None:
-        draw_predicates_to_axs_disp(
-            fig.get_axes()[0], cregions, error_bounds, cs.system.mesh, cs.fdt_mult)
+        ylabel=draw_opts.ylabel, derivative_ylabel=draw_opts.derivative_ylabel,
+        apcs=apcs, labels=sorted(cregions.keys()), perts=perts)
 
     _set_fig_opts(fig, [0], draw_opts, tight=False)
 
@@ -277,7 +271,6 @@ def draw_predicates_to_axs_2d(axs, cregions, error_bounds, mesh, fdt_mult):
     draw.draw_predicates_2d(apcs, sorted(cregions.keys()), mesh, axs, perts=perts)
 
 def draw_predicates_to_axs_disp(ax, cregions, error_bounds, mesh, fdt_mult):
-    apcs, perts = _get_apcs_perts(cregions, error_bounds, fdt_mult, mesh=mesh)
     draw.draw_predicates_displacement(
         apcs, sorted(cregions.keys()), mesh, ax, perts=perts)
 

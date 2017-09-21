@@ -6,8 +6,8 @@ from femformal.core.fem import mech2d as mech2d
 
 length = 16
 width = 2
-elem_num_x = 4
-elem_num_y = 2
+elem_num_x = 1
+elem_num_y = 1
 xs = np.linspace(0, length, elem_num_x + 1)
 ys = np.linspace(0, width, elem_num_y + 1)
 C = np.array([[1.346153846153846e+07, 5.769230769230769e+06, 0.000000000000000e+00],

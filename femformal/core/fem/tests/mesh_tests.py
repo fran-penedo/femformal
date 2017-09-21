@@ -116,6 +116,11 @@ class TestGridQ4(unittest.TestCase):
         npt.assert_array_equal(self.mesh.find_2d_containing_elems(5, dim=1).elems, [1, 5])
         npt.assert_array_equal(self.mesh.find_2d_containing_elems(14, dim=1).elems, [0, 1])
 
+    def test_find_border_elems(self):
+        expected = set([0,1,2,3,8,9,10,11,12,13,20,21])
+        self.assertEqual(set(self.mesh.find_border_elems()), expected)
+
+
 class TestMeshGlobals(unittest.TestCase):
     def setUp(self):
         self.L = 16

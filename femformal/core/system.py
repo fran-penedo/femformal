@@ -167,8 +167,8 @@ def ns_sys_matrices(system):
 
 
 class ControlSOSystem(SOSystem):
-    def __init__(self, M, K, F, f_nodal, xpart=None, dt=1.0):
-        SOSystem.__init__(self, M, K, F, xpart=xpart, dt=dt)
+    def __init__(self, M, K, F, f_nodal, xpart=None, dt=1.0, mesh=None, build_elem=None):
+        SOSystem.__init__(self, M, K, F, xpart=xpart, dt=dt, mesh=mesh, build_elem=build_elem)
         self.f_nodal = f_nodal
 
     def add_f_nodal(self, f_nodal):
@@ -177,7 +177,7 @@ class ControlSOSystem(SOSystem):
     @staticmethod
     def from_sosys(sosys, f_nodal):
         csosys = ControlSOSystem(
-            sosys.M, sosys.K, sosys.F, f_nodal, sosys.xpart, sosys.dt)
+            sosys.M, sosys.K, sosys.F, f_nodal, sosys.xpart, sosys.dt, sosys.mesh, sosys.build_elem)
         return csosys
 
     def copy(self):

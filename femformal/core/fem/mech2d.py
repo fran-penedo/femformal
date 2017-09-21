@@ -33,8 +33,6 @@ def mech2d(xpart, ypart, rho, C, g, f_nodal, dt, traction=None):
         assemble_into_big_matrix(bigk, kelem, elem_nodes)
         melem = elem_mass(x, y, rho, mesh.build_elem)
         assemble_into_big_matrix(bigm, melem, elem_nodes)
-        if e == 0:
-            logger.debug(np.sum(melem))
 
     bigm = lumped(bigm)
 
@@ -132,7 +130,7 @@ def state(u0, du0, node_coords, g):
 
 def traction_nodal_force(traction, mesh_):
     f = np.zeros(mesh_.nnodes * 2).tolist()
-    for e in range(len(mesh_.elems1d_nodes)):
+    for e in mesh_.find_border_elems():
         e_traction = element_traction_nodal_force(traction, e, mesh_)
         ns = mesh_.elem_nodes(e, dim=1)
         for i in [0, 2]:
@@ -176,3 +174,29 @@ def parabolic_traction(L, c):
             return np.array([0.0, 0.0])
 
     return traction
+
+
+class TimeVaryingTractionForce:
+    def __init__(self, parameter, traction_templ, mesh_):
+        self.parameter = parameter
+        self.traction_templ = traction_templ
+        self.mesh_ = mesh_
+        self.memoize = {}
+
+    @property
+    def ys(self):
+        return self._parameter.ys
+
+    def traction_force(self, t):
+        if t in self.memoize:
+            traction_force = self.memoize[t]
+        else:
+            traction = lambda x, y: self.traction_templ(x, y, self.parameter(t))
+            traction_force = traction_nodal_force(traction, self.mesh_)
+            self.memoize[t] = traction_force
+        return traction_force
+
+    def __call__(self, t, ys, node):
+        self._parameter.ys = ys
+        return self.traction_force(t)[node]
+

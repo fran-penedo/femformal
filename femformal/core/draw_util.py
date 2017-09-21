@@ -350,7 +350,7 @@ def draw_pde_snapshot(
     _render(fig, None, hold)
 
 
-def draw_displacement_2d(ds, mesh, ts, **kwargs):
+def draw_displacement_2d(ds, mesh, ts, apcs=None, labels=None, perts=None, **kwargs):
     global _holds
     fig = plt.figure()
     ax = fig.add_subplot(111)
@@ -373,7 +373,23 @@ def draw_displacement_2d(ds, mesh, ts, **kwargs):
         time_text.set_text('t = {}'.format(ts[i]))
         return ls, time_text
 
-    set_animation(fig, ts, lines)
+
+    pred_data = predicates_displacement_data(apcs, labels, mesh, ax, perts)
+    pred_lines = [pred_data[i]['l'] for i in pred_data.keys()]
+    def preds(i):
+        for key, value in pred_data.items():
+            dof = apcs[key].u_comp
+            data = value['pts'].copy()
+            data[:,dof] += value['disps']
+            sys_disps = np.array([ds[i][2*n + 1 - dof] for n in value['nodes']])
+            data[:, 1 - dof] += sys_disps
+            value['l'].set_data(data[:,0], data[:,1])
+        return tuple(pred_lines)
+
+
+    ax.legend(loc='lower left', fontsize='6', labelspacing=0.05, handletextpad=0.1)
+
+    set_animation(fig, ts, _combine_lines([lines, preds]))
     fig.tight_layout()
 
     _render(fig, None, kwargs['hold'])
@@ -480,33 +496,29 @@ def draw_predicates_2d(apcs, labels, mesh, axs, perts=None):
     # for ax in axs:
     #     ax.legend(loc='lower left', fontsize='6', labelspacing=0.05, handletextpad=0.1)
 
-def draw_predicates_displacement(apcs, labels, mesh, ax, perts=None):
+def predicates_displacement_data(apcs, labels, mesh, ax, perts=None):
+    indices = []
+    nodes_list = []
+    disps = []
+    pts = []
     for i, apc in enumerate(apcs):
         elem_set = mesh.find_elems_between(apc.A[0], apc.A[1])
         if elem_set.dimension > 1:
             logger.info("Skipping {} predicate of dimension {}".format(
                 labels[i], apc.dimension))
             continue
-        mus = np.linspace(0, 1, 30)
-        pts = [apc.A[0] * (1 - mu) + mu * apc.A[1] for mu in mus]
-        disps = zip(*[pt + apc.p(*pt) for pt in pts])
-        ax.plot(disps[0], disps[1], lw=1, label=labels[i])
+        indices.append(i)
+        nodes = set([n for e in elem_set.elems
+                     for n in mesh.elem_nodes(e, elem_set.dimension)])
 
-        if perts is not None:
-            elems = mesh.find_elems_between(apc.A[0], apc.A[1])
-            el_values = [{
-                e: perts[i](*mesh.get_elem(e, elems.dimension).chebyshev_center())
-                for e in elems.elems} for i in range(len(perts))]
-            for el_value in el_values:
-                logger.debug(el_value[elems.elems[0]])
-                verts_pert = np.array([
-                    np.hstack(
-                        [elems[e], np.ones((elems[e].shape[0], 1)) * el_value[e]])
-                    for e in elems.elems
-                ])
-                ax.add_collection(p3.art3d.Poly3DCollection(verts_pert))
-                update_ax_ylim(ax, verts_pert[:, :, -1])
-    ax.legend(loc='lower left', fontsize='6', labelspacing=0.05, handletextpad=0.1)
+        nodes_list.append(sorted(list(nodes)))
+        disps.append(np.array([apc.p(*mesh.nodes_coords[n]) for n in nodes_list[-1]]))
+        pts.append(np.array([mesh.nodes_coords[n] for n in nodes_list[-1]]))
+
+    return {i: {'nodes': nodes_list[i], 'disps': disps[i], 'pts': pts[i],
+                'l': ax.plot([], [], lw=1, label=labels[i])[0]}
+            for i in indices}
+
 
 def update_ax_ylim(ax, ys):
     m, M = np.min(ys), np.max(ys)
