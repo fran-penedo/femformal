@@ -23,7 +23,7 @@ def _build_and_solve(spec, model_encode_f, spec_obj):
         fvar, vbds = stl_milp.add_stl_constr(m, "spec", spec)
         fvar.setAttr("obj", spec_obj)
     # m.params.outputflag = 0
-    # m.params.numericfocus = 3
+    m.params.numericfocus = 3
     m.update()
     m.write("out.lp")
     logger.debug(

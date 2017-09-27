@@ -417,7 +417,6 @@ def _perturb_profile_nu(p, nu, xpart, fdt_mult, direction):
     return pp
 
 def _perturb_profile_eps_2d(p, eps, mesh, direction):
-    logger.debug(eps.shape)
     def pp(*x):
         i = mesh.find_containing_elem(x)
         return p(*x) + direction * eps[i]
@@ -435,7 +434,7 @@ def _perturb_profile_eta_2d(p, dp, eta, mesh, direction):
 def _perturb_profile_nu_2d(p, nu, mesh, fdt_mult, direction):
     interp = mesh.interpolate(nu)
     def pp(*x):
-        return p(*x) + direction * fdt_mult * interp(*x)
+        return (p(*x) + direction * fdt_mult * interp(*x))[0]
     return pp
 
 def perturb_profile(apc, eps, eta, nu, xpart, fdt_mult, mesh):

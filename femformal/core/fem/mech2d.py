@@ -185,7 +185,7 @@ class TimeVaryingTractionForce:
 
     @property
     def ys(self):
-        return self._parameter.ys
+        return self.parameter.ys
 
     def traction_force(self, t):
         if t in self.memoize:
@@ -197,6 +197,6 @@ class TimeVaryingTractionForce:
         return traction_force
 
     def __call__(self, t, ys, node):
-        self._parameter.ys = ys
+        self.parameter.ys = ys
         return self.traction_force(t)[node]
 

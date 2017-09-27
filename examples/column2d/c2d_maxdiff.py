@@ -3,7 +3,7 @@ import numpy as np
 from femformal.core import casestudy, system as sys
 from femformal.core.fem import mech2d as mech2d
 
-N = 2
+N = 100
 
 length = 16.0
 width = 2.0
@@ -41,14 +41,18 @@ force_t = None
 dt_t = .80 * (width / elem_num_y_t) / np.sqrt(E / rho)
 sosys_t = sys.ControlSOSystem.from_sosys(mech2d.mech2d(xs_t, ys_t, rho, C, g, force_t, dt_t), None)
 
-P = -10000
+center = 0.45
+left = .25
+right = .75
 def traction_templ(x, y, U):
-    if np.isclose(x, length):
-        y_m = U * width
+    y_r = right * width
+    y_l = left * width
+    if np.isclose(x, length) and y > y_l and y < y_r:
+        y_m = center * width
         if y < y_m:
-            ret = [-5000 + y * (P / y_m), 0.0]
+            ret = [(y - y_l) * (U / (y_m - y_l)), 0.0]
         else:
-            ret = [-5000 + P - (y - y_m) / (P / (width - y_m)), 0.0]
+            ret = [U - (y - y_m) * U / (y_r - y_m), 0.0]
     else:
         ret = [0.0, 0.0]
 
@@ -80,12 +84,12 @@ def ic_id_sample(bounds, g, sys_x, sys_y=None):
 
 
 T = 5.0
-input_dt = 1.0
+input_dt = .5
 
 tlims = [int(round(0.0 / dt)) * dt, (int(round(T / dt)) - 1) * dt]
 xlims = np.array([[0.0, 0.0], [length, width]])
 fbounds = {'xs': np.linspace(0, T, round(T / input_dt) + 1),
-           'ybounds': [0.0, 1.0]}
+           'ybounds': [-5e6, 0.0]}
 
 mds = casestudy.max_diff(
     sosys, g, tlims, xlims, sosys_t,

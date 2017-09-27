@@ -53,29 +53,35 @@ T = 3.0
 
 sosys = mech2d.mech2d(xs, ys, rho, C, g, force, dt, None)
 
-F = -4000000.0
+# F = -4000000.0
 input_dt = 0.5
-inputs = [0, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F]
+# inputs = [0, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F]
 pwlf = sys.PWLFunction(
-    np.linspace(0, T, round(T / input_dt) + 1), ys=inputs, x=None)
+    np.linspace(0, T, round(T / input_dt) + 1), ybounds=[-4e6, 0.0], x=None)
 traction_force = mech2d.TimeVaryingTractionForce(pwlf, traction_templ, sosys.mesh)
 
-# control_sys = sys.ControlSOSystem.from_sosys(sosys, traction_force.traction_force)
+d_par = 0.0
+v_par = 0.0
+dset = np.array([[1, d_par], [-1, d_par]])
+vset = np.array([[1, v_par], [-1, v_par]])
+fset = pwlf.pset()
+fd = lambda x, p: p[0]
+fv = lambda x, p: p[0]
 
 d0, v0 = mech2d.state(u0, du0, sosys.mesh.nodes_coords, g)
 
 v = .1
-apc1 = logic.APCont2D(1, np.array([[0.0, 0], [16, 0]]), '<',
+apc1 = logic.APCont2D(1, np.array([[0.0, 0], [16, 0]]), '>',
                       lambda x, y: v * (-x * x / 64.0 + x / 4.0),
                       lambda x, y: v * (-x / 32.0 + 1/4.0))
 cregions = {'A': apc1}
-cspec = "(G_[0.0, {}] (A))".format(T)
-bounds = [-1e-0, 1e-0]
+cspec = "(G_[2.0, 2.5] (A))".format(T)
+bounds = [-10e-0, 10e-0]
 
 error_bounds = [[mdiff.eps, None], [mdiff.eta, None], [mdiff.nu, None]]
 error_bounds = None
 
 cs = casestudy.build_cs(
     sosys, [d0, v0], g, cregions, cspec,
-    discretize_system=False, bounds=bounds, error_bounds=None,
-    pset=None, f=None)
+    discretize_system=False, bounds=bounds, error_bounds=error_bounds,
+    pset=[dset, vset, fset], f=[fd, fv, traction_force])

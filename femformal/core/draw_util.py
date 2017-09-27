@@ -375,7 +375,9 @@ def draw_displacement_2d(ds, mesh, ts, apcs=None, labels=None, perts=None, **kwa
 
 
     pred_data = predicates_displacement_data(apcs, labels, mesh, ax, perts)
-    pred_lines = [pred_data[i]['l'] for i in pred_data.keys()]
+    pred_lines = [pred_data[i]['l'] for i in pred_data.keys()] + \
+        [pred_data[i]['l_pert']
+         for i in pred_data.keys() if 'l_pert' in pred_data[i]]
     def preds(i):
         for key, value in pred_data.items():
             dof = apcs[key].u_comp
@@ -384,6 +386,13 @@ def draw_displacement_2d(ds, mesh, ts, apcs=None, labels=None, perts=None, **kwa
             sys_disps = np.array([ds[i][2*n + 1 - dof] for n in value['nodes']])
             data[:, 1 - dof] += sys_disps
             value['l'].set_data(data[:,0], data[:,1])
+            if 'l_pert' in value:
+                interp = mesh.interpolate(ds[i])
+                pert_data = value['pts_pert'].copy()
+                pert_sys_disps = np.array([interp(*c)[1 - dof] for c in pert_data])
+                pert_data[:,dof] += value['disps_pert']
+                pert_data[:, 1 - dof] += pert_sys_disps
+                value['l_pert'].set_data(pert_data[:,0], pert_data[:,1])
         return tuple(pred_lines)
 
 
@@ -485,7 +494,7 @@ def draw_predicates_2d(apcs, labels, mesh, axs, perts=None):
                 e: perts[i](*mesh.get_elem(e, elems.dimension).chebyshev_center())
                 for e in elems.elems} for i in range(len(perts))]
             for el_value in el_values:
-                logger.debug(el_value[elems.elems[0]])
+                # logger.debug(el_value[elems.elems[0]])
                 verts_pert = np.array([
                     np.hstack(
                         [elems[e], np.ones((elems[e].shape[0], 1)) * el_value[e]])
@@ -497,28 +506,34 @@ def draw_predicates_2d(apcs, labels, mesh, axs, perts=None):
     #     ax.legend(loc='lower left', fontsize='6', labelspacing=0.05, handletextpad=0.1)
 
 def predicates_displacement_data(apcs, labels, mesh, ax, perts=None):
-    indices = []
-    nodes_list = []
-    disps = []
-    pts = []
+    ret = {}
     for i, apc in enumerate(apcs):
         elem_set = mesh.find_elems_between(apc.A[0], apc.A[1])
         if elem_set.dimension > 1:
             logger.info("Skipping {} predicate of dimension {}".format(
                 labels[i], apc.dimension))
             continue
-        indices.append(i)
+
         nodes = set([n for e in elem_set.elems
                      for n in mesh.elem_nodes(e, elem_set.dimension)])
+        nodes = (sorted(list(nodes)))
+        disps = np.array([apc.p(*mesh.nodes_coords[n]) for n in nodes])
+        pts = np.array([mesh.nodes_coords[n] for n in nodes])
 
-        nodes_list.append(sorted(list(nodes)))
-        disps.append(np.array([apc.p(*mesh.nodes_coords[n]) for n in nodes_list[-1]]))
-        pts.append(np.array([mesh.nodes_coords[n] for n in nodes_list[-1]]))
+        l = ax.plot([], [], lw=1, label=labels[i])[0]
+        ret[i] = {'nodes': nodes, 'disps': disps, 'pts': pts, 'l':l}
 
-    return {i: {'nodes': nodes_list[i], 'disps': disps[i], 'pts': pts[i],
-                'l': ax.plot([], [], lw=1, label=labels[i])[0]}
-            for i in indices}
+        if perts is not None:
+            pts_pert = np.array([
+                mesh.get_elem(e, elem_set.dimension).chebyshev_center()
+                for e in elem_set.elems])
+            disps_pert = np.array([perts[i](*c) for c in pts_pert])
+            l_pert = ax.plot([], [], lw=1, ls='--', c=l.get_c())[0]
+            ret[i].update({'pts_pert': pts_pert, 'disps_pert': disps_pert,
+                           'l_pert': l_pert})
 
+
+    return ret
 
 def update_ax_ylim(ax, ys):
     m, M = np.min(ys), np.max(ys)
