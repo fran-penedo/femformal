@@ -28,6 +28,16 @@ class TestFemmilp(unittest.TestCase):
 
         np.testing.assert_array_almost_equal(d, d_true)
 
+    def test_fosys_trajectory(self):
+        dt = 0.1
+        fosys = sys.FOSystem(self.M, self.K, self.F, self.xpart, dt)
+        d0 = np.array([1.0, 0.5, -0.5, -1.0])
+        its = 100
+        d = femmilp.simulate_trajectory(fosys, d0, its)
+        d_true = sys.trapez_integrate(fosys, d0, its * dt, dt)
+
+        np.testing.assert_array_almost_equal(d, d_true)
+
     def test_control_sosys_trajectory(self):
         dt = 0.1
         its = 100

@@ -13,6 +13,8 @@ logger = logging.getLogger(__name__)
 def add_sys_constr_x0(m, l, system, x0, N, xhist=None):
     if isinstance(system, sys.System):
         x = add_affsys_constr_x0(m, l, system, x0, N, xhist)
+    elif isinstance(system, sys.FOSystem):
+        x = add_trapez_constr_x0(m, l, system, x0, N, xhist)
     elif isinstance(system, sys.SOSystem):
         x = add_newmark_constr_x0(m, l, system, x0, N, xhist)
     else:
@@ -24,6 +26,8 @@ def add_sys_constr_x0(m, l, system, x0, N, xhist=None):
 def add_sys_constr_x0_set(m, l, system, pset, f, N):
     if isinstance(system, sys.System):
         x = add_affsys_constr_x0_set(m, l, system, pset, f, N)
+    elif isinstance(system, sys.FOSystem):
+        x = add_trapez_constr_x0_set(m, l, system, pset, f, N)
     elif isinstance(system, sys.SOSystem):
         x = add_newmark_constr_x0_set(m, l, system, pset, f, N)
     else:
@@ -93,6 +97,105 @@ def add_affsys_constr(m, l, system, N, xhist=None):
                 m.addConstr(x[label(l, i, j)] ==
                             g.quicksum(A[i-1][k] * x[label(l, k + 1, j - 1)]
                                        for k in range(A.shape[0])) + b[i-1])
+    m.update()
+
+    return x
+
+
+def add_trapez_constr_x0_set(m, l, system, pset, f, N):
+    x = add_trapez_constr(m, l, system, N, None)
+
+    xpart = system.xpart
+    mesh = system.mesh
+    dset, fset = pset
+    fd, ff = f
+
+    logger.debug("Adding parameter constraints")
+    pd = [m.addVar(obj=0, lb=-g.GRB.INFINITY, ub=g.GRB.INFINITY, name=label('pd', i, 0))
+          for i in range(dset.shape[1] - 1)]
+    pf = [m.addVar(obj=0, lb=-g.GRB.INFINITY, ub=g.GRB.INFINITY, name=label('pf', i, 0))
+          for i in range(fset.shape[1] - 1)]
+
+    m.update()
+
+    for i in range(dset.shape[0]):
+        m.addConstr(g.quicksum(
+            pd[j] * dset[i][j] for j in range(dset.shape[1] - 1)) <= dset[i][-1])
+    for i in range(fset.shape[0]):
+        m.addConstr(g.quicksum(
+            pf[j] * fset[i][j] for j in range(fset.shape[1] - 1)) <= fset[i][-1])
+
+    logger.debug("Adding initial and boundary conditions")
+    if xpart is not None:
+        for i in range(len(xpart)):
+            m.addConstr(x[label(l, i, 0)] == fd(xpart[i], pd))
+            for j in range(N):
+                m.addConstr(x[label('f', i, j)] == ff(j * system.dt, pf, xpart[i]))
+    else:
+        raise NotImplementedError()
+        # for i in range(mesh.nnodes):
+        #     logger.debug("Adding IC and BC for node {}".format(i))
+        #     for dof in range(2):
+        #         m.addConstr(x[label(l, i * 2 + dof, 0)] == fd(mesh.nodes_coords[i], pd))
+        #         m.addConstr(x[label('d' + l, i * 2 + dof, 0)] == fv(mesh.nodes_coords[i], pv))
+        #         for j in range(N):
+        #             m.addConstr(x[label('f', i * 2 + dof, j)] == ff(j * system.dt, pf, i * 2 + dof))
+
+    return x
+
+def add_trapez_constr_x0(m, l, system, x0, N, xhist=None):
+    x = add_trapez_constr(m, l, system, N, xhist)
+    d0 = x0
+    for i in range(system.n):
+        m.addConstr(x[label(l, i, 0)] == d0[i])
+        for j in range(N):
+            m.addConstr(x[label('f', i, j)] == 0)
+    return x
+
+def add_trapez_constr(m, l, system, N, xhist=None):
+    if xhist is None:
+        xhist = []
+    M, F, dt = system.M, system.F, system.dt
+
+    # Decision variables
+    x = add_fosys_variables(m, l, M.shape[0], N, len(xhist))
+
+    if hasattr(system, "K_global"):
+        deltas = add_hybrid_K_deltas(m, system.K_els(), x, l, N, system.bigN)
+        el_int_forces = [elements_int_force(
+            m, l, system.K_els(), x, deltas, time, system.bigN)
+            for time in range(N)]
+    else:
+        el_int_forces = None
+
+    # Dynamics
+    logger.debug("Adding dynamics")
+    for i in range(M.shape[0]):
+        logger.debug("Adding row {}".format(i))
+        for j in range(-len(xhist), N):
+            if j < 0:
+                m.addConstr(x[label(l, i, j)] == xhist[len(xhist) + j][i])
+            elif j == 0:
+                # M v = F - Kd
+                if M[i,i] == 0:
+                    m.addConstr(x[label('d' + l, i, j)] == 0)
+                else:
+                    m.addConstr(g.quicksum(M[i, k] * x[label('d' + l, k, j)]
+                                        for k in range(M.shape[0])) ==
+                                x[label('f', i, j)] + F[i] -
+                                int_force(system, x, i, j, l, el_int_forces))
+            elif j > 0:
+                # d = d + dt * v
+                m.addConstr(x[label(l, i, j)] == x[label(l, i, j - 1)] +
+                            dt * x[label('d' + l, i, j - 1)])
+                # M v = F - Kd
+                if M[i,i] == 0:
+                    m.addConstr(x[label('d' + l, i, j)] == 0)
+                else:
+                    m.addConstr(g.quicksum(M[i, k] * x[label('d' + l, k, j)]
+                                        for k in range(M.shape[0])) ==
+                                x[label('f', i, j)] + F[i] -
+                                int_force(system, x, i, j, l, el_int_forces))
     m.update()
 
     return x
@@ -270,6 +373,23 @@ def add_sosys_variables(m, l, nvars, horlen, histlen):
             x[labela] = m.addVar(
                 obj=0, lb=-g.GRB.INFINITY, ub=g.GRB.INFINITY, name=labela)
 
+    m.update()
+    return x
+
+def add_fosys_variables(m, l, nvars, horlen, histlen):
+    logger.debug("Adding decision variables")
+    x = {}
+    for i in range(nvars):
+        for j in range(-histlen, horlen):
+            labelf = label('f', i, j)
+            x[labelf] = m.addVar(
+                obj=0, lb=-g.GRB.INFINITY, ub=g.GRB.INFINITY, name=labelf)
+            labelx = label(l, i, j)
+            x[labelx] = m.addVar(
+                obj=0, lb=-g.GRB.INFINITY, ub=g.GRB.INFINITY, name=labelx)
+            labelv = label('d' + l, i, j)
+            x[labelv] = m.addVar(
+                obj=0, lb=-g.GRB.INFINITY, ub=g.GRB.INFINITY, name=labelv)
     m.update()
     return x
 
