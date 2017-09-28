@@ -68,11 +68,18 @@ class System(object):
 
 class FOSystem(object):
 
-    def __init__(self, M, K, F, xpart=None, dt=1.0):
+    def __init__(self, M, K, F, xpart=None, dt=1.0, mesh=None, build_elem=None):
         self.M = M
         self.K = K
         self.F = F
+        xpart_given = xpart is not None
+        mesh_given = mesh is not None and build_elem is not None
+        if xpart_given and mesh_given:
+            raise Exception("Expected either xpart or mesh/build_elem")
+
         self.xpart = xpart
+        self.mesh = mesh
+        self.build_elem = build_elem
         self.dt = dt
 
     def to_canon(self):
@@ -91,6 +98,15 @@ class FOSystem(object):
     @property
     def n(self):
         return len(self.M)
+
+    def add_f_nodal(self, f_nodal):
+        self.F = self.F + f_nodal
+
+    def copy(self):
+        """Returns a copy of this system. Structural properties (mesh) are
+        shallow copied, while system matrices are deep copied"""
+        return FOSystem(self.M.copy(), self.K.copy(), self.F.copy(),
+                        self.xpart, self.dt, self.mesh, self.build_elem)
 
     def __str__(self):
         return "M:\n{0}\nK:\n{1}\nF:\n{2}".format(self.M, self.K, self.F)
@@ -183,6 +199,31 @@ class ControlSOSystem(SOSystem):
     def copy(self):
         return ControlSOSystem.from_sosys(
             super(ControlSOSystem, self).copy(), self.f_nodal)
+
+class ControlFOSystem(FOSystem):
+    def __init__(self, M, K, F, f_nodal, xpart=None, dt=1.0, mesh=None, build_elem=None):
+        FOSystem.__init__(self, M, K, F, xpart=xpart, dt=dt, mesh=mesh, build_elem=build_elem)
+        self.f_nodal = f_nodal
+
+    def add_f_nodal(self, f_nodal):
+        self.f_nodal = f_nodal
+
+    @staticmethod
+    def from_fosys(fosys, f_nodal):
+        csosys = ControlFOSystem(
+            fosys.M, fosys.K, fosys.F, f_nodal, fosys.xpart, fosys.dt, fosys.mesh, fosys.build_elem)
+        return csosys
+
+    def copy(self):
+        return ControlFOSystem.from_fosys(
+            super(ControlFOSystem, self).copy(), self.f_nodal)
+
+
+def make_control_system(sys, f_nodal):
+    if isinstance(sys, FOSystem):
+        return ControlFOSystem.from_fosys(sys, f_nodal)
+    else:
+        return ControlSOSystem.from_fosys(sys, f_nodal)
 
 
 class MatrixFunction(object):
@@ -352,6 +393,53 @@ def cont_to_disc(system, dt=1.0):
 
 def cont_integrate(system, x0, t):
     return odeint(lambda x, t: (system.A.dot(x) + system.b.T).flatten(), x0, t)
+
+def trapez_integrate(fosys, d0, T, dt=.1):
+    M, K, F, n_e = ns_sys_matrices(fosys)
+
+    try:
+        f_nodal = fosys.f_nodal
+    except AttributeError:
+        f_nodal = np.zeros(F.shape)
+
+    its = int(round(T / dt))
+    d = np.array(d0)
+    if d.shape != (fosys.n,):
+        raise ValueError("System and initial value shape do not agree: "
+                         "system dimension = {}, d shape = {}".format(
+                             fosys.n, d.shape))
+    v = np.zeros(d.shape[0])
+    try:
+        solve_m = _factorize(M)
+    except ValueError:
+        logger.info("Integrating M = 0 system")
+        solve_m = lambda x: np.zeros(len(n_e))
+    try:
+        f_nodal_c = f_nodal(0)[n_e]
+    except TypeError:
+        f_nodal_c = f_nodal
+    try:
+        K_cur = K(d)
+    except TypeError:
+        K_cur = K
+    v[n_e] = solve_m(F + f_nodal_c - K_cur.dot(d[n_e]))
+    ds = [d]
+    vs = [v]
+    for i in range(its):
+        try:
+            f_nodal_c = f_nodal((i+1) * dt)[n_e]
+        except TypeError:
+            f_nodal_c = f_nodal
+        try:
+            K_cur = K(d)
+        except TypeError:
+            K_cur = K
+        d = d + dt * v
+        v[n_e] = solve_m(F + f_nodal_c - K_cur.dot(d[n_e]))
+        ds.append(d)
+        vs.append(v)
+    return np.array(ds)
+
 
 def disc_integrate(system, x0, t):
     xs = [x0]
@@ -650,8 +738,8 @@ def draw_system_cont(sys, x0, T, t0=0, hold=False, **kargs):
     xpart = sys.xpart
 
     tx = np.linspace(t0, T, int(round((T - t0)/dt)))
-    x = cont_integrate(sys, x0[1:-1], tx)
-    x = np.c_[x0[0] * np.ones(x.shape[0]), x, x0[-1] * np.ones(x.shape[0])]
+    x = trapez_integrate(sys, x0, T, dt)
+    # x = np.c_[x0[0] * np.ones(x.shape[0]), x, x0[-1] * np.ones(x.shape[0])]
     x = x[int(round(t0/dt)):]
     tx = tx[int(round(t0/dt)):]
     draw.draw_pde_trajectory(x, xpart, tx, hold=hold, **kargs)
@@ -671,7 +759,7 @@ def draw_sosys(sosys, d0, v0, g, T, t0=0, hold=False, **kargs):
 
 def draw_system(sys, d0, g, T, t0=0, **kargs):
     if isinstance(sys, FOSystem):
-        return draw_system_cont(sys, d0, g, T, t0, **kargs)
+        return draw_system_cont(sys, d0, T, t0, **kargs)
     elif isinstance(sys, SOSystem):
         return draw_sosys(sys, d0[0], d0[1], g, T, t0, **kargs)
     else:

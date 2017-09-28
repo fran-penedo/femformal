@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 def build_cs(system, d0, g, cregions, cspec, fdt_mult=1, bounds=None,
              pset=None, f=None, discretize_system=True, cstrue=None, error_bounds=None,
-             eps=None, eta=None, nu=None, eps_xderiv=None, nu_xderiv=None):
+             eps=None, eta=None, nu=None, eps_xderiv=None, nu_xderiv=None, T=1.0):
     dt = system.dt
     xpart = system.xpart
 
