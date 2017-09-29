@@ -15,7 +15,7 @@ def _build_and_solve(spec, model_encode_f, spec_obj):
         hd = 0
 
     m = milp.create_milp("rhc_system")
-    logger.debug("Adding affine system constraints")
+    logger.debug("Adding system constraints")
     model_encode_f(m, hd)
     # sys_milp.add_sys_constr_x0(m, "d", system, d0, hd, None)
     if spec is not None:
@@ -23,7 +23,7 @@ def _build_and_solve(spec, model_encode_f, spec_obj):
         fvar, vbds = stl_milp.add_stl_constr(m, "spec", spec)
         fvar.setAttr("obj", spec_obj)
     # m.params.outputflag = 0
-    m.params.numericfocus = 3
+    # m.params.numericfocus = 3
     m.update()
     m.write("out.lp")
     logger.debug(
@@ -62,6 +62,11 @@ def synthesize(system, pset, f, spec, fdt_mult=1, return_traj=False, T=None):
             m, "d", system, pset, f, fdt_mult * hd)
 
     m = _build_and_solve(spec, model_encode_f, -1.0)
+    if m.status == milp.GRB.status.INFEASIBLE:
+        logger.warning("MILP infeasible, logging IIS")
+        m.computeIIS()
+        m.write("out.ilp")
+        return None, None
     inputs = [y.getAttr('x') for y in f[-1].ys]
     try:
         robustness = m.getVarByName("spec").getAttr("x")

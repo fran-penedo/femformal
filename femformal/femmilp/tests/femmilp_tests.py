@@ -34,7 +34,7 @@ class TestFemmilp(unittest.TestCase):
         d0 = np.array([1.0, 0.5, -0.5, -1.0])
         its = 100
         d = femmilp.simulate_trajectory(fosys, d0, its)
-        d_true = sys.trapez_integrate(fosys, d0, its * dt, dt)
+        d_true = sys.trapez_integrate(fosys, d0, its * dt, dt, alpha = 0)
 
         np.testing.assert_array_almost_equal(d, d_true)
 

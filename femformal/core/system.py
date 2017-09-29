@@ -394,7 +394,7 @@ def cont_to_disc(system, dt=1.0):
 def cont_integrate(system, x0, t):
     return odeint(lambda x, t: (system.A.dot(x) + system.b.T).flatten(), x0, t)
 
-def trapez_integrate(fosys, d0, T, dt=.1):
+def trapez_integrate(fosys, d0, T, dt=.1, alpha=0.5):
     M, K, F, n_e = ns_sys_matrices(fosys)
 
     try:
@@ -409,8 +409,9 @@ def trapez_integrate(fosys, d0, T, dt=.1):
                          "system dimension = {}, d shape = {}".format(
                              fosys.n, d.shape))
     v = np.zeros(d.shape[0])
+    td = np.zeros(d.shape[0])
     try:
-        solve_m = _factorize(M)
+        solve_m = _factorize(M + alpha * dt * K)
     except ValueError:
         logger.info("Integrating M = 0 system")
         solve_m = lambda x: np.zeros(len(n_e))
@@ -422,7 +423,7 @@ def trapez_integrate(fosys, d0, T, dt=.1):
         K_cur = K(d)
     except TypeError:
         K_cur = K
-    v[n_e] = solve_m(F + f_nodal_c - K_cur.dot(d[n_e]))
+    v[n_e] = la.solve(M, F + f_nodal_c - K_cur.dot(d[n_e]))
     ds = [d]
     vs = [v]
     for i in range(its):
@@ -434,8 +435,14 @@ def trapez_integrate(fosys, d0, T, dt=.1):
             K_cur = K(d)
         except TypeError:
             K_cur = K
-        d = d + dt * v
-        v[n_e] = solve_m(F + f_nodal_c - K_cur.dot(d[n_e]))
+        if alpha > 0:
+            td = d + (1 - alpha) * dt * v
+            d = d.copy()
+            d[n_e] = solve_m(alpha * dt * (F + f_nodal_c) + M.dot(td[n_e]))
+            v = (d - td) / (alpha * dt)
+        else:
+            d = d + dt * v
+            v[n_e] = solve_m(F + f_nodal_c - K_cur.dot(d[n_e]))
         ds.append(d)
         vs.append(v)
     return np.array(ds)
@@ -563,27 +570,16 @@ def diff2d(x, y, dtx, dty, xmesh, ymesh, xl, xr):
     return d
 
 
-def sys_diff(xsys, ysys, x0, y0, tlims, xlims, plot=False):
+def sys_diff(xsys, ysys, x0, y0, tlims, xlims, xderiv=False, plot=False):
     dtx, dty = xsys.dt, ysys.dt
     xpart, ypart = xsys.xpart, ysys.xpart
     t0, T = tlims
     xl, xr = xlims
-    tx = int(round(T / dtx))
-    ty = np.linspace(0, T, int(T / dty))
-    x = disc_integrate(xsys, x0[1:-1], tx)
-    x = np.c_[x0[0] * np.ones(x.shape[0]), x, x0[-1] * np.ones(x.shape[0])]
+    x = trapez_integrate(xsys, x0, T, dtx, alpha=0.0)
     x = x[int(t0/dtx):]
-    y = cont_integrate(ysys, y0[1:-1], ty)
-    y = np.c_[y0[0] * np.ones(y.shape[0]), y, y0[-1] * np.ones(y.shape[0])]
+    y = trapez_integrate(ysys, y0, T, dty, alpha=0.5)
     y = y[int(t0/dty):]
     absdif = np.abs(diff(x, y, dtx, dty, xpart, ypart, xl, xr))
-    if plot:
-        yl = bisect_left(ypart, xl)
-        yr = bisect_right(ypart, xr) - 1
-        ttx = np.linspace(0, T, int(round(T / dtx)))
-        draw.draw_pde_trajectory(x, xpart, ttx, hold=True)
-        draw.draw_pde_trajectory(y, ypart, ty, hold=True)
-        draw.draw_pde_trajectory(absdif, ypart[yl:yr], ttx, hold=False)
     return absdif
 
 def sosys_diff(xsys, ysys, x0, y0, tlims, xlims, xderiv=False, plot=False):
@@ -640,8 +636,6 @@ def sys_max_diff(xsys, ysys, x0, y0, tlims, xlims, xderiv=False, pw=False, plot=
         diff_f = sosys_diff
     elif isinstance(xsys, FOSystem):
         diff_f = sys_diff
-        xsys = xsys.to_canon()
-        ysys = ysys.to_canon()
     else:
         diff_f = sys_diff
 
@@ -654,14 +648,8 @@ def sys_max_diff(xsys, ysys, x0, y0, tlims, xlims, xderiv=False, pw=False, plot=
 
 def sys_max_xdiff(sys, x0, t0, T):
     dt = sys.dt
-    xpart = sys.xpart
-    # print x0
-    t = np.linspace(0, T, int(round(T / dt)))
-    x = cont_integrate(sys, x0[1:-1], t)
-    x = np.c_[x0[0] * np.ones(x.shape[0]), x, x0[-1] * np.ones(x.shape[0])]
+    x = trapez_integrate(sys, x0, T, dt, alpha=0.0)
     x = x[int(round(t0/dt)):]
-
-    # draw.draw_pde_trajectory(x, xpart, t)
 
     dx = np.abs(np.diff(x))
     mdx = np.max(dx, axis=0)
@@ -670,11 +658,7 @@ def sys_max_xdiff(sys, x0, t0, T):
 
 def sys_max_tdiff(sys, x0, t0, T):
     dt = sys.dt
-    xpart = sys.xpart
-
-    t = int(round(T / dt))
-    x = disc_integrate(sys, x0[1:-1], t)
-    x = np.c_[x0[0] * np.ones(x.shape[0]), x, x0[-1] * np.ones(x.shape[0])]
+    x = trapez_integrate(sys, x0, T, dt, alpha=0.0)
     x = x[int(round(t0/dt)):]
 
     dtx = np.abs(np.diff(x, axis=0))

@@ -107,12 +107,12 @@ class EpsPerturbation(Perturbation):
             return eps
         else:
             if len(eps.shape) == 1:
-                eps = eps[None]
+                eps = eps[None].T
             if self.xpart is not None:
                 if isnode and i > 0 and i < len(eps):
-                    return max(eps[i][ucomp], eps[i+1][ucomp])
+                    return max(eps[i][ucomp], eps[i+1][ucomp]).tolist()
                 else:
-                    return eps[i][ucomp]
+                    return eps[i][ucomp].tolist()
             else:
                 elems = self.mesh.find_2d_containing_elems(i, region_dim)
                 ret = max([eps[e][ucomp] for e in elems.elems])
@@ -134,8 +134,9 @@ class EtaPerturbation(Perturbation):
             return 0.0
         else:
             if len(self.eta.shape) == 1:
-                return ((self.eta[i] / 2.0 if uderivs == 0 else 0.0)
+                ret = ((self.eta[i] / 2.0 if uderivs == 0 else 0.0)
                         + dmu * (self.xpart[i+1] - self.xpart[i]) / 2.0)
+                return ret.tolist()
             else:
                 elem = self.mesh.get_elem(i, region_dim)
                 cheby_radius = elem.chebyshev_radius()
@@ -156,8 +157,9 @@ class NuPerturbation(Perturbation):
         Perturbation.__init__(self, **kwargs)
         self.nu_list = np.array([nu, nu_xderiv])
         self.fdt_mult = fdt_mult
-        self.interpolations = [
-            self.mesh.interpolate(x) for x in self.nu_list if x is not None]
+        if self.mesh is not None:
+            self.interpolations = [
+                self.mesh.interpolate(x) for x in self.nu_list if x is not None]
 
     def perturb(self, **kwargs):
         i = kwargs['i']
@@ -169,9 +171,14 @@ class NuPerturbation(Perturbation):
         if nu is None:
             return 0.0
         else:
-            x = self.mesh.get_elem(i, region_dim).chebyshev_center()
-            ret = fdt_mult * self.interpolations[uderivs](*x)[ucomp]
-            return ret.tolist()
+            if self.mesh is not None:
+                x = self.mesh.get_elem(i, region_dim).chebyshev_center()
+                ret = fdt_mult * self.interpolations[uderivs](*x)[ucomp]
+                return ret.tolist()
+            else:
+                nu = self.nu_list[uderivs]
+                ret = fdt_mult * (nu[i] + nu[i+1]) / 2.0
+                return ret.tolist()
 
 
 def lin_sample(bounds, g, xpart_x, xpart_y=None):
@@ -217,6 +224,16 @@ def id_sample(bounds, g, xpart_x, xpart_y=None):
         return [x0, vx0], [y0, vy0]
     else:
         return [x0, vx0]
+
+def id_sample_1dof(bounds, g, xpart_x, xpart_y=None):
+    u0 = bounds
+    x0 = [u0(x) for x in xpart_x]
+
+    if xpart_y is not None:
+        y0 = [u0(x) for x in xpart_y]
+        return x0, y0
+    else:
+        return x0
 
 
 def max_diff(system, g, tlims, xlims, sys_true,
@@ -300,7 +317,7 @@ def max_xdiff(system, g, tlims, bounds, sample=None, n=50, log=True):
 
     bounds_ic, bounds_f = bounds
     sys_x = system
-    mdiff = np.zeros((len(sys.xpart) - 1,))
+    mdiff = np.zeros((len(system.xpart) - 1,))
     if log:
         logger.debug("Starting max_xdiff")
     for i in range(n):
@@ -321,7 +338,7 @@ def max_xdiff(system, g, tlims, bounds, sample=None, n=50, log=True):
         logger.debug("mdiff = {}".format(mdiff))
     return mdiff
 
-def max_tdiff(system, dt, xpart, g, tlims, bounds, sample=None, n=50, log=True):
+def max_tdiff(system, g, tlims, bounds, sample=None, n=50, log=True):
     if sample is None:
         sample_ic = lin_sample
         sample_f = None
