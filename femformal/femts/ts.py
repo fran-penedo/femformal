@@ -19,7 +19,7 @@ class TS(nx.DiGraph):
 
     def add_transition(self, x, y, pert_bounds):
         xs, ys = label_state(x), label_state(y)
-        xs, ys = long_first(xs, ys)
+        xs, ys = _long_first(xs, ys)
         xn = self.node[xs]
         R = xn['rect'].copy()
 
@@ -147,3 +147,8 @@ def abstract(system, partition, pert_bounds):
     return ts
 
 
+def _long_first(a, b):
+    if len(a) > len(b):
+        return a, b
+    else:
+        return b, a
