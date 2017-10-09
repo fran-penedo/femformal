@@ -160,6 +160,8 @@ def run_draw_animated(m, inputm, draw_opts, args):
             f = np.zeros(m.N + 1)
             f[-1] = m.pwlf(t, x=m.pwlf.x)
             return f
+
+
         cs.system = sys.make_control_system(cs.system, f_nodal_control)
 
     (fig, ) = sys.draw_system(
@@ -188,7 +190,7 @@ def run_draw_snapshots(m, inputm, draw_opts, args):
             f[-1] = m.pwlf(t, x=m.pwlf.x)
             return f
 
-        cs.system = sys.ControlSOSystem.from_sosys(cs.system, f_nodal_control)
+        cs.system = sys.make_control_system(cs.system, f_nodal_control)
 
     figs = sys.draw_system_snapshots(
         cs.system, cs.d0, cs.g, ts, hold=True, xlabel=draw_opts.xlabel,

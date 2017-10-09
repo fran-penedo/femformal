@@ -148,8 +148,12 @@ def add_trapez_constr_x0(m, l, system, x0, N, xhist=None):
     d0 = x0
     for i in range(system.n):
         m.addConstr(x[label(l, i, 0)] == d0[i])
-        for j in range(N):
-            m.addConstr(x[label('f', i, j)] == 0)
+        if hasattr(system, 'f_nodal'):
+            for j in range(N):
+                m.addConstr(x[label('f', i, j)] == system.f_nodal(j * system.dt)[i])
+        else:
+            for j in range(N):
+                m.addConstr(x[label('f', i, j)] == 0)
     return x
 
 alpha = 0.5

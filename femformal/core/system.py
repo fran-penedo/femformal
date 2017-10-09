@@ -790,10 +790,28 @@ def draw_sosys_snapshots(sosys, d0, v0, g, ts, hold=False, **kargs):
     if hold:
         return draw.pop_holds()
 
+def draw_fosys_snapshots(fosys, d0, g, ts, hold=False, **kargs):
+    dt = fosys.dt
+    xpart = fosys.xpart
+
+    t0, T = 0, max(ts)
+    tx = np.linspace(t0, T, int(round((T - t0)/dt)))
+    d = trapez_integrate(fosys, d0, T, dt)
+    for t in ts:
+        index = bisect_right(tx, t) -1
+        draw.draw_pde_snapshot(
+            xpart, d[index], np.true_divide(np.diff(d[index]), np.diff(xpart)),
+            t, hold=hold, **kargs)
+
+    if hold:
+        return draw.pop_holds()
+
 
 def draw_system_snapshots(sys, d0, g, ts, **kargs):
     if isinstance(sys, SOSystem):
         return draw_sosys_snapshots(sys, d0[0], d0[1], g, ts, **kargs)
+    elif isinstance(sys, FOSystem):
+        return draw_fosys_snapshots(sys, d0, g, ts, **kargs)
     else:
         raise NotImplementedError(
             "Not implemented for this class of system: {}".format(

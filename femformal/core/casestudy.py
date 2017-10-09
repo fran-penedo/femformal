@@ -110,7 +110,9 @@ class EpsPerturbation(Perturbation):
                 eps = eps[None].T
             if self.xpart is not None:
                 if isnode and i > 0 and i < len(eps):
-                    return max(eps[i][ucomp], eps[i+1][ucomp]).tolist()
+                    return max(eps[i-1][ucomp], eps[i][ucomp]).tolist()
+                elif isnode and i == len(eps):
+                    return eps[i-1][ucomp].tolist()
                 else:
                     return eps[i][ucomp].tolist()
             else:
@@ -130,7 +132,7 @@ class EtaPerturbation(Perturbation):
         uderivs = kwargs['uderivs']
         ucomp = kwargs['ucomp']
         region_dim = kwargs['region_dim']
-        if self.eta is None:
+        if self.eta is None or region_dim == 0:
             return 0.0
         else:
             if len(self.eta.shape) == 1:
@@ -177,7 +179,10 @@ class NuPerturbation(Perturbation):
                 return ret.tolist()
             else:
                 nu = self.nu_list[uderivs]
-                ret = fdt_mult * (nu[i] + nu[i+1]) / 2.0
+                if region_dim == 0:
+                    ret = fdt_mult * nu[i]
+                else:
+                    ret = fdt_mult * (nu[i] + nu[i+1]) / 2.0
                 return ret.tolist()
 
 
@@ -458,7 +463,10 @@ def perturb_profile(apc, eps, eta, nu, xpart, fdt_mult, mesh):
     direction = -1 * apc.r
     if xpart is not None:
         eps_p = _perturb_profile_eps(apc.p, eps[apc.uderivs], xpart, direction)
-        eta_p = _perturb_profile_eta(eps_p, apc.dp, eta[apc.uderivs], xpart, direction)
+        if np.isclose(apc.A[0], apc.A[1]):
+            eta_p = eps_p
+        else:
+            eta_p = _perturb_profile_eta(eps_p, apc.dp, eta[apc.uderivs], xpart, direction)
         nu_p = _perturb_profile_nu(eta_p, nu[apc.uderivs], xpart, fdt_mult, direction)
     else:
         eps_p = _perturb_profile_eps_2d(apc.p, eps[apc.uderivs][:,apc.u_comp], mesh, direction)

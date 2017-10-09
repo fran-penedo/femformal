@@ -78,7 +78,7 @@ def ap_cont_to_disc(apcont, xpart):
         if apcont.uderivs > 0:
             raise Exception("Derivatives at nodes are not well defined")
         i = min(max(bisect_left(xpart, apcont.A[0]), 0), N1 - 1)
-        m = {i - 1: (apcont.p(xpart[i]), apcont.dp(xpart[i]))}
+        m = {i: (apcont.p(xpart[i]), apcont.dp(xpart[i]))}
         isnode = True
         region_dim = 0
     else:
@@ -182,13 +182,14 @@ class SysSignal(stl.Signal):
 
         if self.xpart is not None:
             if self.isnode:
-                self.labels = [lambda t: label("d", self.u_comp * self.index, t)]
+                self.labels = [lambda t: label("d", self.index, t)]
                 self.elem_len = 0
             else:
                 self.labels = [(lambda t, i=i: label("d", self.index + i, t)) for i in range(2)]
                 self.elem_len = xpart[index + 1] - xpart[index]
             self.f = _build_f(self.p, self.op, self.isnode, self.uderivs, self.elem_len)
         else:
+            #FIXME dofs?
             self.labels = [(lambda t, i=i: label("d", self.u_comp + 2 * i, t))
                             for i in mesh_.elem_nodes(self.index, self.region_dim)]
             self.elem = build_elem(mesh_.elem_coords(self.index, self.region_dim))

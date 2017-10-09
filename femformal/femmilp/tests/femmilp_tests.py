@@ -38,6 +38,38 @@ class TestFemmilp(unittest.TestCase):
 
         np.testing.assert_array_almost_equal(d, d_true)
 
+    @unittest.skip("Long test for heat")
+    def test_fosys_trajectory_heat(self):
+        from examples.heat_mix.hm_synth_simple import cs
+        its = 500
+        f_nodal = np.zeros(cs.system.n)
+        f_nodal[-1] = 1e6
+        cs.system.F = f_nodal
+        d = femmilp.simulate_trajectory(cs.system, cs.d0, its)
+        d_true = sys.trapez_integrate(cs.system, cs.d0, its * cs.system.dt, cs.system.dt, alpha = 0)
+
+        np.testing.assert_array_almost_equal(d, d_true)
+
+    @unittest.skip("Long test for heat")
+    def test_fosys_trajectory_heat_2(self):
+        from examples.heat_mix.hm_synth_simple import cs
+        its = 500
+        T = its * cs.system.dt
+        input_dt = 0.5
+        inputs = [1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0]
+        pwlf = sys.PWLFunction(np.linspace(0, T, round(T / input_dt) + 1), ys=inputs, x=100.0)
+        def f_nodal(t):
+            f = np.zeros(cs.system.n)
+            f[-1] = pwlf(t, x=pwlf.x)
+            return f
+
+
+        csys = sys.ControlFOSystem.from_fosys(cs.system, f_nodal)
+        d = femmilp.simulate_trajectory(csys, cs.d0, its)
+        d_true = sys.trapez_integrate(csys, cs.d0, its * cs.system.dt, cs.system.dt, alpha = 0)
+
+        np.testing.assert_array_almost_equal(d, d_true)
+
     def test_control_sosys_trajectory(self):
         dt = 0.1
         its = 100

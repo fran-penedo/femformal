@@ -4,7 +4,7 @@ from femformal.core.fem.heatlinfem import heatlinfem_mix
 from femformal.core import casestudy, system as sys
 from examples.heat_mix.hm_model import *
 
-n_its = 2
+n_its = 100
 
 u0 = lambda x: 300.0
 
@@ -42,7 +42,7 @@ input_dt = 0.5
 tlims = [int(round(t0 / dt)) * dt, int(round(T / dt)) * dt]
 xlims = [0.0, L]
 fbounds = {'xs': np.linspace(0, T, round(T / input_dt) + 1),
-           'ybounds': [0.0, 1e5]}
+           'ybounds': [0.0, 1e6]}
 
 mds = casestudy.max_diff(fosys, g, tlims, xlims, fosys_t,
                          (u0, fbounds), (casestudy.id_sample_1dof, f_unif_sample),
