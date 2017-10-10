@@ -1,4 +1,7 @@
-"""List and string utilities"""
+"""
+List and string utilities.
+
+"""
 from __future__ import division, absolute_import, print_function
 
 import logging

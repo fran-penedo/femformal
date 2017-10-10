@@ -23,12 +23,7 @@ def build_cs(system, d0, g, cregions, cspec, fdt_mult=1, bounds=None,
         dsystem = system
 
     if cspec is not None:
-        if xpart is not None:
-            apc_to_apd = lambda pred: logic.ap_cont_to_disc(pred, xpart)
-        else:
-            apc_to_apd = lambda pred: logic.ap_cont2d_to_disc(pred, system.mesh, system.build_elem)
-        regions = {label: apc_to_apd(pred) for label, pred in cregions.items()}
-        dspec = logic.subst_spec_labels_disc(cspec, regions)
+        dspec = logic.sstl_to_stl(cspec, cregions, xpart, system.mesh)
         try:
             if xpart is not None:
                 spec = logic.stl_parser(xpart, fdt_mult, bounds).parseString(dspec)[0]
@@ -78,13 +73,11 @@ class Perturbation(object):
         self.xpart = xpart
         self.mesh = mesh
 
-    def perturb(self, **kwargs):
+    def perturb(self, stlpred):
         raise NotImplementedError()
 
-    def __call__(self, i=0, isnode=False, dmu=0, uderivs=0, ucomp=0, region_dim=1):
-        kwargs = locals().copy()
-        del kwargs['self']
-        p = self.perturb(**kwargs)
+    def __call__(self, stlpred):
+        p = self.perturb(stlpred)
         if p is None:
             return 0.0
         else:
@@ -96,12 +89,12 @@ class EpsPerturbation(Perturbation):
         Perturbation.__init__(self, **kwargs)
         self.eps_list = np.array([eps, eps_xderiv])
 
-    def perturb(self, **kwargs):
-        i = kwargs['i']
-        isnode = kwargs['isnode']
-        uderivs = kwargs['uderivs']
-        ucomp = kwargs['ucomp']
-        region_dim = kwargs['region_dim']
+    def perturb(self, stlpred)
+        i = stlpred.index
+        isnode = stlpred.isnode
+        uderivs = stlpred.uderivs
+        ucomp = stlpred.u_comp
+        region_dim = stlpred.region_dim
         eps = self.eps_list[uderivs]
         if not hasattr(eps, 'shape'):
             return eps
@@ -126,12 +119,12 @@ class EtaPerturbation(Perturbation):
         Perturbation.__init__(self, **kwargs)
         self.eta = eta
 
-    def perturb(self, **kwargs):
-        i = kwargs['i']
-        dmu = kwargs['dmu']
-        uderivs = kwargs['uderivs']
-        ucomp = kwargs['ucomp']
-        region_dim = kwargs['region_dim']
+    def perturb(self, stlpred):
+        i = stlpred.index
+        dmu = stlpred.dp
+        uderivs = stlpred.uderivs
+        ucomp = stlpred.u_comp
+        region_dim = stlpred.region_dim
         if self.eta is None or region_dim == 0:
             return 0.0
         else:
@@ -163,11 +156,11 @@ class NuPerturbation(Perturbation):
             self.interpolations = [
                 self.mesh.interpolate(x) for x in self.nu_list if x is not None]
 
-    def perturb(self, **kwargs):
-        i = kwargs['i']
-        uderivs = kwargs['uderivs']
-        ucomp = kwargs['ucomp']
-        region_dim = kwargs['region_dim']
+    def perturb(self, stlpred):
+        i = stlpred.index
+        uderivs = stlpred.uderivs
+        ucomp = stlpred.u_comp
+        region_dim = stlpred.region_dim
         fdt_mult = self.fdt_mult
         nu = self.nu_list[uderivs]
         if nu is None:

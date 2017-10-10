@@ -36,7 +36,7 @@ class test_verify(object):
         apcBu = logic.APCont(np.array([0, 2]), 1, lambda x: 1.5 if x==1 else 2.5)
         regions = {l : apd for (l, apd) in
                 zip("ABCD",
-                    [logic.ap_cont_to_disc(apc, xpart)
+                    [logic._ap_cont_to_disc(apc, xpart)
                         for apc in [apcAl, apcAu, apcBl, apcBu]])}
         spec = "(X (A & B)) & (F (! (C & D)))"
         init_states = [[2, 3]]

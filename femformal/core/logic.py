@@ -1,9 +1,18 @@
+"""
+S-STL extension of STL. The module provides classes for
+predicates in continuous time (:class:`femformal.core.logic.APCont` and
+:class:`femformal.core.logic.APCont2D`) and an intermediate representation for
+discretized predicates (:class:`femformal.core.logic.APDisc`).
+
+"""
+from __future__ import division, absolute_import, print_function
+
 import itertools as it
 from bisect import bisect_left, bisect_right
 import logging
 
 import numpy as np
-from pyparsing import Word, Literal, MatchFirst, nums, alphas
+from pyparsing import Word, Literal, MatchFirst, nums
 from stlmilp import stl as stl
 
 from . import system as sys
@@ -12,7 +21,27 @@ from .util import state_label, label, unlabel
 
 logger = logging.getLogger(__name__)
 
+# S-STL data structures
+
 class APCont(object):
+    """1D S-STL predicate :math:`\\forall x \in A : \\frac{d^i u}{d x^i} \\sim p(x)`
+
+    Parameters
+    ----------
+    A : ndarray
+        Spatial domain, given as a closed interval array([a, b])
+    r : {'>', '<'}
+        Inequality direction.
+    p : callable
+        The reference profile. Must have signature p(float) -> float
+    dp : callable, optional
+        The derivative of the reference profile. Must have signature
+        dp(float) -> float
+    uderivs : int, optional
+        The order of the u derivative
+
+    """
+
     def __init__(self, A, r, p, dp = None, uderivs = 0):
         # A : [x_min, x_max] (np.array)
         self.A = A
@@ -32,44 +61,87 @@ class APCont(object):
 
 
 class APCont2D(APCont):
+    """2D S-STL predicate :math:`\\forall x \in A : u_j \\sim p(x)`
+
+    Parameters
+    ----------
+    u_comp : int
+        The DOF of u (:math:`j` in the above equation)
+    A : ndarray
+        Spatial domain, given as the lower left and upper right corners of a
+        rectangle
+    r : {'>', '<'}
+        Inequality direction.
+    p : callable
+        The reference profile. Must have signature p(float) -> float
+    dp : callable, optional
+        The derivative of the reference profile. Must have signature
+        dp(float) -> float
+
+    """
     def __init__(self, u_comp, A, r, p, dp):
         APCont.__init__(self, A, r, p, dp)
         self.u_comp = u_comp
 
 
-class APDisc(object):
-    def __init__(self, r, m, isnode = True, uderivs = 0, region_dim = 0, u_comp = 0):
-        # r == 1: f < p, r == -1: f > p
-        self.r = r
-        self.region_dim = region_dim
-        self.isnode = region_dim == 0
+# S-STL to STL
 
-        # m : i -> (p((x_i + x_{i+1})/2) if not isnode else i -> p(x_i),
-        # dp(.....))
-        self.m = m
-        self.uderivs = uderivs
-        self.u_comp = u_comp
+class _APDisc(object):
+    def __init__(self, stlpred_list, quantifier="forall"):
+        allowed = {"forall", "exists"}
+        if quantifier not in allowed:
+            raise ValueError("quantifier must be one of {}. Given: {}".format(
+                allowed, quantifier))
+        self.stlpred_list = stlpred_list
+        self.quantifier = quantifier
+
+    def _quant_str(self):
+        if self.quantifier == "forall":
+            return " & "
+        elif self.quantifier == "exists":
+            return " | "
+        else:
+            raise ValueError()
 
     def __str__(self):
-        return "({})".format(" & ".join(
-                ["({region_dim} {u_comp} {uderivs} {index} {op} {p} {dp})".format(
-                    region_dim=self.region_dim,
-                    u_comp=self.u_comp,
-                    uderivs=self.uderivs,
-                    index=i,
-                    op="<" if self.r == 1 else ">",
-                    p=p,
-                    dp=dp
-                ) for (i, (p, dp)) in self.m.items()]))
+        return "({})".format(self._quant_str().join(
+            [str(pred) for pred in self.stlpred_list]))
 
-def subst_spec_labels_disc(spec, regions):
+class STLPred(object):
+    """Regular STL predicate obtained after discretizing an S-STL predicate
+
+    """
+    def __init__(self, index, r, p, dp, isnode = True, uderivs = 0, u_comp = 0,
+                 region_dim = 0):
+        self.index = index
+        self.r = r
+        self.p = p
+        self.dp = dp
+        self.isnode = isnode
+        self.uderivs = uderivs
+        self.u_comp = u_comp
+        self.region_dim = region_dim
+
+    def __str__(self):
+        return "({region_dim} {u_comp} {uderivs} {index} {op} {p} {dp})".format(
+            region_dim=self.region_dim,
+            u_comp=self.u_comp,
+            uderivs=self.uderivs,
+            index=self.index,
+            op="<" if self.r == 1 else ">",
+            p=self.p,
+            dp=self.dp
+        )
+
+
+def _subst_spec_labels_disc(spec, regions):
     res = spec
     for k, v in regions.items():
         replaced = str(v)
         res = res.replace(k, replaced)
     return res
 
-def ap_cont_to_disc(apcont, xpart):
+def _ap_cont_to_disc(apcont, xpart):
     # xpart : [x_i] (list)
     # FIXME TS based approach probably has wrong index assumption
     r = apcont.r
@@ -78,9 +150,9 @@ def ap_cont_to_disc(apcont, xpart):
         if apcont.uderivs > 0:
             raise Exception("Derivatives at nodes are not well defined")
         i = min(max(bisect_left(xpart, apcont.A[0]), 0), N1 - 1)
-        m = {i: (apcont.p(xpart[i]), apcont.dp(xpart[i]))}
-        isnode = True
-        region_dim = 0
+        stlpred_list = [STLPred(
+            i, r, apcont.p(xpart[i]), apcont.dp(xpart[i]), isnode=True,
+            uderivs=apcont.uderivs, region_dim=0)]
     else:
         if apcont.uderivs > 1:
             raise Exception(
@@ -89,30 +161,78 @@ def ap_cont_to_disc(apcont, xpart):
 
         i_min = max(bisect_left(xpart, apcont.A[0]), 0)
         i_max = min(bisect_left(xpart, apcont.A[1]), N1 - 1)
-        m = {i : (apcont.p((xpart[i] + xpart[i+1]) / 2.0),
-                  apcont.dp((xpart[i] + xpart[i+1]) / 2.0))
-             for i in range(i_min, i_max)}
-        isnode = False
-        region_dim = 1
-    return APDisc(r, m, isnode, apcont.uderivs, region_dim=region_dim)
+        stlpred_list = [
+            STLPred(
+                i, r,
+                apcont.p((xpart[i] + xpart[i+1]) / 2.0),
+                apcont.dp((xpart[i] + xpart[i+1]) / 2.0),
+                isnode=False, uderivs=apcont.uderivs, region_dim=1
+            ) for i in range(i_min, i_max)]
+    return _APDisc(stlpred_list)
 
-def ap_cont2d_to_disc(apcont, mesh_, build_elem):
+def _ap_cont2d_to_disc(apcont, mesh_):
     region = apcont.A
+    build_elem = mesh_.build_elem
 
     elem_set = mesh_.find_elems_between(region[0], region[1])
     elems = [(e, build_elem(elem_set[e])) for e in elem_set.elems]
-    m = {e : (elem.interpolate([apcont.p(*coord) for coord in elem.coords],
-                               [0, 0]),
-              elem.interpolate([apcont.dp(*coord) for coord in elem.coords],
-                               [0, 0]))
-         for e, elem in elems}
+    stlpred_list = [
+        STLPred(
+            e, apcont.r,
+            elem.interpolate(
+                [apcont.p(*coord) for coord in elem.coords], [0, 0]),
+            elem.interpolate(
+                [apcont.dp(*coord) for coord in elem.coords], [0, 0]),
+            isnode=elem_set.dimension == 0, uderivs=apcont.uderivs,
+            u_comp=apcont.u_comp, region_dim=elem_set.dimension
+        ) for e, elem in elems]
 
-    return APDisc(
-        apcont.r, m, u_comp=apcont.u_comp, uderivs=apcont.uderivs,
-        region_dim=elem_set.dimension)
+    return _APDisc(stlpred_list)
 
+def sstl_to_stl(spec, regions, xpart=None, mesh_=None):
+    """Transforms an S-STL spec into an STL spec
+
+    Either `xpart` or `mesh_` must be set.
+
+    Parameters
+    ----------
+    spec : str
+    regions : dict
+        Dictionary from labels to S-STL predicates
+        (:class:`femformal.core.logic.APCont`)
+    xpart : array_like, optional
+        1D partition of the spatial domain, given as the list of nodes
+    mesh_ : :class:`femformal.core.fem.mesh.Mesh`, optional
+        2D mesh. Must have a `build_elem` attribute that constructs a
+        :class:`femformal.core.fem.element.Element`
+
+    Returns
+    -------
+    str
+        The STL discretization of the S-STL formula `spec`
+
+    """
+    if xpart is not None:
+        apc_to_apd = lambda pred: logic.ap_cont_to_disc(pred, xpart)
+    else:
+        apc_to_apd = lambda pred: logic.ap_cont2d_to_disc(pred, mesh_)
+    dregions = {label: apc_to_apd(pred) for label, pred in regions.items()}
+    dspec = logic.subst_spec_labels_disc(spec, dregions)
+    return dspec
+
+
+# STL transformations
 
 def perturb(formula, eps):
+    """Perturbs the predicates of a formula
+
+    Parameters
+    ----------
+    formula : :class:`stlmilp.stl.Formula`
+    eps : callable
+        Computes the perturbation for a given STL predicate.
+
+    """
     return stl.perturb(formula, eps)
 
 def scale_time(formula, dt):
@@ -122,6 +242,8 @@ def scale_time(formula, dt):
             scale_time(arg, dt)
 
 
+# Direct simulation model
+
 class ContModel(object):
     def __init__(self, model):
         self.model = model
@@ -130,7 +252,6 @@ class ContModel(object):
     def getVarByName(self, var_t):
         _, i, t = unlabel(var_t)
         return self.model[t][i]
-
 
 def csystem_robustness(spec, system, d0, dt):
     # scale_time(spec, dt)
@@ -142,124 +263,117 @@ def csystem_robustness(spec, system, d0, dt):
     return stl.robustness(spec, model)
 
 
-def _build_f(p, op, isnode, uderivs, elem_len):
+# MILP simulation model
+
+def _build_f(ap, elem_len):
+    p, op, isnode, uderivs = ap.p, ap.r, ap.isnode, ap.uderivs
     if isnode:
-        return lambda vs: (vs[0] - p) * (-1 if op == stl.LE else 1)
+        return lambda vs: -(vs[0] - p) * op
     else:
         if uderivs == 0:
-            return lambda vs: (.5 * vs[0] + .5 * vs[1] - p) * (-1 if op == stl.LE else 1)
+            return lambda vs: -(.5 * vs[0] + .5 * vs[1] - p) * op
         elif uderivs == 1:
-            return lambda vs: ((vs[1] - vs[0]) / elem_len - p) * (-1 if op == stl.LE else 1)
+            return lambda vs: -((vs[1] - vs[0]) / elem_len - p) * op
 
-def _build_f_elem(p, op, uderivs, elem):
+def _build_f_elem(ap, elem):
+    p, op, uderivs = ap.p, ap.r, ap.uderivs
     try:
         logger.debug(p.shape)
     except:
         pass
     if uderivs == 0:
-        return lambda vs: (elem.interpolate_phys(vs, elem.chebyshev_center())
-                           - p) * (-1 if op == stl.LE else 1)
+        return lambda vs: -(elem.interpolate_phys(vs, elem.chebyshev_center())
+                           - p) * op
     else:
         #FIXME think about this when implementing derivatives
-        return lambda vs: (elem.interpolate_derivatives(vs, [0 for i in range(elem.dimension)])
-                           - p) * (-1 if op == stl.LE else 1)
+        return lambda vs: -(elem.interpolate_derivatives(
+            vs, [0 for i in range(elem.dimension)]) - p) * op
 
 class SysSignal(stl.Signal):
-    def __init__(self, index, op, p, dp, isnode, uderivs, u_comp=0, region_dim=0,
-                 xpart=None, fdt_mult=1, bounds=None, mesh_=None, build_elem=None):
-        self.index = index
-        self.op = op
-        self.p = p
-        self.dp = dp
-        self.region_dim = region_dim
-        self.isnode = region_dim == 0
-        self.uderivs = uderivs
+    def __init__(self, apdisc, xpart=None, fdt_mult=1, bounds=None, mesh_=None):
+        self.apdisc = apdisc
         self.fdt_mult = fdt_mult
-        self.u_comp = u_comp
         self.xpart = xpart
         self.mesh_ = mesh_
-        self.build_elem = build_elem
 
         if self.xpart is not None:
-            if self.isnode:
-                self.labels = [lambda t: label("d", self.index, t)]
+            if self.apdisc.isnode:
+                self.labels = [lambda t: label("d", self.apdisc.index, t)]
                 self.elem_len = 0
             else:
-                self.labels = [(lambda t, i=i: label("d", self.index + i, t)) for i in range(2)]
-                self.elem_len = xpart[index + 1] - xpart[index]
-            self.f = _build_f(self.p, self.op, self.isnode, self.uderivs, self.elem_len)
+                self.labels = [
+                    (lambda t, i=i: label("d", self.apdisc.index + i, t))
+                    for i in range(2)]
+                self.elem_len = (xpart[self.apdisc.index + 1] -
+                                 xpart[self.apdisc.index])
+            self.f = _build_f(self.apdisc, self.elem_len)
         else:
             #FIXME dofs?
-            self.labels = [(lambda t, i=i: label("d", self.u_comp + 2 * i, t))
-                            for i in mesh_.elem_nodes(self.index, self.region_dim)]
-            self.elem = build_elem(mesh_.elem_coords(self.index, self.region_dim))
-            self.f = _build_f_elem(self.p, self.op, self.uderivs, self.elem)
+            self.labels = [
+                (lambda t, i=i: label("d", self.apdisc.u_comp + 2 * i, t))
+                for i in mesh_.elem_nodes(
+                    self.apdisc.index, self.apdisc.region_dim)]
+            self.elem = mesh_.build_elem(
+                mesh_.elem_coords(self.apdisc.index, self.apdisc.region_dim))
+            self.f = _build_f_elem(self.apdisc, self.elem)
 
         if bounds is None:
             self.bounds = [-1000, 1000]
         else:
             self.bounds = bounds
 
-    # eps :: index -> isnode -> d/dx mu -> pert
     def perturb(self, eps):
-        pert = -eps(self.index, self.isnode, self.dp, self.uderivs, self.u_comp, self.region_dim)
-        # try:
-        #     logger.debug(pert.shape)
-        # except:
-        #     pass
-        self.p = self.p + (pert if self.op == stl.LE else -pert)
+        pert = -eps(self.apdisc)
+        self.apdisc.p = self.apdisc.p + self.apdisc.r * pert
         if self.xpart is not None:
-            self.f = _build_f(self.p, self.op, self.isnode, self.uderivs, self.elem_len)
+            self.f = _build_f(self.apdisc, self.elem_len)
         else:
-            self.f = _build_f_elem(self.p, self.op, self.uderivs, self.elem)
+            self.f = _build_f_elem(self.apdisc, self.elem)
 
     def signal(self, model, t):
         return super(SysSignal, self).signal(model, t * self.fdt_mult)
 
     def __str__(self):
-        return "{region_dim} {u_comp} {uderivs} {index} {op} {p} {dp}".format(
-            region_dim=self.region_dim,
-            uderivs=self.uderivs,
-            index=self.index,
-            op="<" if self.op ==stl.LE else ">",
-            p=self.p,
-            dp=self.dp,
-            u_comp=self.u_comp,
-        )
+        return str(self.apdisc)
 
     def __repr__(self):
         return self.__str__()
 
 
-def expr_parser(xpart=None, fdt_mult=1, bounds=None, mesh_=None, build_elem=None):
+# STL parser with S-STL discretized predicates
+
+def expr_parser(xpart=None, fdt_mult=1, bounds=None, mesh_=None):
     num = stl.num_parser()
 
     T_LE = Literal("<")
     T_GR = Literal(">")
 
     integer = Word(nums).setParseAction(lambda t: int(t[0]))
-    relation = (T_LE | T_GR).setParseAction(lambda t: stl.LE if t[0] == "<" else stl.GT)
+    relation = (T_LE | T_GR).setParseAction(lambda t: 1 if t[0] == "<" else -1)
     expr = integer + integer + integer + integer + relation + num + num
-    expr.setParseAction(lambda t: SysSignal(
-        index=t[3],
-        op=t[4],
-        p=t[5],
-        dp=t[6],
-        isnode=False,
-        uderivs=t[2],
-        u_comp=t[1],
-        region_dim=t[0],
-        fdt_mult=fdt_mult,
-        bounds=bounds,
-        mesh_=mesh_,
-        build_elem=build_elem,
-        xpart=xpart))
+    expr.setParseAction(
+        lambda t: SysSignal(
+            STLPred(
+                index=t[3],
+                r=t[4],
+                p=t[5],
+                dp=t[6],
+                isnode=False,
+                uderivs=t[2],
+                u_comp=t[1],
+                region_dim=t[0]
+            ),
+            fdt_mult=fdt_mult,
+            bounds=bounds,
+            mesh_=mesh_,
+            xpart=xpart
+    ))
 
     return expr
 
-def stl_parser(xpart=None, fdt_mult=1, bounds=None, mesh_=None, build_elem=None):
+def stl_parser(xpart=None, fdt_mult=1, bounds=None, mesh_=None):
     stl_parser = MatchFirst(
-        stl.stl_parser(expr_parser(xpart, fdt_mult, bounds, mesh_, build_elem), True))
+        stl.stl_parser(expr_parser(xpart, fdt_mult, bounds, mesh_), True))
     return stl_parser
 
 
