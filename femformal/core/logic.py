@@ -87,6 +87,7 @@ class APCont2D(APCont):
 # S-STL to STL
 
 class _APDisc(object):
+    # Intermediate structure between S-STL predicates and STL discretization
     def __init__(self, stlpred_list, quantifier="forall"):
         allowed = {"forall", "exists"}
         if quantifier not in allowed:
@@ -104,11 +105,44 @@ class _APDisc(object):
             raise ValueError()
 
     def __str__(self):
-        return "({})".format(self._quant_str().join(
-            [str(pred) for pred in self.stlpred_list]))
+        if len(self.stlpred_list) > 1:
+            return "({})".format(self._quant_str().join(
+                [str(pred) for pred in self.stlpred_list]))
+        else:
+            return str(self.stlpred_list[0])
 
 class STLPred(object):
     """Regular STL predicate obtained after discretizing an S-STL predicate
+
+    Represents a single `d ~ p` or `y ~ p` predicate.
+
+    The first case has `region_dim = 0` and `d` is
+    the `u_comp` component of the value of the `uderivs` derivative at the node
+    indexed by `index`.
+
+    The second case has `region_dim > 0` and `y` is the `u_comp` component of
+    the value of the `uderivs` derivative at the chebyshev center of the element
+    indexed by `index`.
+
+    Parameters
+    ----------
+    index : int
+        Index of the element or node
+    r : {-1, 1}
+        Direction of the inequality. -1 means ">", 1 means "<"
+    p : float
+        Target value in the predicate
+    dp : float or array_like
+        Derivative or gradient of the target profile at the point
+    isnode : bool
+        Deprecated parameter, only kept for compatibility. Use region_dim
+        instead
+    uderivs : int
+        Order of the derivative of the field value
+    u_comp : int
+        Component of the field value
+    region_dim : int
+        Dimension of the element for which this predicate is defined
 
     """
     def __init__(self, index, r, p, dp, isnode = True, uderivs = 0, u_comp = 0,
@@ -117,7 +151,7 @@ class STLPred(object):
         self.r = r
         self.p = p
         self.dp = dp
-        self.isnode = isnode
+        self.isnode = region_dim == 0
         self.uderivs = uderivs
         self.u_comp = u_comp
         self.region_dim = region_dim
@@ -213,11 +247,11 @@ def sstl_to_stl(spec, regions, xpart=None, mesh_=None):
 
     """
     if xpart is not None:
-        apc_to_apd = lambda pred: logic.ap_cont_to_disc(pred, xpart)
+        apc_to_apd = lambda pred: _ap_cont_to_disc(pred, xpart)
     else:
-        apc_to_apd = lambda pred: logic.ap_cont2d_to_disc(pred, mesh_)
+        apc_to_apd = lambda pred: _ap_cont2d_to_disc(pred, mesh_)
     dregions = {label: apc_to_apd(pred) for label, pred in regions.items()}
-    dspec = logic.subst_spec_labels_disc(spec, dregions)
+    dspec = _subst_spec_labels_disc(spec, dregions)
     return dspec
 
 
@@ -230,12 +264,32 @@ def perturb(formula, eps):
     ----------
     formula : :class:`stlmilp.stl.Formula`
     eps : callable
-        Computes the perturbation for a given STL predicate.
+        Computes the perturbation for a given STL predicate (:class:`STLPred`).
+
+    Returns
+    -------
+    :class:`stlmilp.stl.Formula`
+        The perturbed formula
 
     """
     return stl.perturb(formula, eps)
 
 def scale_time(formula, dt):
+    """Transforms a formula in continuous time to discrete time
+
+    Substitutes the time bounds in a :class:`stlmilp.stl.Formula` from
+    continuous time to discrete time with time interval `dt`
+
+    Parameters
+    ----------
+    formula : :class:`stlmilp.stl.Formula`
+    dt : float
+
+    Returns
+    -------
+    None
+
+    """
     formula.bounds = [int(b / dt) for b in formula.bounds]
     for arg in formula.args:
         if arg.op != stl.EXPR:
@@ -290,6 +344,25 @@ def _build_f_elem(ap, elem):
             vs, [0 for i in range(elem.dimension)]) - p) * op
 
 class SysSignal(stl.Signal):
+    """Secondary signal from a FEM system
+
+    Parameters
+    ----------
+    apdisc : :class:`STLPred`
+        The predicate defining this secondary signal
+    xpart : array_like, optional
+        1D partition of the spatial domain, given as the list of nodes
+    mesh_ : :class:`femformal.core.fem.mesh.Mesh`, optional
+        2D mesh. Must have a `build_elem` attribute that constructs a
+        :class:`femformal.core.fem.element.Element`
+    fdt_mult : int, optional
+        Multiplier of the time interval used in the system discretization. The
+        resulting time interval is the one used to discretize in time the
+        STL specification. Must be > 1
+    bounds : array_like, optional
+        [min, max] bounds for the secondary signal. Default is [-1000, 1000]
+
+    """
     def __init__(self, apdisc, xpart=None, fdt_mult=1, bounds=None, mesh_=None):
         self.apdisc = apdisc
         self.fdt_mult = fdt_mult
@@ -323,6 +396,19 @@ class SysSignal(stl.Signal):
             self.bounds = bounds
 
     def perturb(self, eps):
+        """Perturbs this signal
+
+        Parameters
+        ----------
+        eps : callable
+            Computes the perturbation for a given STL predicate
+            (:class:`STLPred`)
+
+        Returns
+        -------
+        None
+
+        """
         pert = -eps(self.apdisc)
         self.apdisc.p = self.apdisc.p + self.apdisc.r * pert
         if self.xpart is not None:
@@ -342,7 +428,8 @@ class SysSignal(stl.Signal):
 
 # STL parser with S-STL discretized predicates
 
-def expr_parser(xpart=None, fdt_mult=1, bounds=None, mesh_=None):
+def _expr_parser(xpart=None, fdt_mult=1, bounds=None, mesh_=None):
+    # Must parse the result of STLPred.__str__
     num = stl.num_parser()
 
     T_LE = Literal("<")
@@ -351,29 +438,66 @@ def expr_parser(xpart=None, fdt_mult=1, bounds=None, mesh_=None):
     integer = Word(nums).setParseAction(lambda t: int(t[0]))
     relation = (T_LE | T_GR).setParseAction(lambda t: 1 if t[0] == "<" else -1)
     expr = integer + integer + integer + integer + relation + num + num
-    expr.setParseAction(
-        lambda t: SysSignal(
-            STLPred(
-                index=t[3],
-                r=t[4],
-                p=t[5],
-                dp=t[6],
-                isnode=False,
-                uderivs=t[2],
-                u_comp=t[1],
-                region_dim=t[0]
-            ),
-            fdt_mult=fdt_mult,
-            bounds=bounds,
-            mesh_=mesh_,
-            xpart=xpart
-    ))
+    def action(t):
+        try:
+            signal = SysSignal(
+                STLPred(
+                    index=t[3],
+                    r=t[4],
+                    p=t[5],
+                    dp=t[6],
+                    isnode=False,
+                    uderivs=t[2],
+                    u_comp=t[1],
+                    region_dim=t[0]
+                ),
+                fdt_mult=fdt_mult,
+                bounds=bounds,
+                mesh_=mesh_,
+                xpart=xpart
+            )
+        except Exception as e:
+            logger.exception(e)
+            raise e
+
+        return signal
+
+
+    expr.setParseAction(action)
 
     return expr
 
 def stl_parser(xpart=None, fdt_mult=1, bounds=None, mesh_=None):
+    """Builds a parser for STL formulas with :class:`STLPred` predicates
+
+    The returned parser builds a :class:`stlmilp.stl.Formula` with
+    :class:`SysSignal` expressions from a specification
+    string in the format returned by :func:`sstl_to_stl`.
+
+    All arguments are passed to :class:`SysSignal` constructor and have no
+    other effect on the parser.
+
+    Parameters
+    ----------
+    xpart : array_like, optional
+        1D partition of the spatial domain, given as the list of nodes
+    mesh_ : :class:`femformal.core.fem.mesh.Mesh`, optional
+        2D mesh. Must have a `build_elem` attribute that constructs a
+        :class:`femformal.core.fem.element.Element`
+    fdt_mult : int, optional
+        Multiplier of the time interval used in the system discretization. The
+        resulting time interval is the one used to discretize in time the
+        STL specification. Must be > 1
+    bounds : array_like, optional
+        [min, max] bounds for the secondary signal. Default is [-1000, 1000]
+
+    Returns
+    -------
+    :class:`pyparsing.ParserElement`
+
+    """
     stl_parser = MatchFirst(
-        stl.stl_parser(expr_parser(xpart, fdt_mult, bounds, mesh_), True))
+        stl.stl_parser(_expr_parser(xpart, fdt_mult, bounds, mesh_), True))
     return stl_parser
 
 

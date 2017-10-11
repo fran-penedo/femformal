@@ -50,7 +50,7 @@ def build_cs(system, d0, g, cregions, cspec, fdt_mult=1, bounds=None,
         logic.perturb(spec, nu_pert)
     else:
         spec = None
-        regions = None
+        # regions = None
 
     return CaseStudy({
         'system': system,
@@ -62,7 +62,7 @@ def build_cs(system, d0, g, cregions, cspec, fdt_mult=1, bounds=None,
         'd0': d0,
         'pset': pset,
         'f': f,
-        'regions': regions,
+        # 'regions': regions,
         'spec': spec,
         'T': T
     })
@@ -89,7 +89,7 @@ class EpsPerturbation(Perturbation):
         Perturbation.__init__(self, **kwargs)
         self.eps_list = np.array([eps, eps_xderiv])
 
-    def perturb(self, stlpred)
+    def perturb(self, stlpred):
         i = stlpred.index
         isnode = stlpred.isnode
         uderivs = stlpred.uderivs
