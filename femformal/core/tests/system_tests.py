@@ -200,7 +200,7 @@ class TestHybridSystem(unittest.TestCase):
 
     def test_matrix_function(self):
         f = lambda u: np.arange(25).reshape(5,5)
-        mf = sys.MatrixFunction(f)
+        mf = sys._MatrixFunction(f)
         u = 10
         np.testing.assert_array_equal(mf(u), f(u))
         np.testing.assert_array_equal(mf[1:3, 2:4](u), f(u)[1:3, 2:4])

@@ -1,3 +1,8 @@
+"""
+ODE systems obtained from FEM discretization of PDEs and associated functions.
+"""
+from __future__ import division, absolute_import, print_function
+
 import logging
 from bisect import bisect_left, bisect_right
 
@@ -13,7 +18,456 @@ from . import draw_util as draw
 
 logger = logging.getLogger(__name__)
 
+class FOSystem(object):
+    """First order system: M dx + Kx = F
+
+    Parameters
+    ----------
+    M, K, F : array_like
+        System matrices
+    xpart : array_like, optional
+        1D partition of the spatial domain, given as the list of nodes
+    mesh : :class:`femformal.core.fem.mesh.Mesh`, optional
+        2D mesh. Must have a `build_elem` attribute that constructs a
+        :class:`femformal.core.fem.element.Element`
+    dt : float, optional
+        Time interval to be used in integration
+
+    """
+    def __init__(self, M, K, F, xpart=None, dt=1.0, mesh=None):
+        self.M = M
+        self.K = K
+        self.F = F
+        xpart_given = xpart is not None
+        mesh_given = mesh is not None
+        if xpart_given and mesh_given:
+            raise Exception("Expected either xpart or mesh")
+
+        self.xpart = xpart
+        self.mesh = mesh
+        self.dt = dt
+
+    def to_canon(self):
+        M, K, F, n_e = _ns_sys_matrices(self)
+
+        A = np.identity(self.n)
+        A[np.ix_(n_e, n_e)] = np.linalg.solve(M, -K)
+        b = np.zeros(self.n)
+        b[n_e] = np.linalg.solve(M, F)
+        C = np.empty(shape=(0,0))
+
+        system = System(A, b, C, self.xpart, self.dt)
+
+        return system
+
+    @property
+    def n(self):
+        """State space dimension"""
+        return len(self.M)
+
+    def add_f_nodal(self, f_nodal):
+        """Adds a nodal force to the system
+
+        Parameters
+        ----------
+        f_nodal : array_like
+
+        """
+        self.F = self.F + f_nodal
+
+    def copy(self):
+        """Returns a copy of this system.
+
+        Structural properties (mesh) are
+        shallow copied, while system matrices are deep copied
+
+        """
+        return FOSystem(self.M.copy(), self.K.copy(), self.F.copy(),
+                        self.xpart, self.dt, self.mesh)
+
+    def __str__(self):
+        return "M:\n{0}\nK:\n{1}\nF:\n{2}".format(self.M, self.K, self.F)
+
+
+class SOSystem(object):
+    """Second order system: M ddx + Kx = F
+
+    Parameters
+    ----------
+    M, K, F : array_like
+        System matrices
+    xpart : array_like, optional
+        1D partition of the spatial domain, given as the list of nodes
+    mesh : :class:`femformal.core.fem.mesh.Mesh`, optional
+        2D mesh. Must have a `build_elem` attribute that constructs a
+        :class:`femformal.core.fem.element.Element`
+    dt : float, optional
+        Time interval to be used in integration
+
+    """
+    def __init__(self, M, K, F, xpart=None, dt=1.0, mesh=None):
+        self.M = M
+        self._K = K
+        self.F = F
+        xpart_given = xpart is not None
+        mesh_given = mesh is not None
+        if xpart_given and mesh_given:
+            raise Exception("Expected either xpart or mesh")
+
+        self.xpart = xpart
+        self.mesh = mesh
+        self.dt = dt
+
+    def to_fosystem(self):
+        """Transforms the SO system into a FO system by state augmentation"""
+        n = self.n
+        zeros = np.zeros((n, n))
+        ident = np.identity(n)
+        Maug = np.asarray(np.bmat([[ident, zeros],[zeros, self.M]]))
+        Kaug = np.asarray(np.bmat([[zeros, -ident],[self.K, zeros]]))
+        Faug = np.hstack([np.zeros(n), self.F])
+
+        system = FOSystem(Maug, Kaug, Faug, self.xpart, self.dt)
+        return system
+
+    @property
+    def n(self):
+        """State space dimension"""
+        return self.M.shape[0]
+
+    @property
+    def K(self):
+        """K system matrix"""
+        return self._K
+
+    def add_f_nodal(self, f_nodal):
+        """Adds a nodal force to the system
+
+        Parameters
+        ----------
+        f_nodal : array_like
+
+        """
+        self.F = self.F + f_nodal
+
+    def copy(self):
+        """Returns a copy of this system.
+
+        Structural properties (mesh) are
+        shallow copied, while system matrices are deep copied
+
+        """
+        return SOSystem(self.M.copy(), self.K.copy(), self.F.copy(),
+                        self.xpart, self.dt, self.mesh)
+
+    def __str__(self):
+        return "M:\n{0}\nK:\n{1}\nF:\n{2}".format(self.M, self.K, self.F)
+
+
+class ControlSOSystem(SOSystem):
+    """Second order controlled system: M ddx + Kx = F + u(t)
+
+    Parameters
+    ----------
+    M, K, F : array_like
+        System matrices
+    f_nodal : callable
+        The control input u(t)
+    xpart : array_like, optional
+        1D partition of the spatial domain, given as the list of nodes
+    mesh : :class:`femformal.core.fem.mesh.Mesh`, optional
+        2D mesh. Must have a `build_elem` attribute that constructs a
+        :class:`femformal.core.fem.element.Element`
+    dt : float, optional
+        Time interval to be used in integration
+
+    """
+    def __init__(self, M, K, F, f_nodal, xpart=None, dt=1.0, mesh=None):
+        SOSystem.__init__(self, M, K, F, xpart=xpart, dt=dt, mesh=mesh)
+        self.f_nodal = f_nodal
+
+    def add_f_nodal(self, f_nodal):
+        """Adds a nodal force to the system (control input)
+
+        Parameters
+        ----------
+        f_nodal : callable
+
+        """
+        self.f_nodal = f_nodal
+
+    @staticmethod
+    def from_sosys(sosys, f_nodal):
+        """Constructs a :class:`ControlSOSystem` from a :class:`SOSystem`
+
+        Parameters
+        ----------
+        sosys : :class:`SOSystem`
+        f_nodal : callable
+
+        Returns
+        -------
+        :class:`ControlSOSystem`
+
+        """
+        csosys = ControlSOSystem(
+            sosys.M, sosys.K, sosys.F, f_nodal, sosys.xpart, sosys.dt, sosys.mesh)
+        return csosys
+
+    def copy(self):
+        """Returns a copy of this system.
+
+        Structural properties (mesh) are
+        shallow copied, while system matrices are deep copied
+
+        """
+        return ControlSOSystem.from_sosys(
+            super(ControlSOSystem, self).copy(), self.f_nodal)
+
+
+class ControlFOSystem(FOSystem):
+    """First order controlled system: M dx + Kx = F + u(t)
+
+    Parameters
+    ----------
+    M, K, F : array_like
+        System matrices
+    f_nodal : callable
+        The control input u(t)
+    xpart : array_like, optional
+        1D partition of the spatial domain, given as the list of nodes
+    mesh : :class:`femformal.core.fem.mesh.Mesh`, optional
+        2D mesh. Must have a `build_elem` attribute that constructs a
+        :class:`femformal.core.fem.element.Element`
+    dt : float, optional
+        Time interval to be used in integration
+
+    """
+    def __init__(self, M, K, F, f_nodal, xpart=None, dt=1.0, mesh=None):
+        FOSystem.__init__(self, M, K, F, xpart=xpart, dt=dt, mesh=mesh)
+        self.f_nodal = f_nodal
+
+    def add_f_nodal(self, f_nodal):
+        """Adds a nodal force to the system (control input)
+
+        Parameters
+        ----------
+        f_nodal : callable
+
+        """
+        self.f_nodal = f_nodal
+
+    @staticmethod
+    def from_fosys(fosys, f_nodal):
+        """Constructs a :class:`ControlFOSystem` from a :class:`FOSystem`
+
+        Parameters
+        ----------
+        fosys : :class:`FOSystem`
+        f_nodal : callable
+
+        Returns
+        -------
+        :class:`ControlFOSystem`
+
+        """
+        csosys = ControlFOSystem(
+            fosys.M, fosys.K, fosys.F, f_nodal, fosys.xpart, fosys.dt, fosys.mesh)
+        return csosys
+
+    def copy(self):
+        """Returns a copy of this system.
+
+        Structural properties (mesh) are
+        shallow copied, while system matrices are deep copied
+
+        """
+        return ControlFOSystem.from_fosys(
+            super(ControlFOSystem, self).copy(), self.f_nodal)
+
+
+def make_control_system(sys, f_nodal):
+    """Constructs a controlled system from an ode system
+
+    Parameters
+    ----------
+    sys : either :class:`FOSystem` or :class:`SOSystem`
+    f_nodal : callable
+
+    Returns
+    -------
+    Either :class:`ControlFOSystem` or :class:`ControlSOSystem`
+
+    """
+    if isinstance(sys, FOSystem):
+        return ControlFOSystem.from_fosys(sys, f_nodal)
+    else:
+        return ControlSOSystem.from_fosys(sys, f_nodal)
+
+
+class _MatrixFunction(object):
+    def __init__(self, f):
+        self.f = f
+        self.keys = []
+
+    def __getitem__(self, key):
+        mf = _MatrixFunction(self.f)
+        mf.keys = self.keys + [key]
+        return mf
+
+    def __call__(self, *args):
+        val = self.f(*args)
+        for k in self.keys:
+            val = val[k]
+        return val
+
+
+class HybridParameter(object):
+    def __init__(self, invariants, values, p=None):
+        self._invariants = invariants
+        self.values = values
+        self.p = p
+
+    @property
+    def invariants(self):
+        try:
+            return [inv(self.p) for inv in self._invariants]
+        except TypeError:
+            return self._invariants
+
+    @invariants.setter
+    def invariants(self, value):
+        self._invariants = value
+
+    def invariant_representatives(self):
+        return [la.lstsq(inv[0], inv[1] - np.abs(inv[1]) * 1e-3)[0]
+                for inv in self.invariants]
+
+    def _get_value(self, u):
+        for (A, b), v in zip(self.invariants, self.values):
+            if np.all(A.dot(u) <= b):
+                return v
+        raise Exception("Input not covered in any invariant")
+
+    def __call__(self, args):
+        return self._get_value(args)
+
+
+class HybridSOSystem(SOSystem):
+    @property
+    def K(self):
+        return _MatrixFunction(self.K_global)
+
+    def K_global(self, u):
+        k_els = [self._K[i](u[i:i+2]) for i in range(len(self._K))]
+        return self.K_build_global(k_els)
+
+    def K_build_global(self, k_els):
+        K = np.zeros(self.M.shape)
+        for i in range(len(k_els)):
+            K[i:i+2,i:i+2] = K[i:i+2,i:i+2] + k_els[i]
+        return K
+
+    def K_els(self):
+        return self._K
+
+
+class ControlHybridSOSystem(HybridSOSystem, ControlSOSystem):
+    def __init__(self, M, K, F, f_nodal, xpart=None, dt=1.0):
+        ControlSOSystem.__init__(self, M, K, F, f_nodal, xpart=xpart, dt=dt)
+
+    @staticmethod
+    def from_hysosys(sosys, f_nodal):
+        csosys = ControlHybridSOSystem(
+            sosys.M, sosys.K, sosys.F, f_nodal, sosys.xpart, sosys.dt)
+        return csosys
+
+    def copy(self):
+        return HybridControlSOSystem.from_hysosys(
+            super(HybridControlSOSystem, self).copy(), self.f_nodal)
+
+
+class PWLFunction(object):
+    """Right continuous piecewise linear function
+
+    Parameters
+    ----------
+    ts : array_like
+        Ordered list of inflection points, including the endpoints of the domain.
+        A point may be repeated once in order to allow left discontinuity
+    ys : array_like, optional
+        List of values at the inflection points
+    ybounds : array_like, optional
+        Bounds on the values of the function. Used as synthesis information
+        when `ys` is left unspecified
+    x : float or array_like, optional
+        Point of the spatial domain at which this function is nonzero. If not
+        set, when evaluating the spatial point should be set to ``None``
+
+    """
+    def __init__(self, ts, ys=None, ybounds=None, x=None):
+        self.ts = ts
+        self.ys = ys
+        self.ybounds = ybounds
+        self.x = x
+
+    def pset(self):
+        """Creates an H-representation of the `ys` polytope
+
+        If `ybounds` was specified, this function computes the polytope in which
+        the `ys` are contained.
+
+        Returns
+        -------
+        ndarray
+
+        """
+        left = np.hstack([np.identity(len(self.ts)),
+                             -np.identity(len(self.ts))])
+        right = np.r_[[self.ybounds[1] for x in self.ts],
+                      [-self.ybounds[0] for x in self.ts]]
+        return np.vstack([left, right]).T
+
+    def __call__(self, t, p=None, x=None):
+        """Computes the value of the function at some point of the domain
+
+        Computes the value at `t`, using `p` as the inflection point values and
+        at the spatial point `x`.
+
+        Parameters
+        ----------
+        t : float
+        p : array_like, optional
+        x : float or array_like, optional
+
+        Returns
+        -------
+        float
+
+        """
+        if x != self.x:
+            return 0.0
+        ts = self.ts
+        if self.ys is not None:
+            ys = self.ys
+            if t < ts[0] or t > ts[-1]:
+                raise Exception("Argument out of domain. t = {}".format(t))
+        else:
+            if p is None:
+                raise Exception("y values not set")
+            self.ys = ys = p
+        # FIXME probable issue with t = ts[-1]
+        if t == ts[-1]:
+            return ys[-1]
+        else:
+            i = bisect_right(ts, t) - 1
+            return ys[i] + (ys[i+1] - ys[i]) * (t - ts[i]) / (ts[i+1] - ts[i])
+
+
+# Abstraction based approach utilities
+
 class System(object):
+    """dx = Ax + b + Cw system. Currently deprecated"""
 
     def __init__(self, A, b, C=None, xpart=None, dt=1.0):
         """
@@ -66,283 +520,6 @@ class System(object):
         return "A:\n{0}\nb:\n{1}\nc:\n{2}".format(self.A, self.b, self.C)
 
 
-class FOSystem(object):
-
-    def __init__(self, M, K, F, xpart=None, dt=1.0, mesh=None, build_elem=None):
-        self.M = M
-        self.K = K
-        self.F = F
-        xpart_given = xpart is not None
-        mesh_given = mesh is not None and build_elem is not None
-        if xpart_given and mesh_given:
-            raise Exception("Expected either xpart or mesh/build_elem")
-
-        self.xpart = xpart
-        self.mesh = mesh
-        self.build_elem = build_elem
-        self.dt = dt
-
-    def to_canon(self):
-        M, K, F, n_e = ns_sys_matrices(self)
-
-        A = np.identity(self.n)
-        A[np.ix_(n_e, n_e)] = np.linalg.solve(M, -K)
-        b = np.zeros(self.n)
-        b[n_e] = np.linalg.solve(M, F)
-        C = np.empty(shape=(0,0))
-
-        system = System(A, b, C, self.xpart, self.dt)
-
-        return system
-
-    @property
-    def n(self):
-        return len(self.M)
-
-    def add_f_nodal(self, f_nodal):
-        self.F = self.F + f_nodal
-
-    def copy(self):
-        """Returns a copy of this system. Structural properties (mesh) are
-        shallow copied, while system matrices are deep copied"""
-        return FOSystem(self.M.copy(), self.K.copy(), self.F.copy(),
-                        self.xpart, self.dt, self.mesh, self.build_elem)
-
-    def __str__(self):
-        return "M:\n{0}\nK:\n{1}\nF:\n{2}".format(self.M, self.K, self.F)
-
-
-class SOSystem(object):
-
-    def __init__(self, M, K, F, xpart=None, dt=1.0, mesh=None, build_elem=None):
-        self.M = M
-        self._K = K
-        self.F = F
-        xpart_given = xpart is not None
-        mesh_given = mesh is not None and build_elem is not None
-        if xpart_given and mesh_given:
-            raise Exception("Expected either xpart or mesh/build_elem")
-
-        self.xpart = xpart
-        self.mesh = mesh
-        self.build_elem = build_elem
-        self.dt = dt
-
-    def to_fosystem(self):
-        n = self.n
-        zeros = np.zeros((n, n))
-        ident = np.identity(n)
-        Maug = np.asarray(np.bmat([[ident, zeros],[zeros, self.M]]))
-        Kaug = np.asarray(np.bmat([[zeros, -ident],[self.K, zeros]]))
-        Faug = np.hstack([np.zeros(n), self.F])
-
-        system = FOSystem(Maug, Kaug, Faug, self.xpart, self.dt)
-        return system
-
-    @property
-    def n(self):
-        return self.M.shape[0]
-
-    @property
-    def K(self):
-        return self._K
-
-    # @K.setter
-    # def K(self, value):
-    #     self._K = value
-
-    def add_f_nodal(self, f_nodal):
-        self.F = self.F + f_nodal
-
-    def copy(self):
-        """Returns a copy of this system. Structural properties (mesh) are
-        shallow copied, while system matrices are deep copied"""
-        return SOSystem(self.M.copy(), self.K.copy(), self.F.copy(),
-                        self.xpart, self.dt, self.mesh, self.build_elem)
-
-    def __str__(self):
-        return "M:\n{0}\nK:\n{1}\nF:\n{2}".format(self.M, self.K, self.F)
-
-
-def ns_sys_matrices(system):
-    nz_bool = system.M != 0
-    try:
-        nz_bool = nz_bool.toarray()
-    except:
-        pass
-    n_e = np.nonzero(np.any(nz_bool, axis=1))[0]
-    M = system.M[np.ix_(n_e, n_e)]
-    try:
-        M = M.tocsc()
-    except:
-        pass
-    K = system.K[np.ix_(n_e, n_e)]
-    F = system.F[n_e]
-
-    return M, K, F, n_e
-
-
-class ControlSOSystem(SOSystem):
-    def __init__(self, M, K, F, f_nodal, xpart=None, dt=1.0, mesh=None, build_elem=None):
-        SOSystem.__init__(self, M, K, F, xpart=xpart, dt=dt, mesh=mesh, build_elem=build_elem)
-        self.f_nodal = f_nodal
-
-    def add_f_nodal(self, f_nodal):
-        self.f_nodal = f_nodal
-
-    @staticmethod
-    def from_sosys(sosys, f_nodal):
-        csosys = ControlSOSystem(
-            sosys.M, sosys.K, sosys.F, f_nodal, sosys.xpart, sosys.dt, sosys.mesh, sosys.build_elem)
-        return csosys
-
-    def copy(self):
-        return ControlSOSystem.from_sosys(
-            super(ControlSOSystem, self).copy(), self.f_nodal)
-
-class ControlFOSystem(FOSystem):
-    def __init__(self, M, K, F, f_nodal, xpart=None, dt=1.0, mesh=None, build_elem=None):
-        FOSystem.__init__(self, M, K, F, xpart=xpart, dt=dt, mesh=mesh, build_elem=build_elem)
-        self.f_nodal = f_nodal
-
-    def add_f_nodal(self, f_nodal):
-        self.f_nodal = f_nodal
-
-    @staticmethod
-    def from_fosys(fosys, f_nodal):
-        csosys = ControlFOSystem(
-            fosys.M, fosys.K, fosys.F, f_nodal, fosys.xpart, fosys.dt, fosys.mesh, fosys.build_elem)
-        return csosys
-
-    def copy(self):
-        return ControlFOSystem.from_fosys(
-            super(ControlFOSystem, self).copy(), self.f_nodal)
-
-
-def make_control_system(sys, f_nodal):
-    if isinstance(sys, FOSystem):
-        return ControlFOSystem.from_fosys(sys, f_nodal)
-    else:
-        return ControlSOSystem.from_fosys(sys, f_nodal)
-
-
-class MatrixFunction(object):
-    def __init__(self, f):
-        self.f = f
-        self.keys = []
-
-    def __getitem__(self, key):
-        mf = MatrixFunction(self.f)
-        mf.keys = self.keys + [key]
-        return mf
-
-    def __call__(self, *args):
-        val = self.f(*args)
-        for k in self.keys:
-            val = val[k]
-        return val
-
-
-class HybridParameter(object):
-    def __init__(self, invariants, values, p=None):
-        self._invariants = invariants
-        self.values = values
-        self.p = p
-
-    @property
-    def invariants(self):
-        try:
-            return [inv(self.p) for inv in self._invariants]
-        except TypeError:
-            return self._invariants
-
-    @invariants.setter
-    def invariants(self, value):
-        self._invariants = value
-
-    def invariant_representatives(self):
-        return [la.lstsq(inv[0], inv[1] - np.abs(inv[1]) * 1e-3)[0]
-                for inv in self.invariants]
-
-    def _get_value(self, u):
-        for (A, b), v in zip(self.invariants, self.values):
-            if np.all(A.dot(u) <= b):
-                return v
-        raise Exception("Input not covered in any invariant")
-
-    def __call__(self, args):
-        return self._get_value(args)
-
-
-class HybridSOSystem(SOSystem):
-    @property
-    def K(self):
-        return MatrixFunction(self.K_global)
-
-    def K_global(self, u):
-        k_els = [self._K[i](u[i:i+2]) for i in range(len(self._K))]
-        return self.K_build_global(k_els)
-
-    def K_build_global(self, k_els):
-        K = np.zeros(self.M.shape)
-        for i in range(len(k_els)):
-            K[i:i+2,i:i+2] = K[i:i+2,i:i+2] + k_els[i]
-        return K
-
-    def K_els(self):
-        return self._K
-
-class ControlHybridSOSystem(HybridSOSystem, ControlSOSystem):
-    def __init__(self, M, K, F, f_nodal, xpart=None, dt=1.0):
-        ControlSOSystem.__init__(self, M, K, F, f_nodal, xpart=xpart, dt=dt)
-
-    @staticmethod
-    def from_hysosys(sosys, f_nodal):
-        csosys = ControlHybridSOSystem(
-            sosys.M, sosys.K, sosys.F, f_nodal, sosys.xpart, sosys.dt)
-        return csosys
-
-    def copy(self):
-        return HybridControlSOSystem.from_hysosys(
-            super(HybridControlSOSystem, self).copy(), self.f_nodal)
-
-
-class PWLFunction(object):
-    ''' Right continuous piecewise linear function
-    '''
-    def __init__(self, ts, ys=None, ybounds=None, x=None):
-        self.ts = ts
-        self.ys = ys
-        self.ybounds = ybounds
-        self.x = x
-
-    def pset(self):
-        left = np.hstack([np.identity(len(self.ts)),
-                             -np.identity(len(self.ts))])
-        right = np.r_[[self.ybounds[1] for x in self.ts],
-                      [-self.ybounds[0] for x in self.ts]]
-        return np.vstack([left, right]).T
-
-    def __call__(self, t, p=None, x=None):
-        if x != self.x:
-            return 0.0
-        ts = self.ts
-        if self.ys is not None:
-            ys = self.ys
-            if t < ts[0] or t > ts[-1]:
-                raise Exception("Argument out of domain. t = {}".format(t))
-        else:
-            if p is None:
-                raise Exception("y values not set")
-            self.ys = ys = p
-        # FIXME probable issue with t = ts[-1]
-        if t == ts[-1]:
-            return ys[-1]
-        else:
-            i = bisect_right(ts, t) - 1
-            return ys[i] + (ys[i+1] - ys[i]) * (t - ts[i]) / (ts[i+1] - ts[i])
-
-
 def is_region_invariant(system, region, dist_bounds):
     for facet, normal, dim in facets(region):
         if not is_facet_separating(system, facet, normal, dim, dist_bounds):
@@ -383,7 +560,6 @@ def rect_in_semispace(R, a, b):
         else:
             return - res.fun <= b
 
-
 def cont_to_disc(system, dt=1.0):
     Adt = system.A * dt
     Atil = la.expm(Adt)
@@ -394,8 +570,67 @@ def cont_to_disc(system, dt=1.0):
 def cont_integrate(system, x0, t):
     return odeint(lambda x, t: (system.A.dot(x) + system.b.T).flatten(), x0, t)
 
+def disc_integrate(system, x0, t):
+    xs = [x0]
+    x = x0
+    for i in range(t - 1):
+        x = (system.A.dot(x) + system.b.T).flatten()
+        xs.append(x)
+    return np.array(xs)
+
+
+# Integration functions
+
+def _ns_sys_matrices(system):
+    nz_bool = system.M != 0
+    try:
+        nz_bool = nz_bool.toarray()
+    except:
+        pass
+    n_e = np.nonzero(np.any(nz_bool, axis=1))[0]
+    M = system.M[np.ix_(n_e, n_e)]
+    try:
+        M = M.tocsc()
+    except:
+        pass
+    K = system.K[np.ix_(n_e, n_e)]
+    F = system.F[n_e]
+
+    return M, K, F, n_e
+
+def _factorize(M):
+    if scipy.sparse.issparse(M):
+        return spla.factorized(M)
+    else:
+        lu = la.lu_factor(M)
+        def solve(b):
+            return la.lu_solve(lu, b)
+
+        return solve
+
 def trapez_integrate(fosys, d0, T, dt=.1, alpha=0.5):
-    M, K, F, n_e = ns_sys_matrices(fosys)
+    """Integrates a FO system using the trapezoidal rule
+
+    Parameters
+    ----------
+    fosys : :class:`FOSystem`
+    d0 : array_like
+        Initial value
+    T : float
+        Final time
+    dt : float, optional
+        Time interval
+    alpha : float, optional
+        Trapezoidal rule parameter
+
+    Returns
+    -------
+    array, shape (round(T / dt), len(d0))
+        Array containing the value of `d` for each time until `T`, with `d0` in
+        the first row
+
+    """
+    M, K, F, n_e = _ns_sys_matrices(fosys)
 
     try:
         f_nodal = fosys.f_nodal
@@ -447,17 +682,32 @@ def trapez_integrate(fosys, d0, T, dt=.1, alpha=0.5):
         vs.append(v)
     return np.array(ds)
 
-
-def disc_integrate(system, x0, t):
-    xs = [x0]
-    x = x0
-    for i in range(t - 1):
-        x = (system.A.dot(x) + system.b.T).flatten()
-        xs.append(x)
-    return np.array(xs)
-
 def newm_integrate(sosys, d0, v0, T, dt=.1):
-    M, K, F, n_e = ns_sys_matrices(sosys)
+    """Integrates a SO system using the central difference rule
+
+    Parameters
+    ----------
+    sosys : :class:`SOSystem`
+    d0 : array_like
+        Initial value
+    v0 : array_like
+        Initial velocity
+    T : float
+        Final time
+    dt : float, optional
+        Time interval
+
+    Returns
+    -------
+    array, shape (round(T / dt), len(d0))
+        Array containing the value of `d` for each time until `T`, with `d0` in
+        the first row
+    array, shape (round(T / dt), len(v0))
+        Array containing the value of `v` for each time until `T`, with `v0` in
+        the first row
+
+    """
+    M, K, F, n_e = _ns_sys_matrices(sosys)
 
     try:
         f_nodal = sosys.f_nodal
@@ -507,18 +757,9 @@ def newm_integrate(sosys, d0, v0, T, dt=.1):
     return np.array(ds), np.array(vs)
 
 
-def _factorize(M):
-    if scipy.sparse.issparse(M):
-        return spla.factorized(M)
-    else:
-        lu = la.lu_factor(M)
-        def solve(b):
-            return la.lu_solve(lu, b)
+# Functions computing differences between systems and time-space differences
 
-        return solve
-
-
-def linterx(d, xpart):
+def _linterx(d, xpart):
     def u(x):
         i = bisect_left(xpart, x)
         if i < 1:
@@ -530,13 +771,39 @@ def linterx(d, xpart):
                     (xpart[i] - xpart[i-1])
     return u
 
-def pwcx(d, xpart):
+def _pwcx(d, xpart):
     def u(x):
         i = bisect_left(xpart, x) - 1
         return d[:, i]
     return u
 
+
 def diff(x, y, dtx, dty, xpart, ypart, xl, xr, pwc=False):
+    """Computes the difference between two trajectories of a 1D PDE FEM system
+
+    Computes `x` - `y` if `dty` < `dtx`, otherwise assume all arguments are
+    switched.
+
+    Parameters
+    ----------
+    x : array, shape (integration points, len(xpart))
+    y : array, shape (integration points, len(ypart))
+    dtx, dty : float
+    xpart, ypart : array_like
+    xl, xr : float
+        Left and right bounds of the rectangle in the spatial domain in which
+        the difference is computed
+    pwc : bool
+        Whether the values in `x` and `y` should be understood as constant
+        values at the elements. In that case, the length of the last axis for
+        `x` and `y` should be one less
+
+    Returns
+    -------
+    array, shape (integration points, nodes of ypart in [xl, xr])
+        The difference between the two trajectories
+
+    """
     if dty > dtx:
         x, y = y, x
         dtx, dty = dty, dtx
@@ -546,17 +813,38 @@ def diff(x, y, dtx, dty, xpart, ypart, xl, xr, pwc=False):
     yl = bisect_left(ypart, xl)
     yr = bisect_right(ypart, xr)
     if pwc:
-        xinter = pwcx(x, xpart)
-        yinter = pwcx(yy, ypart)
+        xinter = _pwcx(x, xpart)
+        yinter = _pwcx(yy, ypart)
         d = np.array([xinter(z) - yinter(z) for z in
                       (ypart[yl + 1:yr] + ypart[yl:yr - 1]) / 2.0]).T
     else:
-        xinter = linterx(x, xpart)
-        yinter = linterx(yy, ypart)
+        xinter = _linterx(x, xpart)
+        yinter = _linterx(yy, ypart)
         d = np.array([xinter(z) - yinter(z) for z in ypart[yl:yr]]).T
     return d
 
 def diff2d(x, y, dtx, dty, xmesh, ymesh, xl, xr):
+    """Computes the difference between two trajectories of a 2D PDE FEM system
+
+    Computes `x` - `y` if `dty` < `dtx`, otherwise assume all arguments are
+    switched.
+
+    Parameters
+    ----------
+    x : array, shape (integration points, len(xpart))
+    y : array, shape (integration points, len(ypart))
+    dtx, dty : float
+    xmesh, ymesh : :class:`femformal.core.fem.mesh.Mesh`
+    xl, xr : float
+        Left and right bounds of the rectangle in the spatial domain in which
+        the difference is computed
+
+    Returns
+    -------
+    array, shape (integration points, nodes of ymesh in [xl, xr])
+        The difference between the two trajectories
+
+    """
     if dty > dtx:
         x, y = y, x
         dtx, dty = dty, dtx
@@ -571,6 +859,28 @@ def diff2d(x, y, dtx, dty, xmesh, ymesh, xl, xr):
 
 
 def sys_diff(xsys, ysys, x0, y0, tlims, xlims, xderiv=False, plot=False):
+    """Computes the absolute diff between the trajectories of two FO systems
+
+    Parameters
+    ----------
+    xsys, ysys : :class:`FOSystem`
+    x0, y0 : array_like
+        Initial value
+    tlims : tuple, (t0, T)
+        Initial and final time of the trajectories
+    xlims : tuple, (xl, xr)
+        Left and right bounds of the rectangle in the spatial domain in which
+        the difference is computed
+    xderiv : bool, optional
+        If ``True``, compute the difference between the spatial derivatives
+        instead
+
+    Returns
+    -------
+    array, shape (integration points, nodes of ysys.xpart in [xl, xr])
+        The absolute difference between the trajectories of the two systems
+
+    """
     dtx, dty = xsys.dt, ysys.dt
     xpart, ypart = xsys.xpart, ysys.xpart
     t0, T = tlims
@@ -583,6 +893,28 @@ def sys_diff(xsys, ysys, x0, y0, tlims, xlims, xderiv=False, plot=False):
     return absdif
 
 def sosys_diff(xsys, ysys, x0, y0, tlims, xlims, xderiv=False, plot=False):
+    """Computes the absolute diff between the trajectories of two SO systems
+
+    Parameters
+    ----------
+    xsys, ysys : :class:`FOSystem`
+    x0, y0 : array_like
+        Initial value
+    tlims : tuple, (t0, T)
+        Initial and final time of the trajectories
+    xlims : tuple, (xl, xr)
+        Left and right bounds of the rectangle in the spatial domain in which
+        the difference is computed
+    xderiv : bool, optional
+        If ``True``, compute the difference between the spatial derivatives
+        instead
+
+    Returns
+    -------
+    array, shape (integration points, nodes of ysys partition in [xl, xr])
+        The absolute difference between the trajectories of the two systems
+
+    """
     dtx, dty = xsys.dt, ysys.dt
     t0, T = tlims
     x = newm_integrate(xsys, x0[0], x0[1], T, dtx)[0]
@@ -632,6 +964,30 @@ def _sosys_diff_1d(x, y, dtx, dty, xpart, ypart, xlims):
     return absdif
 
 def sys_max_diff(xsys, ysys, x0, y0, tlims, xlims, xderiv=False, pw=False, plot=False):
+    """Computes maximum absolute diff between two systems
+
+    Parameters
+    ----------
+    xsys, ysys : :class:`FOSystem`
+    x0, y0 : array_like
+        Initial value
+    tlims : tuple, (t0, T)
+        Initial and final time of the trajectories
+    xlims : tuple, (xl, xr)
+        Left and right bounds of the rectangle in the spatial domain in which
+        the difference is computed
+    xderiv : bool, optional
+        If ``True``, compute the difference between the spatial derivatives
+        instead
+    pw : bool, optional
+        Whether the maximum should be computed pointwise or resumed
+
+    Returns
+    -------
+    float or array, shape (integration points, nodes of ysys.xpart in [xl, xr])
+        The absolute difference between the trajectories of the two systems
+
+    """
     if isinstance(xsys, SOSystem):
         diff_f = sosys_diff
     elif isinstance(xsys, FOSystem):
@@ -647,6 +1003,21 @@ def sys_max_diff(xsys, ysys, x0, y0, tlims, xlims, xderiv=False, pw=False, plot=
         return np.max(absdif, axis=-1 if pw else None)
 
 def sys_max_xdiff(sys, x0, t0, T):
+    """Maximum absolute spatial derivative of an FO system at each element
+
+    Parameters
+    ----------
+    sys : :class:`FOSystem`
+    x0 : array_like
+        Initial value
+    t0, T : float
+        Initial and final time of the trajectory
+
+    Returns
+    -------
+    array, shape (nodes of sys.xpart - 1, )
+
+    """
     dt = sys.dt
     x = trapez_integrate(sys, x0, T, dt, alpha=0.0)
     x = x[int(round(t0/dt)):]
@@ -657,6 +1028,21 @@ def sys_max_xdiff(sys, x0, t0, T):
     return mdx
 
 def sys_max_tdiff(sys, x0, t0, T):
+    """Maximum time spatial derivative of an FO system at each node
+
+    Parameters
+    ----------
+    sys : :class:`FOSystem`
+    x0 : array_like
+        Initial value
+    t0, T : float
+        Initial and final time of the trajectory
+
+    Returns
+    -------
+    array, shape (nodes of sys.xpart, )
+
+    """
     dt = sys.dt
     x = trapez_integrate(sys, x0, T, dt, alpha=0.0)
     x = x[int(round(t0/dt)):]
@@ -667,6 +1053,26 @@ def sys_max_tdiff(sys, x0, t0, T):
     return mdtx
 
 def sosys_max_der_diff(sys, x0, tlims, xderiv=False):
+    """Maximum spatial and time spatial derivative of an SO system
+
+    Parameters
+    ----------
+    sys : :class:`FOSystem`
+    x0 : array_like
+        Initial value
+    tlims : tuple of float, (t0, T)
+        Initial and final time of the trajectory
+    xderiv : bool, optional
+        If ``True``, compute the derivatives of the spatial derivatives instead
+
+    Returns
+    -------
+    mdx : array, shape (nodes of system mesh - 1, )
+        Maximum spatial derivative of the system at each element
+    mdtx : array, shape (nodes of system mesh, )
+        Maximum time derivative of the system at each node
+
+    """
     x, vx = newm_integrate(sys, x0[0], x0[1], tlims[1], sys.dt)
     x = x[int(round(tlims[0]/sys.dt)):]
     # draw.draw_pde_trajectory(x, sys.xpart, np.linspace(0, tlims[1], (int(round(tlims[1] / sys.dt)))), animate=False)
@@ -717,7 +1123,7 @@ def draw_system_disc(sys, x0, T, t0=0,
                              animate=animate, hold=hold, allonly=allonly, ylabel=ylabel,
                              xlabel=xlabel)
 
-def draw_system_cont(sys, x0, T, t0=0, hold=False, **kargs):
+def _draw_system_cont(sys, x0, T, t0=0, hold=False, **kargs):
     dt = sys.dt
     xpart = sys.xpart
 
@@ -730,7 +1136,7 @@ def draw_system_cont(sys, x0, T, t0=0, hold=False, **kargs):
     if hold:
         return draw.pop_holds()
 
-def draw_sosys(sosys, d0, v0, g, T, t0=0, hold=False, **kargs):
+def _draw_sosys(sosys, d0, v0, g, T, t0=0, hold=False, **kargs):
     dt = sosys.dt
     xpart = sosys.xpart
 
@@ -742,10 +1148,37 @@ def draw_sosys(sosys, d0, v0, g, T, t0=0, hold=False, **kargs):
         return draw.pop_holds()
 
 def draw_system(sys, d0, g, T, t0=0, **kargs):
+    """Draws the trajectory of a FEM system from a 1D PDE
+
+    Computes the trajectory and draws using the
+    :func:`femformal.core.draw_util.draw_pde_trajectory`
+
+    Parameters
+    ----------
+    sys : :class:`FOSystem` or :class:`SOSystem`
+    d0 : array_like
+        Initial value. Must have a row for each degree of freedom
+    g : array_like
+        Boundary conditions of the PDE
+    T : float
+        Final time of the trajectory
+    t0 : float, optional
+        Start time
+    hold : bool
+        Whether the figure should be held
+    kwargs : dict, optional
+        Extra arguments passed to the drawing function
+
+    Returns
+    -------
+    list, only returned if hold == True
+        List of `matplotlib` figures created
+
+    """
     if isinstance(sys, FOSystem):
-        return draw_system_cont(sys, d0, T, t0, **kargs)
+        return _draw_system_cont(sys, d0, T, t0, **kargs)
     elif isinstance(sys, SOSystem):
-        return draw_sosys(sys, d0[0], d0[1], g, T, t0, **kargs)
+        return _draw_sosys(sys, d0[0], d0[1], g, T, t0, **kargs)
     else:
         raise NotImplementedError(
             "Not implemented for this class of system: {}".format(
@@ -753,6 +1186,33 @@ def draw_system(sys, d0, g, T, t0=0, **kargs):
 
 
 def draw_system_2d(sys, d0, g, T, t0=0, **kwargs):
+    """Draws the trajectory of a FEM system from a 2D PDE
+
+    Computes the trajectory and draws using the
+    :func:`femformal.core.draw_util.draw_2d_pde_trajectory`
+
+    Parameters
+    ----------
+    sys : :class:`SOSystem`
+    d0 : array_like
+        Initial value. Must have a row for each degree of freedom
+    g : array_like
+        Boundary conditions of the PDE
+    T : float
+        Final time of the trajectory
+    t0 : float, optional
+        Start time
+    hold : bool
+        Whether the figure should be held
+    kwargs : dict, optional
+        Extra arguments passed to the drawing function
+
+    Returns
+    -------
+    list, only returned if hold == True
+        List of `matplotlib` figures created
+
+    """
     dt = sys.dt
     ts = np.linspace(t0, T, int(round((T - t0) / dt)))
     d, v = newm_integrate(sys, d0[0], d0[1], T, dt)
@@ -762,6 +1222,33 @@ def draw_system_2d(sys, d0, g, T, t0=0, **kwargs):
     return draw.pop_holds()
 
 def draw_displacement_plot(sys, d0, g, T, t0=0, **kwargs):
+    """Draws the trajectory of a FEM system from a 2D PDE
+
+    Computes the trajectory and draws using the
+    :func:`femformal.core.draw_util.draw_displacment_2d`
+
+    Parameters
+    ----------
+    sys : :class:`SOSystem`
+    d0 : array_like
+        Initial value. Must have a row for each degree of freedom
+    g : array_like
+        Boundary conditions of the PDE
+    T : float
+        Final time of the trajectory
+    t0 : float, optional
+        Start time
+    hold : bool
+        Whether the figure should be held
+    kwargs : dict, optional
+        Extra arguments passed to the drawing function
+
+    Returns
+    -------
+    list, only returned if hold == True
+        List of `matplotlib` figures created
+
+    """
     dt = sys.dt
     ts = np.linspace(t0, T, int(round((T - t0) / dt)))
     d, v = newm_integrate(sys, d0[0], d0[1], T, dt)
@@ -770,11 +1257,25 @@ def draw_displacement_plot(sys, d0, g, T, t0=0, **kwargs):
     return draw.pop_holds()
 
 
-
 def draw_pwlf(pwlf, ylabel='Force $u_L$', xlabel='Time t', axes=None):
+    """Draws a piecewise linear function
+
+    Parameters
+    ----------
+    pwlf : :class:`PWLFunction`
+    ylabel : str, optional
+    xlabel : str, optional
+    axes : :class:`matplotlib.axes.Axes`
+        Axes in which to draw the function
+
+    Returns
+    -------
+    :class:`matplotlib.figure.Figure`, only returned if axes == None
+
+    """
     return draw.draw_linear(pwlf.ys, pwlf.ts, ylabel, xlabel, axes=axes)
 
-def draw_sosys_snapshots(sosys, d0, v0, g, ts, hold=False, **kargs):
+def _draw_sosys_snapshots(sosys, d0, v0, g, ts, hold=False, **kargs):
     dt = sosys.dt
     xpart = sosys.xpart
 
@@ -790,7 +1291,7 @@ def draw_sosys_snapshots(sosys, d0, v0, g, ts, hold=False, **kargs):
     if hold:
         return draw.pop_holds()
 
-def draw_fosys_snapshots(fosys, d0, g, ts, hold=False, **kargs):
+def _draw_fosys_snapshots(fosys, d0, g, ts, hold=False, **kargs):
     dt = fosys.dt
     xpart = fosys.xpart
 
@@ -808,10 +1309,32 @@ def draw_fosys_snapshots(fosys, d0, g, ts, hold=False, **kargs):
 
 
 def draw_system_snapshots(sys, d0, g, ts, **kargs):
+    """Draws snapshots of the trajectory of a FEM system from a 1D PDE
+
+    Uses the function :func:`femformal.core.draw_util.draw_pde_snapshot`.
+
+    Parameters
+    ----------
+    sys : :class:`SOSystem`
+    d0 : array_like
+        Initial value. Must have a row for each degree of freedom
+    g : array_like
+        Boundary conditions of the PDE
+    ts : array_like
+        Times for each snapshot
+    kwargs : dict, optional
+        Extra arguments passed to the drawing function
+
+    Returns
+    -------
+    list, only returned if hold == True
+        List of `matplotlib` figures created
+
+    """
     if isinstance(sys, SOSystem):
-        return draw_sosys_snapshots(sys, d0[0], d0[1], g, ts, **kargs)
+        return _draw_sosys_snapshots(sys, d0[0], d0[1], g, ts, **kargs)
     elif isinstance(sys, FOSystem):
-        return draw_fosys_snapshots(sys, d0, g, ts, **kargs)
+        return _draw_fosys_snapshots(sys, d0, g, ts, **kargs)
     else:
         raise NotImplementedError(
             "Not implemented for this class of system: {}".format(

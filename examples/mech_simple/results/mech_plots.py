@@ -24,7 +24,7 @@ cregions = {'A': apc1, 'B': apc2}
 sosys = mechlinfem.mechlinfem(xpart, rho, E, g, f_nodal, dt)
 d0, v0 = mechlinfem.state(u0, du0, xpart, g)
 # cs = fem.build_cs(sosys, [d0, v0], g, cregions, None, discretize_system=False)
-sys.draw_sosys(sosys, d0, v0, g, 0.01, animate=False, hold=True, allonly=True)
+sys._draw_sosys(sosys, d0, v0, g, 0.01, animate=False, hold=True, allonly=True)
 fig = plt.gcf()
 ax = plt.gcf().get_axes()[0]
 for apc, label, fmt in zip([apc1, apc2], ['$\mu_1$', '$\mu_2$'], ['b-', 'g-']):

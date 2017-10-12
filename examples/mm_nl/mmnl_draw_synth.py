@@ -54,7 +54,7 @@ def f_nodal_control(t):
 
 
 csosys = sys.ControlSOSystem.from_sosys(sosys, f_nodal_control)
-(fig, ) = sys.draw_sosys(csosys, d0, v0, g, 1.0, animate=False, allonly=False, hold=True)
+(fig, ) = sys._draw_sosys(csosys, d0, v0, g, 1.0, animate=False, allonly=False, hold=True)
 fig.canvas.set_window_title('i3_7')
 # fig = plt.gcf()
 # fig.set_size_inches(3,2)

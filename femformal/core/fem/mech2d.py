@@ -53,7 +53,7 @@ def mech2d(xpart, ypart, rho, C, g, f_nodal, dt, traction=None):
     _remove_close_zeros(bigm)
     bigk = bigk.tocsc()
     bigm = bigm.tocsc()
-    sosys = sys.SOSystem(bigm, bigk, bigf, dt=dt, mesh=mesh, build_elem=element.BLQuadQ4)
+    sosys = sys.SOSystem(bigm, bigk, bigf, dt=dt, mesh=mesh)
 
     return sosys
 

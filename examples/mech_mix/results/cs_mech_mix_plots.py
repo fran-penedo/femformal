@@ -50,7 +50,7 @@ print d0
 print v0
 print cs.spec
 print dt
-sys.draw_sosys(sosys, d0, v0, g, 0.1, animate=False, allonly=True, hold=True,
+sys._draw_sosys(sosys, d0, v0, g, 0.1, animate=False, allonly=True, hold=True,
                ylabel='Displacement u (mm)', xlabel='Location x (m)')
 fig = plt.gcf()
 fig.set_size_inches(4,2)

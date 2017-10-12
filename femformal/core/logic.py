@@ -1,8 +1,9 @@
 """
 S-STL extension of STL. The module provides classes for
-predicates in continuous time (:class:`femformal.core.logic.APCont` and
-:class:`femformal.core.logic.APCont2D`) and an intermediate representation for
-discretized predicates (:class:`femformal.core.logic.APDisc`).
+predicates in continuous time (:class:`APCont` and
+:class:`APCont2D`) and the individual STL predicates
+obtained after discretization (:class:`STLPred`). The discretization is
+performed by :func:`sstl_to_stl`.
 
 """
 from __future__ import division, absolute_import, print_function

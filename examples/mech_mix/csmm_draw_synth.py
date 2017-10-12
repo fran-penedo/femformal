@@ -59,7 +59,7 @@ etas = [eta, [0 for i in eta]]
 nus = [nu, nu_xderiv]
 
 fdt_mult = 2
-(fig, ) = sys.draw_sosys(csosys, d0, v0, g, 0.30, animate=False, allonly=False, hold=True)
+(fig, ) = sys._draw_sosys(csosys, d0, v0, g, 0.30, animate=False, allonly=False, hold=True)
 fig.set_size_inches(3,2)
 fig.canvas.set_window_title("i3_7")
 axs = plt.gcf().get_axes()[0:2]

@@ -52,7 +52,7 @@ cs = fem.build_cs(sosys, [d0, v0], g, cregions, None, discretize_system=False)
 # print v0
 # print cs.spec
 # print dt
-sys.draw_sosys(sosys, d0, v0, g, 0.3, animate=False, allonly=False, hold=True)
+sys._draw_sosys(sosys, d0, v0, g, 0.3, animate=False, allonly=False, hold=True)
 fig = plt.gcf()
 fig.set_size_inches(3,2)
 ax = plt.gcf().get_axes()[0]

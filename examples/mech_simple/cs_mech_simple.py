@@ -38,7 +38,7 @@ print d0
 print v0
 print cs.spec
 print dt
-sys.draw_sosys(sosys, d0, v0, g, 0.2, animate=False, hold=True)
+sys._draw_sosys(sosys, d0, v0, g, 0.2, animate=False, hold=True)
 # ax = plt.gcf().get_axes()[1]
 # for apc in [apc1, apc2]:
 #     ax.plot(apc.A, [apc.p(x) for x in apc.A], 'b-', lw=1)
