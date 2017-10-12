@@ -841,7 +841,7 @@ def diff2d(x, y, dtx, dty, xmesh, ymesh, xl, xr):
 
     Returns
     -------
-    array, shape (integration points, nodes of ymesh in [xl, xr])
+    array, shape (integration points, ysys nodes in (xl, xr)[, dofs])
         The difference between the two trajectories
 
     """
@@ -877,7 +877,7 @@ def sys_diff(xsys, ysys, x0, y0, tlims, xlims, xderiv=False, plot=False):
 
     Returns
     -------
-    array, shape (integration points, nodes of ysys.xpart in [xl, xr])
+    array, shape (integration points, nodes of ysys.xpart in (xl, xr))
         The absolute difference between the trajectories of the two systems
 
     """
@@ -911,7 +911,7 @@ def sosys_diff(xsys, ysys, x0, y0, tlims, xlims, xderiv=False, plot=False):
 
     Returns
     -------
-    array, shape (integration points, nodes of ysys partition in [xl, xr])
+    array, shape (integration points, ysys nodes in (xl, xr)[, dofs])
         The absolute difference between the trajectories of the two systems
 
     """
@@ -984,7 +984,7 @@ def sys_max_diff(xsys, ysys, x0, y0, tlims, xlims, xderiv=False, pw=False, plot=
 
     Returns
     -------
-    float or array, shape (integration points, nodes of ysys.xpart in [xl, xr])
+    float or array, shape (integration points, ysys nodes in (xl, xr)[, dofs])
         The absolute difference between the trajectories of the two systems
 
     """
@@ -1067,9 +1067,9 @@ def sosys_max_der_diff(sys, x0, tlims, xderiv=False):
 
     Returns
     -------
-    mdx : array, shape (nodes of system mesh - 1, )
+    mdx : array, shape (nodes of system mesh - 1[, dofs[, domain dimension]])
         Maximum spatial derivative of the system at each element
-    mdtx : array, shape (nodes of system mesh, )
+    mdtx : array, shape (nodes of system mesh[, dofs])
         Maximum time derivative of the system at each node
 
     """

@@ -1,3 +1,8 @@
+"""
+Top level functions for building femformal models
+"""
+from __future__ import division, absolute_import, print_function
+
 import logging
 from bisect import bisect_left
 
@@ -10,8 +15,54 @@ from femformal.core import system as sys, logic as logic
 logger = logging.getLogger(__name__)
 
 def build_cs(system, d0, g, cregions, cspec, fdt_mult=1, bounds=None,
-             pset=None, f=None, discretize_system=True, cstrue=None, error_bounds=None,
+             pset=None, f=None, discretize_system=False, cstrue=None, error_bounds=None,
              eps=None, eta=None, nu=None, eps_xderiv=None, nu_xderiv=None, T=1.0):
+    """Builds a FEM model
+
+    Builds a :class:`CaseStudy` object with all the information of the model,
+    including the parsed, discretized and corrected S-STL specification.
+
+    Parameters
+    ----------
+    system : any `System` class in :mod:`femformal.core.system`
+        Base system
+    d0 : array_like
+        Initial value
+    g : array_like
+        PDE boundary conditions
+    cregions : dict
+        Dictionary mapping predicate labels to
+        :class:`femformal.core.logic.APCont` for each predicate used in the
+        specification
+    cspec : str
+        S-STL specification string, using labels in place of predicates
+    fdt_mult : int, optional
+        Multiplier of the time interval used in the system discretization. The
+        resulting time interval is the one used to discretize in time the
+        STL specification. Must be > 1
+    bounds : array_like, optional
+        [min, max] bounds for the secondary signal. Default is [-1000, 1000]
+    pset : list of array_like
+        Each element of the list is the H-representation of a polytope in
+        which some parameters of the system is contained
+    f : list of callable
+        Each element is a function parameterized by the corresponding parameters
+        defined by `pset`
+    discretize_system : bool, optional
+        Deprecated
+    cstrue
+        Deprecated
+    error_bounds : tuple, optional
+        Tuple ((eps, eps_xderiv), (eta, eta_xderiv), (nu, nu_xderiv)). Overrides
+        the parameters of the same name
+    T : float, optional
+        Final time
+
+    Returns
+    -------
+    :class:`CaseStudy`
+
+    """
     dt = system.dt
     xpart = system.xpart
 
@@ -52,7 +103,7 @@ def build_cs(system, d0, g, cregions, cspec, fdt_mult=1, bounds=None,
         spec = None
         # regions = None
 
-    return CaseStudy({
+    return CaseStudy(**{
         'system': system,
         'dsystem': dsystem,
         'xpart': xpart,
@@ -69,15 +120,42 @@ def build_cs(system, d0, g, cregions, cspec, fdt_mult=1, bounds=None,
 
 
 class Perturbation(object):
+    """Base perturbation class
+
+    Override :meth:`_perturb` in subclasses.
+
+    Only `xpart` or `mesh` is needed to construct the object.
+
+    Parameters
+    ----------
+    xpart : array_like, optional
+        1D partition of the spatial domain, given as the list of nodes
+    mesh : :class:`femformal.core.fem.mesh.Mesh`, optional
+        2D mesh. Must have a `build_elem` attribute that constructs a
+        :class:`femformal.core.fem.element.Element`
+
+    """
     def __init__(self, xpart=None, mesh=None):
         self.xpart = xpart
         self.mesh = mesh
 
-    def perturb(self, stlpred):
-        raise NotImplementedError()
+    def _perturb(self, stlpred):
+        raise 0.0
 
     def __call__(self, stlpred):
-        p = self.perturb(stlpred)
+        """Computes the perturbation for a predicate
+
+        Parameters
+        ----------
+        stlpred : :class:`femformal.core.logic.STLPred`
+
+        Returns
+        -------
+        float
+            The perturbation
+
+        """
+        p = self._perturb(stlpred)
         if p is None:
             return 0.0
         else:
@@ -85,11 +163,24 @@ class Perturbation(object):
 
 
 class EpsPerturbation(Perturbation):
+    """Epsilon perturbation of a predicate
+
+    The epsilon perturbation is defined as
+    :math:`\\max_{x \in X_e} \\epsilon(x)`
+
+    Parameters
+    ----------
+    eps, eps_xderiv : float or array_like, shape (nelems[, dofs])
+        Approximation error in state or spatial derivative for each element
+    **kwargs
+        Arguments passed to :class:`Perturbation`
+
+    """
     def __init__(self, eps, eps_xderiv, **kwargs):
         Perturbation.__init__(self, **kwargs)
         self.eps_list = np.array([eps, eps_xderiv])
 
-    def perturb(self, stlpred):
+    def _perturb(self, stlpred):
         i = stlpred.index
         isnode = stlpred.isnode
         uderivs = stlpred.uderivs
@@ -115,11 +206,26 @@ class EpsPerturbation(Perturbation):
 
 
 class EtaPerturbation(Perturbation):
+    """Eta perturbation of a predicate
+
+    The eta perturbation is defined as
+    :math:``.
+    Note that `eta` is not the directional derivative but the directional
+    difference.
+
+    Parameters
+    ----------
+    eta : array_like, shape (nelems[, dofs, domain dimension])
+        Approximation of the maximum directional differences.
+    **kwargs
+        Arguments passed to :class:`Perturbation`
+
+    """
     def __init__(self, eta, **kwargs):
         Perturbation.__init__(self, **kwargs)
         self.eta = eta
 
-    def perturb(self, stlpred):
+    def _perturb(self, stlpred):
         i = stlpred.index
         dmu = stlpred.dp
         uderivs = stlpred.uderivs
@@ -148,6 +254,23 @@ class EtaPerturbation(Perturbation):
 
 
 class NuPerturbation(Perturbation):
+    """Nu perturbation of a predicate
+
+    The nu perturbation is defined as
+    :math:`\\max_{t} \\nu(t) \\Delta t_mult`. Note that `nu` is not the time
+    derivative, but the time difference for a given time interval.
+
+    Parameters
+    ----------
+    nu, nu_xderiv : array_like, shape (nnodes[, dofs])
+        Approximation of the maximum temporal difference of state and its
+        spatial derivatives
+    fdt_mult : int
+        STL time multiplier
+    **kwargs
+        Arguments passed to :class:`Perturbation`
+
+    """
     def __init__(self, nu, nu_xderiv, fdt_mult, **kwargs):
         Perturbation.__init__(self, **kwargs)
         self.nu_list = np.array([nu, nu_xderiv])
@@ -156,7 +279,7 @@ class NuPerturbation(Perturbation):
             self.interpolations = [
                 self.mesh.interpolate(x) for x in self.nu_list if x is not None]
 
-    def perturb(self, stlpred):
+    def _perturb(self, stlpred):
         i = stlpred.index
         uderivs = stlpred.uderivs
         ucomp = stlpred.u_comp
@@ -179,63 +302,148 @@ class NuPerturbation(Perturbation):
                 return ret.tolist()
 
 
-def lin_sample(bounds, g, xpart_x, xpart_y=None):
-    a = (np.random.rand() * 4 - 2) * abs(bounds[1] - bounds[0]) / xpart_x[-1]
-    b = np.random.rand() * abs(bounds[1] - bounds[0])
-    x0 = [g[0]] + [min(max(a * x + b, bounds[0]), bounds[1])
-                   for x in xpart_x[1:-1]] + [g[1]]
-    if xpart_y is not None:
-        y0 = [g[0]] + [min(max(a * x + b, bounds[0]), bounds[1])
-                       for x in xpart_y[1:-1]] + [g[1]]
-        return x0, y0
-    else:
+class Sample(object):
+    """Abstract class for sampling methods in the max diff functions
+
+    Use :meth:`sample` to sample for one or two meshes (including x partitions).
+    Override :meth:`_sample` to provide the implementation of the sampling
+    method for a single mesh.
+
+    """
+    @staticmethod
+    def _sample(bounds, g, mesh):
+        raise NotImplementedError()
+
+    @classmethod
+    def sample(cls, bounds, g, mesh_x, mesh_y=None):
+        """Samples for either one or two meshes
+
+        Parameters
+        ----------
+        bounds
+            Any object provided as bounds or parameters in general
+        g : array_like
+            PDE boundary conditions
+        mesh_x : array_like or :class:`femformal.core.fem.mesh.Mesh`
+        mesh_y : array_like or :class:`femformal.core.fem.mesh.Mesh`, optional
+
+        Returns
+        -------
+        array_like
+            The sampled object for `mesh_x`
+        array_like, only returned if `mesh_y` is provided
+            The sampled object for `mesh_y`
+
+        """
+        x = cls._sample(bounds, g, mesh_x)
+        if mesh_y is not None:
+            y = cls._sample(bounds, g, mesh_y)
+            return x, y
+        else:
+            return x
+
+
+class LinSample(Sample):
+    """Linear sampling method for first order systems"""
+    @staticmethod
+    def _sample(bounds, g, mesh):
+        a = (np.random.rand() * 4 - 2) * abs(bounds[1] - bounds[0]) / mesh[-1]
+        b = np.random.rand() * abs(bounds[1] - bounds[0])
+        x0 = [g[0]] + [min(max(a * x + b, bounds[0]), bounds[1])
+                    for x in mesh[1:-1]] + [g[1]]
         return x0
 
-def so_lin_sample(bounds, g, xpart_x, xpart_y=None):
-    a = (np.random.rand()) * abs(bounds[1] - bounds[0]) / xpart_x[-1]
-    x0 = [a*x for x in xpart_x]
-    vx0 = [0.0 for x in xpart_x]
-    if g[0] is not None:
-        x0[0] = g[0]
-    if g[-1] is not None:
-        x0[-1] = g[-1]
 
-    if xpart_y is not None:
-        y0 = [a*x for x in xpart_y]
-        vy0 = [0.0 for x in xpart_y]
-        if g[0]:
-            y0[0] = g[0]
-        if g[-1]:
-            y0[-1] = g[-1]
-        return [x0, vx0], [y0, vy0]
-    else:
+lin_sample = LinSample.sample
+"""Linear sampling method for first order systems"""
+
+class SOLinSample(Sample):
+    """Linear sampling method for second order systems"""
+    @staticmethod
+    def _sample(bounds, g, mesh):
+        a = (np.random.rand()) * abs(bounds[1] - bounds[0]) / mesh[-1]
+        x0 = [a*x for x in mesh]
+        vx0 = [0.0 for x in mesh]
+        if g[0] is not None:
+            x0[0] = g[0]
+        if g[-1] is not None:
+            x0[-1] = g[-1]
         return [x0, vx0]
 
-def id_sample(bounds, g, xpart_x, xpart_y=None):
-    u0, v0 = bounds
-    x0 = [u0(x) for x in xpart_x]
-    vx0 = [v0(x) for x in xpart_x]
 
-    if xpart_y is not None:
-        y0 = [u0(x) for x in xpart_y]
-        vy0 = [v0(x) for x in xpart_y]
-        return [x0, vx0], [y0, vy0]
-    else:
+so_lin_sample = SOLinSample.sample
+"""Linear sampling method for second order systems"""
+
+class IDSample(Sample):
+    """Identity sampling method for second order systems"""
+    @staticmethod
+    def _sample(bounds, g, mesh):
+        u0, v0 = bounds
+        x0 = [u0(x) for x in xpart_x]
+        vx0 = [v0(x) for x in xpart_x]
         return [x0, vx0]
 
-def id_sample_1dof(bounds, g, xpart_x, xpart_y=None):
-    u0 = bounds
-    x0 = [u0(x) for x in xpart_x]
 
-    if xpart_y is not None:
-        y0 = [u0(x) for x in xpart_y]
-        return x0, y0
-    else:
+id_sample = IDSample.sample
+"""Identity sampling method for second order systems"""
+
+class IDSampleFO(Sample):
+    """Identity sampling method for first order systems"""
+    @staticmethod
+    def _sample(bounds, g, mesh):
+        u0 = bounds
+        x0 = [u0(x) for x in xpart_x]
         return x0
+
+
+id_sample_fo = IDSampleFO.sample
+"""Identity sampling method for first order systems"""
 
 
 def max_diff(system, g, tlims, xlims, sys_true,
              bounds, sample=None, pw=False, xderiv=False, n=50, log=True):
+    """Estimates the max difference between the trajectories of two systems
+
+    This function samples initial values and nodal forces for a number of
+    iterations, computes the trajectories for each system and its absolute
+    difference. Then, it computes the worst case error, either globally or for
+    each element.
+
+    Parameters
+    ----------
+    system : any `System` class in `femformal.core.system`
+        The case study system
+    g : array_like
+        PDE boundary conditions
+    tlims : tuple, (t0, T)
+        Initial and final time of the trajectories
+    xlims : tuple, (xl, xr)
+        Left and right bounds of the rectangle in the spatial domain in which
+        the difference is computed
+    sys_true : any `System` class in `femformal.core.system`
+        The base system, i.e., the one considered exact
+    bounds : tuple (bounds_ic, bounds_f)
+        Bounds or parameters passed to the sample functions
+    sample : tuple of callable, (sample_ic, sample_f), optional
+        Sampling functions `Type.sample` with `Type` a subclass of
+        :class:`Sample`.  `sample_ic` samples the initial value. `sample_f`
+        samples a nodal force. Defaults to (:meth:`lin_sample`, None)
+    pw : bool, optional
+        Whether the maximum should be computed pointwise or resumed
+    xderiv : bool, optional
+        If ``True``, compute the difference between the spatial derivatives
+        instead
+    n : int, optional
+        Number of iterations
+    log : bool, optional
+        Log progress
+
+    Returns
+    -------
+    float or array_like, shape (nelems of system[, dofs])
+        If pw == False, the return value is the max diff for all elements
+
+    """
     if sample is None:
         sample_ic = lin_sample
         sample_f = None
@@ -307,6 +515,36 @@ def _downsample_diffs(mdiff, system, sys_true, xderiv):
     return mdiffgrouped
 
 def max_xdiff(system, g, tlims, bounds, sample=None, n=50, log=True):
+    """Estimates the max directional difference in the trajectory of a system
+
+    This function samples initial values and nodal forces for a number of
+    iterations, computes the trajectory and its max directional difference.
+    Then, it computes the worst case difference for each element.
+
+    Parameters
+    ----------
+    system : any `System` class in `femformal.core.system`
+        The case study system
+    g : array_like
+        PDE boundary conditions
+    tlims : tuple, (t0, T)
+        Initial and final time of the trajectories
+    bounds : tuple (bounds_ic, bounds_f)
+        Bounds or parameters passed to the sample functions
+    sample : tuple of callable, (sample_ic, sample_f), optional
+        Sampling functions `Type.sample` with `Type` a subclass of
+        :class:`Sample`.  `sample_ic` samples the initial value. `sample_f`
+        samples a nodal force. Defaults to (:meth:`lin_sample`, None)
+    n : int, optional
+        Number of iterations
+    log : bool, optional
+        Log progress
+
+    Returns
+    -------
+    array_like, shape (nelems of system)
+
+    """
     if sample is None:
         sample_ic = lin_sample
         sample_f = None
@@ -337,6 +575,36 @@ def max_xdiff(system, g, tlims, bounds, sample=None, n=50, log=True):
     return mdiff
 
 def max_tdiff(system, g, tlims, bounds, sample=None, n=50, log=True):
+    """Estimates the max temporal difference in the trajectory of a system
+
+    This function samples initial values and nodal forces for a number of
+    iterations, computes the trajectory and its max temporal difference.
+    Then, it computes the worst case difference for each node.
+
+    Parameters
+    ----------
+    system : any `System` class in `femformal.core.system`
+        The case study system
+    g : array_like
+        PDE boundary conditions
+    tlims : tuple, (t0, T)
+        Initial and final time of the trajectories
+    bounds : tuple (bounds_ic, bounds_f)
+        Bounds or parameters passed to the sample functions
+    sample : tuple of callable, (sample_ic, sample_f), optional
+        Sampling functions `Type.sample` with `Type` a subclass of
+        :class:`Sample`.  `sample_ic` samples the initial value. `sample_f`
+        samples a nodal force. Defaults to (:meth:`lin_sample`, None)
+    n : int, optional
+        Number of iterations
+    log : bool, optional
+        Log progress
+
+    Returns
+    -------
+    array_like, shape (nnodes of system)
+
+    """
     if sample is None:
         sample_ic = lin_sample
         sample_f = None
@@ -367,6 +635,41 @@ def max_tdiff(system, g, tlims, bounds, sample=None, n=50, log=True):
     return mdiff
 
 def max_der_diff(system, g, tlims, bounds, sample, xderiv=False, n=50, log=True):
+    """Estimates the max spatial and temporal difference of a system
+
+    This function samples initial values and nodal forces for a number of
+    iterations, computes the trajectory and its max spatial and temporal
+    differences.
+    Then, it computes the worst case difference for each node.
+
+    Parameters
+    ----------
+    system : any `System` class in `femformal.core.system`
+        The case study system
+    g : array_like
+        PDE boundary conditions
+    tlims : tuple, (t0, T)
+        Initial and final time of the trajectories
+    bounds : tuple (bounds_ic, bounds_f)
+        Bounds or parameters passed to the sample functions
+    sample : tuple of callable, (sample_ic, sample_f)
+        Sampling functions `Type.sample` with `Type` a subclass of
+        :class:`Sample`.  `sample_ic` samples the initial value. `sample_f`
+        samples a nodal force
+    xderiv : bool, optional
+        If ``True``, compute the difference between the spatial derivatives
+        instead
+    n : int, optional
+        Number of iterations
+    log : bool, optional
+        Log progress
+
+    Returns
+    -------
+    array_like, shape (nelems of system[, dofs, domain dimension])
+    array_like, shape (nnodes of system[, dofs])
+
+    """
     if sample is None:
         sample_ic = lin_sample
         sample_f = None
@@ -453,6 +756,37 @@ def _perturb_profile_nu_2d(p, nu, mesh, fdt_mult, direction):
     return pp
 
 def perturb_profile(apc, eps, eta, nu, xpart, fdt_mult, mesh):
+    """Perturbs a continuous predicate
+
+    The returned profile is accurate at the midpoints of the elements, i.e.,
+    the values at the midpoints match what the perturbed STL predicate would
+    be after discretization and correction.
+
+    Parameters
+    ----------
+    apc : :class:`femformal.core.logic.APCont`
+    eps : array_like, shape (2[, nelems[, dofs]])
+        Approximation error in state or spatial derivative for each element
+    eta : array_like, shape (2, nelems[, dofs, domain dimension])
+        Approximation of the maximum directional differences of state and its
+        derivatives.
+    nu : array_like, shape (2, nnodes[, dofs])
+        Approximation of the maximum temporal difference of state and its
+        spatial derivatives
+    xpart : array_like
+        1D partition of the spatial domain, given as the list of nodes
+    mesh : :class:`femformal.core.fem.mesh.Mesh`
+        2D mesh. Must have a `build_elem` attribute that constructs a
+        :class:`femformal.core.fem.element.Element`
+    fdt_mult : int
+        STL time multiplier
+
+    Returns
+    -------
+    callable
+        The perturbed profile
+
+    """
     direction = -1 * apc.r
     if xpart is not None:
         eps_p = _perturb_profile_eps(apc.p, eps[apc.uderivs], xpart, direction)
@@ -470,23 +804,43 @@ def perturb_profile(apc, eps, eta, nu, xpart, fdt_mult, mesh):
 
 
 class CaseStudy(object):
-    def __init__(self, dic):
-        copy = dic.copy()
-        self.system = copy.pop('system', None)
-        self.dsystem = copy.pop('dsystem', None)
-        self.xpart = copy.pop('xpart', None)
-        self.g = copy.pop('g', 0)
-        self.dt = copy.pop('dt', 0)
+    """Holds all information needed to run a femformal model
+
+    Parameters
+    ----------
+    kwargs : dict
+        Dictionary holding all attributes to set
+
+        ==========  ===================================================
+        key         meaning
+        ==========  ===================================================
+        'system'    FEM system
+        'dsystem'   Discretized FEM system (deprecated)
+        'xpart'     1D partition (deprecated)
+        'g'         PDE boundary conditions
+        'dt'        Time interval
+        'fdt_mult'  STL time multiplier
+        'd0'        Initial value
+        'pset'      List of parameter polytopes
+        'f'         List of parameterized functions
+        'spec'      STL formula
+        'T'         Final time
+        ==========  ===================================================
+
+    """
+    def __init__(self, **kwargs):
+        copy = kwargs
+        self.system   = copy.pop('system', None)
+        self.dsystem  = copy.pop('dsystem', None)
+        self.xpart    = copy.pop('xpart', None)
+        self.g        = copy.pop('g', 0)
+        self.dt       = copy.pop('dt', 0)
         self.fdt_mult = copy.pop('fdt_mult', 1)
-        self.d0 = copy.pop('d0', None)
-        self.pset = copy.pop('pset', None)
-        self.f = copy.pop('f', None)
-        self.regions = copy.pop('regions', None)
-        self.spec = copy.pop('spec', None)
-        self.rh_N = copy.pop('rh_N', None)
-        self.thunk = copy.pop('thunk', None)
-        self.T = copy.pop('T', 0)
+        self.d0       = copy.pop('d0', None)
+        self.pset     = copy.pop('pset', None)
+        self.f        = copy.pop('f', None)
+        self.spec     = copy.pop('spec', None)
+        self.T        = copy.pop('T', 0)
 
         if len(copy) > 0:
             raise Exception('Undefined parameters in CaseStudy: {}'.format(copy))
-

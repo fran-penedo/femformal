@@ -45,13 +45,13 @@ fbounds = {'xs': np.linspace(0, T, round(T / input_dt) + 1),
            'ybounds': [0.0, 1e6]}
 
 mds = casestudy.max_diff(fosys, g, tlims, xlims, fosys_t,
-                         (u0, fbounds), (casestudy.id_sample_1dof, f_unif_sample),
+                         (u0, fbounds), (casestudy.id_sample_fo, f_unif_sample),
                          n=n_its, pw=True)
 mdxs = casestudy.max_xdiff(fosys, g, tlims,
-                     (u0, fbounds), [casestudy.id_sample_1dof, f_unif_sample],
+                     (u0, fbounds), [casestudy.id_sample_fo, f_unif_sample],
                      n=n_its)
 mdtxs = casestudy.max_tdiff(fosys, g, tlims,
-                      (u0, fbounds), [casestudy.id_sample_1dof, f_unif_sample],
+                      (u0, fbounds), [casestudy.id_sample_fo, f_unif_sample],
                       n=n_its)
 
 print "eps = {}".format(mds.__repr__())

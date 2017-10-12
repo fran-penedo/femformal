@@ -23,7 +23,7 @@ def add_sys_constr_x0(m, l, system, x0, N, xhist=None):
     m : :class:`gurobipy.Model`
     l : str
         Prefix for the labels used as state variables and auxiliary variables
-    system : any `System` class in `femformal.core.system`
+    system : any `System` class in :mod:`femformal.core.system`
     x0 : array_like, shape ([system order], state dimension, [dofs])
         Initial value.
     N : int
@@ -60,7 +60,7 @@ def add_sys_constr_x0_set(m, l, system, pset, f, N):
     m : :class:`gurobipy.Model`
     l : str
         Prefix for the labels used as state variables and auxiliary variables
-    system : any `System` class in `femformal.core.system`
+    system : any `System` class in :mod:`femformal.core.system`
     pset : list of array_like
         Each element of the list is the H-representation of a polytope in
         which some parameters of the system is contained
@@ -589,7 +589,7 @@ def get_trajectory_from_model(m, l, T, system):
         Prefix of the state variable labels
     T : int
         Number of desired iterations of the trajectory
-    system : any `System` class in `femformal.core.system`
+    system : any `System` class in :mod:`femformal.core.system`
 
     Returns
     -------
