@@ -187,3 +187,41 @@ class TestBLQuadQ4(unittest.TestCase):
 
     def test_chebyshev_center(self):
         npt.assert_almost_equal(self.elem.chebyshev_center(), [0, 0.5])
+
+
+class TestQuadQuadQ9(unittest.TestCase):
+    def setUp(self):
+        self.elem = element.QuadQuadQ9(np.array([
+            [-1.0, -1], [1, -1], [1, 2], [-1, 2],
+            [0, -1], [1, 0.5], [0, 2], [-1, 0.5], [0, 0.5]]))
+
+    def test_shapes(self):
+        pts = np.array([[-1.0, -1], [1, -1], [1, 1], [-1, 1],
+                        [0, -1], [1, 0], [0, 1], [-1, 0], [0, 0]])
+        expected = np.identity(pts.shape[0])
+        for i in range(pts.shape[0]):
+            np.testing.assert_array_equal(self.elem.shapes(*pts[i, :]), expected[i])
+
+    def test_shapes_derivatives(self):
+        pts = [-1/np.sqrt(3), 1/np.sqrt(3)]
+        expected = [[np.array([[-0.4906, -0.0352, 0.0094, 0.1314, 0.5258, -0.0516, -0.1409, -0.7182, 0.7698],
+                               [-0.4906, 0.1314, 0.0094, -0.0352, -0.7182, -0.1409, -0.0516, 0.5258, 0.7698]]),
+                     np.array([[0.1314, 0.0094, -0.0352, -0.4906, -0.1409, -0.0516, 0.5258, -0.7182, 0.7698],
+                               [0.0352, -0.0094, -0.1314, 0.4906, 0.0516, 0.1409, 0.7182, -0.5258, -0.7698]])],
+                    [np.array([[0.0352, 0.4906, -0.1314, -0.0094, -0.5258, 0.7182, 0.1409, 0.0516, -0.7698],
+                               [0.1314, -0.4906, -0.0352, 0.0094, -0.7182, 0.5258, -0.0516, -0.1409, 0.7698]]),
+                     np.array([[-0.0094, -0.1314, 0.4906, 0.0352, 0.1409, 0.7182, -0.5258, 0.0516, -0.7698],
+                               [-0.0094, 0.0352, 0.4906, -0.1314, 0.0516, -0.5258, 0.7182, 0.1409, -0.7698]])]]
+        for i in range(len(pts)):
+            for j in range(len(pts)):
+                np.testing.assert_array_almost_equal(
+                    self.elem.shapes_derivatives(pts[i], pts[j]),
+                    expected[i][j], decimal=4)
+
+
+    def test_normalize(self):
+        test = self.elem.coords
+        expected = np.array([[-1.0, -1], [1, -1], [1, 1], [-1, 1],
+                        [0, -1], [1, 0], [0, 1], [-1, 0], [0, 0]])
+        for t, e in zip(test, expected):
+            np.testing.assert_array_equal(self.elem.normalize(t), e)
