@@ -36,9 +36,39 @@ class Element2DOF(object):
         self.shape_order = shape_order
 
     def interpolate_phys(self, values, coords):
+        """Interpolates values at the nodes at some physical coordinates
+
+        Parameters
+        ----------
+        values : array, shape (nnodes, 2)
+            Values asigned to each node
+        coords : array, shape (1, 2)
+            Physical coordinates
+
+        Returns
+        -------
+        array, shape (1, 2)
+            Interpolation of `values` at `coords`
+
+        """
         return self.shapes(*self.normalize(coords)).dot(np.array(values))
 
     def interpolate_strain(self, values, coords):
+        """Interpolates the strain at some coordinates
+
+        Parameters
+        ----------
+        values : array, shape (nnodes, 2)
+            Values asigned to each node
+        coords : array, shape (1, 2)
+            Psi-Eta coordinates
+
+        Returns
+        -------
+        array, shape (1, 2)
+            Interpolation of the strain at `coords`
+
+        """
         a, b = self.normalize(coords)
         x, y = zip(*self.coords)
         values = np.array(values)
@@ -46,12 +76,30 @@ class Element2DOF(object):
         return self.strain_displacement(a, b, x, y).dot(v)
 
     def interpolate(self, values, coords):
+        """Interpolates values at the nodes at some coordinates
+
+        Parameters
+        ----------
+        values : array, shape (nnodes, 2)
+            Values asigned to each node
+        coords : array, shape (1, 2)
+            Psi-Eta coordinates
+
+        Returns
+        -------
+        array, shape (1, 2)
+            Interpolation of `values` at `coords`
+
+        """
         return self.shapes(*coords).dot(np.array(values))
 
     def interpolate_derivatives_phys(self, values, coords):
-        """Designed for scalar fields or vector fields with same dimension as
-        domain"""
+        """Deprecated
 
+        Designed for scalar fields or vector fields with same dimension as
+        domain
+
+        """
         a, b = self.normalize(coords)
         x, y = zip(*self.coords)
         str_disp = self.strain_displacement(a, b, x, y)
@@ -74,18 +122,69 @@ class Element2DOF(object):
         return ret
 
     def normalize(self, coords):
+        """Transforms physical coordinates into Psi-Eta coordinates
+
+        Parameters
+        ----------
+        coords : array, shape (1, 2)
+            The physical coordinates
+
+        Returns
+        -------
+        array, shape (1, 2)
+            The corresponding Psi-Eta coordinates
+        """
         raise NotImplementedError()
 
     @staticmethod
     def shapes(*parameters):
+        """Shape functions of the element
+
+        Parameters
+        ----------
+        parameters
+            Arguments of the shape functions
+
+        Returns
+        -------
+        array, shape (nnodes)
+            Shape functions evaluated at the `parameters`
+
+        """
         raise NotImplementedError()
 
     @staticmethod
     def shapes_derivatives(*parameters):
+        """Derivatives of the shape functions of the element
+
+        Parameters
+        ----------
+        parameters
+            Arguments of the shape functions
+
+        Returns
+        -------
+        array, shape (len(parameters), nnodes)
+            Derivatives of the shape functions evaluated at the `parameters`
+
+        """
         raise NotImplementedError()
 
     @classmethod
     def strain_displacement(cls, *parameters):
+        """Strain-displacement matrix of the element
+
+        Parameters
+        ----------
+        parameters
+            Arguments of the shape functions
+
+        Returns
+        -------
+        array, shape (3, 2 * nnodes)
+            Strain-displacent matrix evaluated at `parameters`
+
+        """
         a, b, x, y = parameters
         jac_inv, jac_det = cls.jacobian(a, b, x, y)
         dshapes_phy = jac_inv.dot(cls.shapes_derivatives(a, b))
@@ -100,6 +199,23 @@ class Element2DOF(object):
 
     @classmethod
     def jacobian(cls, a, b, x, y):
+        """Jacobian of the change of coordinates at some point
+
+        Parameters
+        ----------
+        a, b : float
+            Psi-Eta coordinates
+        x, y : array, shape (1, nnodes)
+            Coordinates of the nodes
+
+        Returns
+        -------
+        jac_inv : array, shape(2, 2)
+            Inverse of the Jacobian
+        jac_det : float
+            Determinant of the Jacobian
+
+        """
         jac = cls.shapes_derivatives(a,b).dot(np.vstack([x,y]).T)
         jac_det = np.linalg.det(jac)
         jac_inv = np.array([[jac[1,1], -jac[0,1]], [-jac[1,0], jac[0,0]]]) / jac_det
@@ -110,6 +226,25 @@ class Element2DOF(object):
 
 
 class BLQuadQ4(Element2DOF):
+    """Bilinear quadrilateral element with 4 nodes
+
+    Nodes are numbered in the following way, starting in index 0:
+
+        3 - 2
+        |   |
+        0 - 1
+
+    Parameters
+    ----------
+    coords : array, shape (4, 2)
+        Coordinates of the nodes
+
+    Attributes
+    ----------
+    center : array, shape (1, 2)
+        Center of the element
+
+    """
     def __init__(self, coords):
         if coords.shape != (4, 2):
             raise ValueError("Q4 element coordinates must be 4x2")

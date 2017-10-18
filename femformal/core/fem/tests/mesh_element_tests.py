@@ -71,3 +71,14 @@ class TestGridQ4BLQuad(unittest.TestCase):
                 interp(*self.mesh.nodes_coords[i]),
                 [0.25, 0])
 
+
+class TestGridQ9QuadQuad(unittest.TestCase):
+
+    def setUp(self):
+        self.L = 16
+        self.c = 2
+        self.xs = np.linspace(0, self.L, 5)
+        self.ys = np.linspace(0, self.c, 3)
+        self.mesh = mesh.GridQ9([self.xs, self.ys], element.QuadQuadQ9)
+
+

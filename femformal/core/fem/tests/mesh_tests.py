@@ -189,7 +189,7 @@ class TestGridMesh(unittest.TestCase):
         zs = np.linspace(0, 6, 4)
         # nodes_coords = np.array(sorted(cartesian_product(self.xs, self.ys),
         #                                key=lambda x: x[1]))
-        self.mesh = mesh.GridMesh([xs, ys, zs])
+        self.mesh = mesh.GridMesh([xs, ys, zs], 1)
 
 
     def test_find_nodes_between(self):
@@ -213,7 +213,7 @@ class TestMesh(unittest.TestCase):
         self.ys = np.linspace(0, 6, 3)
         self.zs = np.linspace(0, 6, 4)
         nodes_coords = np.array(list(cartesian_product(self.xs, self.ys, self.zs)))
-        self.mesh = mesh.Mesh(nodes_coords)
+        self.mesh = mesh.Mesh(nodes_coords, 1)
 
 
     def test_sorted_nodes(self):
@@ -225,3 +225,118 @@ class TestMesh(unittest.TestCase):
                     np.testing.assert_array_equal(
                         nodes[l], [self.xs[i], self.ys[j], self.zs[k]])
                     l += 1
+
+
+class TestGridQ9(unittest.TestCase):
+    def setUp(self):
+        self.L = 16
+        self.c = 2
+        self.xs = np.linspace(0, self.L, 5)
+        self.ys = np.linspace(0, self.c, 3)
+        # nodes_coords = np.array(sorted(cartesian_product(self.xs, self.ys),
+        #                                key=lambda x: x[1]))
+        # nodes_coords = np.array(list(cartesian_product(self.xs, self.ys)))
+        self.mesh = mesh.GridQ9([self.xs, self.ys], None)
+
+
+    def test_elem_nodes(self):
+        e = 0
+        num_elems_x = 2
+        np.testing.assert_array_equal(mesh.GridQ9._elem_nodes(e, num_elems_x),
+                                      [0, 2, 12, 10, 1, 7, 11, 5, 6])
+        e = 1
+        np.testing.assert_array_equal(mesh.GridQ9._elem_nodes(e, num_elems_x),
+                                      [2, 4, 14, 12, 3, 9, 13, 7, 8])
+
+    def test_num_elems1d_x(self):
+        shape = (5, 3)
+        np.testing.assert_equal(mesh.GridQ9._num_elems1dh(shape), 6)
+
+    def test_elem1d_nodes(self):
+        shape = (5, 3)
+        e = 3
+        np.testing.assert_array_equal(mesh.GridQ9._elem1d_nodes(e, shape),
+                                      [7, 9, 9, 7, 8, 9, 8, 7, 8])
+        e = 7
+        np.testing.assert_array_equal(mesh.GridQ9._elem1d_nodes(e, shape),
+                                      [1, 1, 11, 11, 1, 6, 11, 6, 6])
+
+    def test_inlines(self):
+        self.assertTrue(self.mesh._inhline(7, 8))
+        self.assertFalse(self.mesh._inhline(7, 13))
+        self.assertTrue(self.mesh._invline(1, 6))
+        self.assertFalse(self.mesh._invline(7, 8))
+
+    def test_find_elems_between_0d(self):
+        c1 = np.array([8, 0])
+        c2 = np.array([8, 0])
+        expected = mesh.ElementSet(0, {2: np.array([c1 for i in range(9)])})
+        result = self.mesh.find_elems_between(c1, c2)
+        np.testing.assert_equal(result, expected)
+
+    def test_find_elems_between_1d_hor(self):
+        c1 = np.array([0, 1])
+        c2 = np.array([16, 1])
+        c3 = np.array([4, 1])
+        c4 = np.array([8, 1])
+        c5 = np.array([12, 1])
+        expected = mesh.ElementSet(
+            1, {2: np.array([c1, c4, c4, c1, c3, c4, c3, c1, c3]),
+                3: np.array([c4, c2, c2, c4, c5, c2, c5, c4, c5])})
+        result = self.mesh.find_elems_between(c1, c2)
+        np.testing.assert_equal(result, expected)
+
+    def test_find_elems_between_1d_ver(self):
+        c1 = np.array([8, 0])
+        c2 = np.array([8, 2])
+        c3 = np.array([8, 1])
+        expected = mesh.ElementSet(
+            1, {8: np.array([c1, c1, c2, c2, c1, c3, c2, c3, c3])})
+        result = self.mesh.find_elems_between(c1, c2)
+        np.testing.assert_equal(result, expected)
+
+    def test_find_elems_between_2d(self):
+        c1 = np.array([0, 0])
+        c2 = np.array([16, 2])
+        expected = set([0, 1])
+        result = self.mesh.find_elems_between(c1, c2)
+        np.testing.assert_equal(result.dimension, 2)
+        np.testing.assert_equal(set(result.elems), expected)
+
+    def test_find_containing_elem(self):
+        coordss = np.array([[0, 0],        # 0
+                            [0, 0.5],      # 0
+                            [1, 0],        # 0
+                            [16, 0],       # 1
+                            [16, 0.5],     # 1
+                            [0, 2],        # 0
+                            [0.5, 2],      # 0
+                            [16, 2],       # 1
+                            [0.5, 0.5]])   # 0
+        expected = [0, 0, 0, 1, 1, 0, 0, 1, 0]
+        for i in range(len(expected)):
+            np.testing.assert_equal(
+                self.mesh.find_containing_elem(coordss[i]), expected[i])
+
+    def test_find_near_node(self):
+        npt.assert_equal(self.mesh.find_near_node([0, 0], 0), 0)
+        npt.assert_equal(self.mesh.find_near_node([0.5, 0.5], 0), 0)
+        npt.assert_equal(self.mesh.find_near_node([0.5, 0.5], 1), 2)
+        npt.assert_equal(self.mesh.find_near_node([0.5, 0.5], 2), 12)
+        npt.assert_equal(self.mesh.find_near_node([0.5, 0.5], 3), 10)
+
+    def test_elems_covering(self):
+        c1 = np.array([0.5, 0.5])
+        c2 = np.array([0.6, 0.6])
+        npt.assert_equal(set(self.mesh.find_elems_covering(c1, c2).elems), set([0]))
+
+    def test_find_2d_containing_elems(self):
+        npt.assert_array_equal(self.mesh.find_2d_containing_elems(1, dim=2).elems, [1])
+        npt.assert_array_equal(self.mesh.find_2d_containing_elems(2, dim=0).elems, [0, 1])
+        npt.assert_array_equal(self.mesh.find_2d_containing_elems(5, dim=1).elems, [1])
+        npt.assert_array_equal(self.mesh.find_2d_containing_elems(8, dim=1).elems, [0, 1])
+
+    def test_find_border_elems(self):
+        expected = set([0, 1, 4, 5, 6, 10])
+        self.assertEqual(set(self.mesh.find_border_elems()), expected)
+
