@@ -460,7 +460,7 @@ class GridMesh2D(GridMesh):
                 self.find_2d_containing_elems(ns[2], dim=0))
         elif dim == 0:
             elem_coords_map = {}
-            for i in range(4):
+            for i in range(len(self.elem_nodes(0))):
                 try:
                     cont_elem = find_elem_with_vertex(elem, i, self.elems_nodes)
                     elem_coords_map[cont_elem] = self.elem_coords(cont_elem)
@@ -577,26 +577,15 @@ class GridQ4(GridMesh2D):
     #     vnode = _flatten_coord(node_mesh_coords, self.shape)
     #     return find_elem_with_vertex(vnode, position, self.elems_nodes)
 
-    def find_2d_containing_elems(self, elem, dim=2):
-        """Returns all full dimension elements containing the element"""
-
-        if dim == 2:
-            return ElementSet(2, {elem: self.elem_coords(elem)})
-        elif dim == 1:
-            ns = self.elem_nodes(elem, dim)
-            return self.find_2d_containing_elems(ns[0], dim=0).intersection(
-                self.find_2d_containing_elems(ns[2], dim=0))
-        elif dim == 0:
-            elem_coords_map = {}
-            for i in range(4):
-                try:
-                    cont_elem = find_elem_with_vertex(elem, i, self.elems_nodes)
-                    elem_coords_map[cont_elem] = self.elem_coords(cont_elem)
-                except ValueError:
-                    pass
-            return ElementSet(2, elem_coords_map)
-
     def find_border_elems(self):
+        """Finds the 1D border elements
+
+        Returns
+        -------
+        list
+            List of element indices
+
+        """
         bottom = list(range(self.shape[0] - 1))
         top = [(self.shape[0] - 1) * (self.shape[1] - 1) + e for e in bottom]
         left = [self._num_elems1dh(self.shape) + i for i in range(self.shape[1] - 1)]
@@ -605,6 +594,17 @@ class GridQ4(GridMesh2D):
 
 
 class GridQ9(GridMesh2D):
+    """A 2D grid mesh with Q9 elements
+
+    Parameters
+    ----------
+    partitions : list
+        Partition of each dimension, given as node coordinates for that dimension
+    build_elem : callable
+        Builds a :class:`femformal.core.fem.element.Element` from the
+        coordinates of 9 nodes
+
+    """
     def __init__(self, partitions, build_elem):
         elem_shape = [(len(partitions[0]) - 1) // 2, (len(partitions[1]) - 1) // 2]
         GridMesh.__init__(self, partitions, elem_shape)

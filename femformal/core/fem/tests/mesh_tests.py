@@ -189,7 +189,7 @@ class TestGridMesh(unittest.TestCase):
         zs = np.linspace(0, 6, 4)
         # nodes_coords = np.array(sorted(cartesian_product(self.xs, self.ys),
         #                                key=lambda x: x[1]))
-        self.mesh = mesh.GridMesh([xs, ys, zs], 1)
+        self.mesh = mesh.GridQ4([xs, ys, zs], None)
 
 
     def test_find_nodes_between(self):
@@ -212,8 +212,8 @@ class TestMesh(unittest.TestCase):
         self.xs = np.linspace(0, 8, 5)
         self.ys = np.linspace(0, 6, 3)
         self.zs = np.linspace(0, 6, 4)
-        nodes_coords = np.array(list(cartesian_product(self.xs, self.ys, self.zs)))
-        self.mesh = mesh.Mesh(nodes_coords, 1)
+        # nodes_coords = np.array(list(cartesian_product(self.xs, self.ys, self.zs)))
+        self.mesh = mesh.GridQ4([self.xs, self.ys, self.zs], None)
 
 
     def test_sorted_nodes(self):
