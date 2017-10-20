@@ -599,14 +599,18 @@ def _ns_sys_matrices(system):
     return M, K, F, n_e
 
 def _factorize(M):
-    if scipy.sparse.issparse(M):
-        return spla.factorized(M)
-    else:
-        lu = la.lu_factor(M)
-        def solve(b):
-            return la.lu_solve(lu, b)
+    try:
+        if scipy.sparse.issparse(M):
+            return spla.factorized(M)
+        else:
+            lu = la.lu_factor(M)
+            def solve(b):
+                return la.lu_solve(lu, b)
 
-        return solve
+            return solve
+    except ValueError:
+        logger.info("Integrating M = 0 system")
+        return lambda x: np.zeros(len(x))
 
 def trapez_integrate(fosys, d0, T, dt=.1, alpha=0.5):
     """Integrates a FO system using the trapezoidal rule
@@ -682,7 +686,7 @@ def trapez_integrate(fosys, d0, T, dt=.1, alpha=0.5):
         vs.append(v)
     return np.array(ds)
 
-def newm_integrate(sosys, d0, v0, T, dt=.1):
+def central_diff_integrate(sosys, d0, v0, T, dt=.1):
     """Integrates a SO system using the central difference rule
 
     Parameters
@@ -752,6 +756,95 @@ def newm_integrate(sosys, d0, v0, T, dt=.1):
             K_cur = K
         a[n_e] = solve_m(F + f_nodal_c - K_cur.dot(d[n_e]))
         v = tv + .5 * dt * a
+        ds.append(d)
+        vs.append(v)
+    return np.array(ds), np.array(vs)
+
+def newm_integrate(sosys, d0, v0, T, dt=.1, beta=0, gamma=.5):
+    """Integrates a SO system using the newmark algorithm
+
+    Only `gamma` == 0.5 has second order accuracy. Commonly used values for `beta`
+    are the following:
+
+    - `beta` == 0 : Central Difference. Explicit method, conditionally stable
+    - `beta` == 0.25 : Trapezoidal rule (average acceleration). Implicit method,
+        unconditionally stable
+    - `beta` == 1/6 : Linear acceleration. Implicit method, conditionally stable
+    - `beta` == 1/12 : Fox-Goodwin. Implicit method, conditionally stable
+
+    Parameters
+    ----------
+    sosys : :class:`SOSystem`
+    d0 : array_like
+        Initial value
+    v0 : array_like
+        Initial velocity
+    T : float
+        Final time
+    dt : float, optional
+        Time interval
+    beta : float, optional
+    gamma : float, optional
+
+    Returns
+    -------
+    array, shape (round(T / dt), len(d0))
+        Array containing the value of `d` for each time until `T`, with `d0` in
+        the first row
+    array, shape (round(T / dt), len(v0))
+        Array containing the value of `v` for each time until `T`, with `v0` in
+        the first row
+
+    """
+    logger.debug("Integrating with newmark, parameters beta = {}, gamma = {}"
+                 "".format(beta, gamma))
+    M, K, F, n_e = _ns_sys_matrices(sosys)
+
+    try:
+        f_nodal = sosys.f_nodal
+    except AttributeError:
+        f_nodal = np.zeros(F.shape)
+
+    its = int(round(T / dt))
+    d = np.array(d0)
+    v = np.array(v0)
+    if d.shape != v.shape or d.shape != (sosys.n,):
+        raise ValueError("System and initial value shapes do not agree: "
+                         "system dimension = {}, d shape = {}, v shape = {}".format(
+                             sosys.n, d.shape, v.shape))
+    a = np.zeros(d.shape[0])
+    try:
+        solve_m = _factorize(M + beta * dt * dt * K)
+    except ValueError:
+        logger.info("Integrating M + beta * dt * dt * K = 0 system")
+        solve_m = lambda x: np.zeros(len(n_e))
+    try:
+        f_nodal_c = f_nodal(0)[n_e]
+    except TypeError:
+        f_nodal_c = f_nodal
+    K_cur = K
+    # try:
+    #     K_cur = K(d)
+    # except TypeError:
+    #     K_cur = K
+    a[n_e] = _factorize(M)(F + f_nodal_c - K_cur.dot(d[n_e]))
+    ds = [d]
+    vs = [v]
+    for i in range(its):
+        # tv[0] = tv[-1] = 0.0
+        td = d + dt * v + 0.5 * dt * dt * (1 - 2 * beta) * a
+        tv = v + (1 - gamma) * dt * a
+        try:
+            f_nodal_c = f_nodal((i+1) * dt)[n_e]
+        except TypeError:
+            f_nodal_c = f_nodal
+        # try:
+        #     K_cur = K(d)
+        # except TypeError:
+        #     K_cur = K
+        a[n_e] = solve_m(F + f_nodal_c - K_cur.dot(td[n_e]))
+        d = td + beta * dt * dt * a
+        v = tv + gamma * dt * a
         ds.append(d)
         vs.append(v)
     return np.array(ds), np.array(vs)
@@ -1215,7 +1308,7 @@ def draw_system_2d(sys, d0, g, T, t0=0, **kwargs):
     """
     dt = sys.dt
     ts = np.linspace(t0, T, int(round((T - t0) / dt)))
-    d, v = newm_integrate(sys, d0[0], d0[1], T, dt)
+    d, v = newm_integrate(sys, d0[0], d0[1], T, dt, beta=.25)
     # d = d[int(round(t0/dt)):]
     draw.draw_2d_pde_trajectory(
         d, sys.mesh.nodes_coords, sys.mesh.elems_nodes, ts, **kwargs)
@@ -1251,7 +1344,8 @@ def draw_displacement_plot(sys, d0, g, T, t0=0, **kwargs):
     """
     dt = sys.dt
     ts = np.linspace(t0, T, int(round((T - t0) / dt)))
-    d, v = newm_integrate(sys, d0[0], d0[1], T, dt)
+    d, v = newm_integrate(sys, d0[0], d0[1], T, dt, beta=.25)
+    # d, v = central_diff_integrate(sys, d0[0], d0[1], T, dt)
     # d = d[int(round(t0/dt)):]
     draw.draw_displacement_2d(d, sys.mesh, ts, **kwargs)
     return draw.pop_holds()

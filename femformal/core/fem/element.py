@@ -4,6 +4,7 @@ FEM element data structures and definitions
 from __future__ import division, absolute_import, print_function
 
 import logging
+import abc
 
 import numpy as np
 
@@ -12,7 +13,33 @@ from .. import util
 
 logger = logging.getLogger(__name__)
 
-class Element2DOF(object):
+class Element(object):
+    """Abstract element
+
+    Parameters
+    ----------
+    coords : array, shape (nnodes, 2)
+        Coordinates of the nodes
+    shape_order : int, optional
+        Maximum order of the polynomials used as shape functions
+
+    Attributes
+    ----------
+    coords : array
+    dimension : int
+        Dimension of the element
+    shape_order : int
+
+    """
+    __metaclass__ = abc.ABCMeta
+
+    def __init__(self, coords, shape_order=0):
+        self.coords = coords
+        self.dimension = self.coords.shape[1]
+        self.shape_order = shape_order
+
+
+class Element2DOF(Element):
     """Abstract 2D element with 2 DOFs
 
     Parameters
@@ -31,9 +58,7 @@ class Element2DOF(object):
 
     """
     def __init__(self, coords, shape_order=0):
-        self.coords = coords
-        self.dimension = self.coords.shape[1]
-        self.shape_order = shape_order
+        Element.__init__(self, coords, shape_order)
 
     def interpolate_phys(self, values, coords):
         """Interpolates values at the nodes at some physical coordinates
@@ -121,6 +146,7 @@ class Element2DOF(object):
 
         return ret
 
+    @abc.abstractmethod
     def normalize(self, coords):
         """Transforms physical coordinates into Psi-Eta coordinates
 
@@ -137,6 +163,7 @@ class Element2DOF(object):
         raise NotImplementedError()
 
     @staticmethod
+    @abc.abstractmethod
     def shapes(*parameters):
         """Shape functions of the element
 
@@ -154,6 +181,7 @@ class Element2DOF(object):
         raise NotImplementedError()
 
     @staticmethod
+    @abc.abstractmethod
     def shapes_derivatives(*parameters):
         """Derivatives of the shape functions of the element
 
@@ -221,6 +249,7 @@ class Element2DOF(object):
         jac_inv = np.array([[jac[1,1], -jac[0,1]], [-jac[1,0], jac[0,0]]]) / jac_det
         return jac_inv, jac_det
 
+    @abc.abstractmethod
     def max_diff(self, values, axis):
         raise NotImplementedError()
 
@@ -294,6 +323,8 @@ class BLQuadQ4(Element2DOF):
     def _normalize_1d(self, coords):
         return 2 * (coords - self.coords[0]) / self.ndiff - 1
 
+    def normalize(self, coords):
+        pass
     def max_diff(self, values, axis):
         values = np.array(values)
         def take(i):
@@ -416,6 +447,9 @@ class QuadQuadQ9(Element2DOF):
 
     def _normalize_1d(self, coords):
         return 2 * (coords - self.coords[0]) / self.ndiff - 1
+
+    def normalize(self, coords):
+        pass
 
     def max_diff(self, values, axis):
         #FIXME implement me

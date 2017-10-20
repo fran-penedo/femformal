@@ -1,3 +1,5 @@
+from __future__ import division, absolute_import, print_function
+
 import logging
 from itertools import product as cartesian_product
 
@@ -12,8 +14,8 @@ from .. import system as sys
 logger = logging.getLogger(__name__)
 
 
-def mech2d(xpart, ypart, rho, C, g, f_nodal, dt, traction=None):
-    mesh = grid_mesh(xpart, ypart)
+def mech2d(xpart, ypart, rho, C, g, f_nodal, dt, traction=None, q4=True):
+    mesh = grid_mesh(xpart, ypart, q4=q4)
     nnodes = mesh.nnodes
     nelems = mesh.nelems
 
@@ -66,8 +68,11 @@ def _remove_close_zeros(matrix):
 def lumped(m):
     return scipy.sparse.diags(np.ravel(m.sum(axis=1)), format='lil')
 
-def grid_mesh(xs, ys):
-    return mesh.GridQ4([xs, ys], element.BLQuadQ4)
+def grid_mesh(xs, ys, q4=True):
+    if q4:
+        return mesh.GridQ4([xs, ys], element.BLQuadQ4)
+    else:
+        return mesh.GridQ9([xs, ys], element.QuadQuadQ9)
 
 def assemble_into_big_matrix(matrix, elem_matrix, elem_nodes):
     eqs_grouped = [(2 * x, 2 * x + 1) for x in elem_nodes]
@@ -75,9 +80,15 @@ def assemble_into_big_matrix(matrix, elem_matrix, elem_nodes):
     matrix[np.ix_(eqs, eqs)] += elem_matrix
 
 def elem_stiffness(x, y, c, build_elem):
-    weights = [1, 1]
-    sample_pts = [-1/np.sqrt(3), 1/np.sqrt(3)]
-    stiff = np.zeros((8, 8))
+    nnodes = len(x)
+    if nnodes == 4:
+        weights = [1, 1]
+        sample_pts = [-1/np.sqrt(3), 1/np.sqrt(3)]
+    else:
+        weights = [5/9, 8/9, 5/9]
+        sample_pts = [-np.sqrt(3/5), 0, np.sqrt(3/5)]
+
+    stiff = np.zeros((2*nnodes, 2*nnodes))
 
     for i in range(len(weights)):
         for j in range(len(weights)):
@@ -90,9 +101,15 @@ def elem_stiffness(x, y, c, build_elem):
     return stiff
 
 def elem_mass(x, y, rho, build_elem):
-    weights = [1, 1]
-    sample_pts = [-1/np.sqrt(3), 1/np.sqrt(3)]
-    mass = np.zeros((8, 8))
+    nnodes = len(x)
+    if nnodes == 4:
+        weights = [1, 1]
+        sample_pts = [-1/np.sqrt(3), 1/np.sqrt(3)]
+    else:
+        weights = [5/9, 8/9, 5/9]
+        sample_pts = [-np.sqrt(3/5), 0, np.sqrt(3/5)]
+
+    mass = np.zeros((2*nnodes, 2*nnodes))
 
     for i in range(len(weights)):
         for j in range(len(weights)):
@@ -106,9 +123,10 @@ def elem_mass(x, y, rho, build_elem):
 
 def shape_interp(a, b, build_elem):
     sh = build_elem.shapes(a, b)
-    ret = np.zeros((2, 8))
-    ret[0, 0:8:2] = sh
-    ret[1, 1:8:2] = sh
+    nshapes = 2 * len(sh)
+    ret = np.zeros((2, nshapes))
+    ret[0, 0:nshapes:2] = sh
+    ret[1, 1:nshapes:2] = sh
     return ret
 
 def state(u0, du0, node_coords, g):
@@ -133,32 +151,47 @@ def traction_nodal_force(traction, mesh_):
     for e in mesh_.find_border_elems():
         e_traction = element_traction_nodal_force(traction, e, mesh_)
         ns = mesh_.elem_nodes(e, dim=1)
-        for i in [0, 2]:
-            f[2*ns[i]] = f[2*ns[i]] + e_traction[i / 2][0]
-            f[2*ns[i] + 1] = f[2*ns[i] + 1] + e_traction[i / 2][1]
+        if len(ns) == 4:
+            nodes = [0, 2]
+        else:
+            nodes = [0, -1, 2]
+        for el_i, i in enumerate(nodes):
+            f[2*ns[i]] = f[2*ns[i]] + e_traction[el_i][0]
+            f[2*ns[i] + 1] = f[2*ns[i] + 1] + e_traction[el_i][1]
 
     return np.array(f)
 
 def element_traction_nodal_force(traction, e, mesh_):
-    weights = [1, 1]
-    sample_pts = [-1/np.sqrt(3), 1/np.sqrt(3)]
     coords = mesh_.elem_coords(e, dim=1)
-    f = np.zeros((2,2))
+    nnodes = coords.shape[0]
+    if nnodes == 4:
+        weights = [1, 1]
+        sample_pts = [-1/np.sqrt(3), 1/np.sqrt(3)]
+    else:
+        weights = [5/9, 8/9, 5/9]
+        sample_pts = [-np.sqrt(3/5), 0, np.sqrt(3/5)]
+
     ns = mesh_.elem_nodes(e, dim=1)
     shapes = mesh_.build_elem.shapes
     sample_coords = [shapes(sample_pts[i], sample_pts[i]).dot(coords)
                      for i in range(len(sample_pts))]
     # If vertical
     if ns[0] == ns[1]:
-        Ns = [shapes(1, p)[1:3] for p in sample_pts]
+        if nnodes == 4:
+            Ns = [shapes(1, p)[1:3] for p in sample_pts]
+        else:
+            Ns = [shapes(1, p)[[1, 5, 2]] for p in sample_pts]
         l = np.linalg.norm(coords[2] - coords[1])
     else:
-        Ns = [shapes(p, -1)[:2] for p in sample_pts]
+        if nnodes == 4:
+            Ns = [shapes(p, -1)[:2] for p in sample_pts]
+        else:
+            Ns = [shapes(p, -1)[[0, 4, 1]] for p in sample_pts]
         l = np.linalg.norm(coords[1] - coords[0])
 
     f = [np.sum([weights[i] * traction(*sample_coords[i]) * Ns[i][j] * l / 2
-                    for i in range(2)], axis=0)
-                for j in range(2)]
+                    for i in range(len(weights))], axis=0)
+                for j in range(len(weights))]
 
     return f
 

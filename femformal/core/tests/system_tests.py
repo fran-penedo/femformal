@@ -108,7 +108,7 @@ class TestComplexSystem(unittest.TestCase):
         x_d = sys.disc_integrate(system_d, x0, t_disc)
         np.testing.assert_array_almost_equal(x_c[-1], x_d[-1], decimal=1)
 
-    def test_newmark(self):
+    def test_central_diff(self):
         sosys = self.sosys
         fosys = sosys.to_fosystem().to_canon()
         dt = sosys.dt
@@ -118,19 +118,19 @@ class TestComplexSystem(unittest.TestCase):
         d0 = [0.0 for i in range(sosys.n)]
         v0 = [0.0 for i in range(sosys.n)]
 
-        d_so, v_so = sys.newm_integrate(sosys, d0, v0, T, dt)
+        d_so, v_so = sys.central_diff_integrate(sosys, d0, v0, T, dt)
         y_fo = sys.cont_integrate(fosys, d0 + v0, t_cont)
 
         np.testing.assert_array_almost_equal(d_so[10], y_fo[10,0:sosys.n], decimal=2)
 
-    def test_newmark_constant(self):
+    def test_central_diff_constant(self):
         """Test a constant second order system"""
 
         xpart = np.linspace(0, 10, 6)
         xn = len(xpart)
         xsys = sys.SOSystem(
             np.zeros((xn, xn)), np.identity(xn), np.zeros(xn), dt=1.0, xpart=xpart)
-        x, _ = sys.newm_integrate(
+        x, _ = sys.central_diff_integrate(
             xsys, 1 + np.zeros(xn), np.zeros(xn), 10, xsys.dt)
         np.testing.assert_array_equal(x.shape, (11, xn))
         np.testing.assert_equal(np.all(np.isclose(x, 1)), True)
@@ -175,14 +175,14 @@ class TestComplexSystem(unittest.TestCase):
         sosys.F = np.array([0, 0, 0, 0])
         csys = sys.ControlSOSystem.from_sosys(
             sosys, lambda t: np.r_[np.zeros(sosys.n - 1), pwlf(t)])
-        dc, vc = sys.newm_integrate(csys, d0, v0, 2, dt)
+        dc, vc = sys.central_diff_integrate(csys, d0, v0, 2, dt)
 
         sosys.F = np.array([0, 0, 0, 1.0])
-        d, v = sys.newm_integrate(sosys, d0, v0, 1, dt)
+        d, v = sys.central_diff_integrate(sosys, d0, v0, 1, dt)
         sosys.F = np.array([0, 0, 0, 0.0])
         # At t = 1, a must be computed using F = 0, so v[-1] is incorrect.
         # Can't stop at t = 0.9 and change F, since at t=0.9, F = 1.0 still
-        d2, v2 = sys.newm_integrate(sosys, d[-1], vc[int(1/dt)], 1, dt)
+        d2, v2 = sys.central_diff_integrate(sosys, d[-1], vc[int(1/dt)], 1, dt)
 
         np.testing.assert_array_equal(dc[:int(1/dt) + 1], d)
         np.testing.assert_array_equal(vc[:int(1/dt)], v[:-1])
@@ -224,13 +224,13 @@ class TestHybridSystem(unittest.TestCase):
         v0 = [0.0, 0.0]
         dt = 0.1
 
-        d, v = sys.newm_integrate(hsos, d0, v0, 2, dt)
+        d, v = sys.central_diff_integrate(hsos, d0, v0, 2, dt)
         K1 = np.zeros((2,2))
         K2 = np.identity(2)
         sos1 = sys.SOSystem(M, K1, F)
         sos2 = sys.SOSystem(M, K2, F)
-        d1, v1 = sys.newm_integrate(sos1, d0, v0, 1, dt)
-        d2, v2 = sys.newm_integrate(sos2, d1[-1], v[int(1/dt)], 1, dt)
+        d1, v1 = sys.central_diff_integrate(sos1, d0, v0, 1, dt)
+        d2, v2 = sys.central_diff_integrate(sos2, d1[-1], v[int(1/dt)], 1, dt)
 
         np.testing.assert_array_equal(d[:int(1/dt) + 1], d1)
         np.testing.assert_array_equal(v[:int(1/dt)], v1[:-1])
@@ -268,8 +268,8 @@ class TestHybridSystem(unittest.TestCase):
         v0 = np.array([0.0, 0.0, 0.0, 0.0])
 
         np.testing.assert_array_almost_equal(hysys.K_global(d0), sosys.K)
-        d_sosys, _ = sys.newm_integrate(sosys, d0, v0, its * dt, dt)
-        d_hyb, _ = sys.newm_integrate(hysys, d0, v0, its * dt, dt)
+        d_sosys, _ = sys.central_diff_integrate(sosys, d0, v0, its * dt, dt)
+        d_hyb, _ = sys.central_diff_integrate(hysys, d0, v0, its * dt, dt)
 
         np.testing.assert_array_almost_equal(d_hyb, d_sosys)
 
@@ -290,9 +290,9 @@ class TestSystemDiff2D1DOF(unittest.TestCase):
             np.zeros((yn, yn)), np.identity(yn), np.zeros(yn), dt=1.0, mesh=self.ymesh)
         self.x0 = [1 + np.zeros(xn), np.zeros(xn)]
         self.y0 = [2 + np.zeros(yn), np.zeros(yn)]
-        self.x, _ = sys.newm_integrate(
+        self.x, _ = sys.central_diff_integrate(
             self.xsys, self.x0[0], self.x0[1], self.T, self.xsys.dt)
-        self.y, _ = sys.newm_integrate(
+        self.y, _ = sys.central_diff_integrate(
             self.ysys, self.y0[0], self.y0[1], self.T, self.ysys.dt)
         self.xlims = np.array([[4, 0], [12, 2]])
 
@@ -336,9 +336,9 @@ class TestSystemDiff2D2DOF(unittest.TestCase):
             np.zeros((yn, yn)), np.identity(yn), np.ones(yn), dt=1.0, mesh=self.ymesh)
         self.x0 = [1 + np.zeros(xn), np.zeros(xn)]
         self.y0 = [2 + np.zeros(yn), np.zeros(yn)]
-        self.x, _ = sys.newm_integrate(
+        self.x, _ = sys.central_diff_integrate(
             self.xsys, self.x0[0], self.x0[1], self.T, self.xsys.dt)
-        self.y, _ = sys.newm_integrate(
+        self.y, _ = sys.central_diff_integrate(
             self.ysys, self.y0[0], self.y0[1], self.T, self.ysys.dt)
         self.xlims = np.array([[4, 0], [12, 2]])
 

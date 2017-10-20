@@ -5,6 +5,7 @@ from __future__ import division, absolute_import, print_function
 
 import logging
 import itertools
+import abc
 
 import numpy as np
 
@@ -12,6 +13,38 @@ import numpy as np
 logger = logging.getLogger(__name__)
 
 class Mesh(object):
+    """FEM mesh abstract class
+
+    Tries to not assume any mesh structure, although it's only tested for grids.
+    Adding support for other structures might need some fixes.
+
+    A mesh is a collection of nodes with given coordinates in a spatial domain.
+    Each node is given an index (the index in `nodes_array`).
+    The nodes are grouped in elements in a way to be defined by implementations
+    of this class. Since specifications often refer to lower dimensional
+    objects, each element is defined by an index and the element dimension,
+    i.e., a mesh must define degenerate elements and must provide a way of
+    searching degenerate elements from descriptions of lower dimensional regions
+    of the spatial domain.
+
+    Parameters
+    ----------
+    nodes_coords : array, shape (nnodes, dim)
+        Coordinates of each node in the mesh
+    elem_shape : array_like
+        Shape of the mesh in terms of elements. In grids, this is the number
+        of elements for each dimension
+
+    Attributes
+    ----------
+    nodes_coords: array
+    nelems : int
+        Number of elements of the mesh
+    elem_shape : array_like
+
+    """
+    __metaclass__ = abc.ABCMeta
+
     def __init__(self, nodes_coords, elem_shape):
         nodes_coords = nodes_coords[np.lexsort(nodes_coords.T)]
         self.nodes_coords = nodes_coords
@@ -20,6 +53,7 @@ class Mesh(object):
 
     @property
     def nnodes(self):
+        """Number of nodes"""
         return self.nodes_coords.shape[0]
 
     def _interpolate(self, d, fn):
@@ -50,6 +84,24 @@ class Mesh(object):
         return ret
 
     def interpolate(self, d):
+        """Builds an interpolation function in physical coordinates
+
+        Parameters
+        ----------
+        d : array, shape ([time points,] nnodes * dofs)
+            Interpolating values. Interpolation of vector fields can be
+            accomplished by supplying an array with dofs > 1. The vector at
+            each node should be d[node:node + dofs]. If a 2D array is given,
+            an interpolating function is built for each time point
+
+        Returns
+        -------
+        interp : callable
+            The interpolation function called with `interp(*coords)` where
+            `coords` are physical coordinates of the spatial domain. `interp`
+            returns an array of shape ([time points,] dofs)
+
+        """
         return self._interpolate(d, 'interpolate_phys')
 
     def interpolate_derivatives(self, d):
@@ -64,18 +116,39 @@ class Mesh(object):
             raise ValueError("Need dofs = 2 for strain interpolation. Given {}".format(dofs))
         return self._interpolate(d, 'interpolate_strain')
 
-    def max_diffs(self, d):
-        d = _reshape_int_values(d)
-
+    @abc.abstractmethod
     def elem_nodes(self, elem, dim):
+        """Obtains the node indices of an elem of a given dimension
+
+        Parameters
+        ----------
+        elem : int
+            Element index
+        dim : int
+            Element dimension
+
+        Returns
+        -------
+        list
+            List of indices of the nodes that form the element
+
+        """
         raise NotImplementedError()
 
     @property
     def build_elem(self):
+        """Obtains the element builder function for the mesh"""
         return self._build_elem
 
     @build_elem.setter
     def build_elem(self, value):
+        """Sets the element builder function
+
+        Parameters
+        ----------
+        value : :class:`femformal.core.fem.element.Element`
+
+        """
         self._build_elem = value
         if self._build_elem is not None:
             self.elements = [self.build_elem(self.elem_coords(e))
@@ -84,15 +157,78 @@ class Mesh(object):
             self.elements = None
 
     def elem_coords(self, elem, dim=2):
+        """Obtains the coordinates of the nodes of an element
+
+        Similar to :meth:`elem_nodes` but returns coordinates instead of
+        indices.
+
+        Parameters
+        ----------
+        elem : int
+            Element index
+        dim : int
+            Element dimension
+
+        Returns
+        -------
+        array, shape (nodes per element, dimension of domain)
+            Coordinates of the nodes that form the element
+
+        """
         return np.array([self.nodes_coords[n] for n in self.elem_nodes(elem, dim)])
 
     def get_elem(self, elem, dim=2):
+        """Obtains an element
+
+        Similar to :meth:`elem_coords` but returns the element built using the
+        function :meth:`build_elem`.
+
+        Parameters
+        ----------
+        elem : int
+            Element index
+        dim : int
+            Element dimension
+
+        Returns
+        -------
+        :class:`femformal.core.fem.element.Element`
+
+        """
         return self.build_elem(self.elem_coords(elem, dim))
 
+    @abc.abstractmethod
     def find_containing_elem(self, coords):
+        """Finds an element containing the given point
+
+        Parameters
+        ----------
+        coords : array
+
+        Returns
+        -------
+        int
+
+        """
         raise NotImplementedError()
 
     def find_near_node(self, coords, position):
+        """Finds a node near a point
+
+        If the point is not a node, returns the node in the given `position` of
+        an element containing the point.
+
+        Parameters
+        ----------
+        coords : array
+        position : int
+
+        Returns
+        -------
+        int
+            Node index
+
+        """
         try:
             n = find_node(coords, self.nodes_coords)
         except:
@@ -102,6 +238,18 @@ class Mesh(object):
 
 
 class GridMesh(Mesh):
+    """A mesh with grid structure
+
+    Tries to be multidimensional, but is only tested in 2D.
+
+    Parameters
+    ----------
+    partitions : list
+        Partition of each dimension, given as node coordinates for that dimension
+    elem_shape : array_like
+        Shape of the mesh in terms of elements
+
+    """
     def __init__(self, partitions, elem_shape):
         nodes_coords = np.array(list(itertools.product(*partitions)))
         Mesh.__init__(self, nodes_coords, elem_shape)
@@ -114,6 +262,20 @@ class GridMesh(Mesh):
         self.shape = shape
 
     def find_nodes_between(self, coords1, coords2):
+        """Finds all nodes in a rectangle
+
+        Parameters
+        ----------
+        coords1, coords2 : array
+            Coordinates of the lower left and upper right corners of the
+            rectangle
+
+        Returns
+        -------
+        :class:`ElementSet`
+            All nodes in the rectangle as 0D elements
+
+        """
         n1, n2 = [find_node(coords, self.nodes_coords)
                   for coords in [coords1, coords2]]
         n1s, n2s = [np.array(_unflatten_coord(n, self.shape)) for n in [n1, n2]]
@@ -122,7 +284,40 @@ class GridMesh(Mesh):
                     *[range(n2s[i] - n1s[i] + 1) for i in range(len(n1s))])]
         return ElementSet(0, {n: self.nodes_coords[n] for n in nodes})
 
+    @abc.abstractmethod
+    def find_elems_between(self, coords1, coords2):
+        """Finds all elements in a rectangle
+
+        The returned elements are of the same dimension as the rectangle.
+
+        Parameters
+        ----------
+        coords1, coords2 : array
+            Coordinates of the lower left and upper right corners of the
+            rectangle
+
+        Returns
+        -------
+        :class:`ElementSet`
+            All elements in the rectangle
+
+        """
+        raise NotImplementedError()
+
     def connected_fwd(self, node):
+        """Obtains all nodes with higher index connected to a given node
+
+        Parameters
+        ----------
+        node : int
+            Index of the node
+
+        Returns
+        -------
+        list
+            Indices of the connected nodes
+
+        """
         conn = []
         mesh_coord = np.array(_unflatten_coord(node, self.shape))
         for i in range(len(self.shape)):
@@ -133,6 +328,22 @@ class GridMesh(Mesh):
         return conn
 
     def find_elems_covering(self, coords1, coords2):
+        """Finds a minimal covering of a rectangle
+
+        The returned elements are of the same dimension as the rectangle.
+
+        Parameters
+        ----------
+        coords1, coords2 : array
+            Coordinates of the lower left and upper right corners of the
+            rectangle
+
+        Returns
+        -------
+        :class:`ElementSet`
+            The covering elements
+
+        """
         n1 = self.find_near_node(coords1, 0)
         n2 = self.find_near_node(coords2, 2)
         return self.find_elems_between(self.nodes_coords[n1], self.nodes_coords[n2])
@@ -146,8 +357,8 @@ class GridMesh(Mesh):
         raise ValueError(
             "Coordinates outside the domain. Given {}".format(coords))
 
-
     def find_border_full_elems(self):
+        """Finds the full dimensional elements in the border of the domain"""
         elem_shape = self.elem_shape
         border_coords = [list(range(sh)) for sh in elem_shape]
         elems = []
@@ -163,6 +374,18 @@ class GridMesh(Mesh):
 
 
 class GridMesh2D(GridMesh):
+    """A 2D mesh with grid structure
+
+    Tries to be multidimensional, but is only tested in 2D.
+
+    Parameters
+    ----------
+    partitions : list
+        Partition of each dimension, given as node coordinates for that dimension
+    elem_shape : array_like
+        Shape of the mesh in terms of elements
+
+    """
     def __init__(self, partitions, elem_shape):
         if len(partitions) != 2 or len(elem_shape) != 2:
             raise ValueError("GridMesh2D must be constructed over a 2D domain")
@@ -215,8 +438,20 @@ class GridMesh2D(GridMesh):
                     for j in range(e1 % nelemsx, e2 % nelemsx + 1)})
 
     def find_2d_containing_elems(self, elem, dim=2):
-        """Returns all full dimension elements containing the element"""
+        """Returns all full dimension elements containing the element
 
+        Parameters
+        ----------
+        elem : int
+            Element index
+        dim : int
+            Element dimension
+
+        Returns
+        -------
+        :class:`ElementSet`
+
+        """
         if dim == 2:
             return ElementSet(2, {elem: self.elem_coords(elem)})
         elif dim == 1:
@@ -249,6 +484,17 @@ def _flatten_coord(xs, shape):
 
 
 class GridQ4(GridMesh2D):
+    """A 2D grid mesh with Q4 elements
+
+    Parameters
+    ----------
+    partitions : list
+        Partition of each dimension, given as node coordinates for that dimension
+    build_elem : callable
+        Builds a :class:`femformal.core.fem.element.Element` from the
+        coordinates of 4 nodes
+
+    """
     def __init__(self, partitions, build_elem):
         elem_shape = [len(partitions[0]) - 1, len(partitions[1]) - 1]
         GridMesh.__init__(self, partitions, elem_shape)
@@ -418,6 +664,14 @@ class GridQ9(GridMesh2D):
                          x0 + nnodes_x, x0 + nnodes_x + 1])
 
     def find_border_elems(self):
+        """Finds the 1D border elements
+
+        Returns
+        -------
+        list
+            List of element indices
+
+        """
         bottom = list(range(self.elem_shape[0]))
         top = [self.elem_shape[0] * (self.shape[1] - 1) + e for e in bottom]
         left = [self._num_elems1dh(self.shape) + i for i in range(self.elem_shape[1])]
@@ -426,15 +680,38 @@ class GridQ9(GridMesh2D):
 
 
 class ElementSet(object):
+    """Set of elements of the same dimension
+
+    Parameters
+    ----------
+    dimension : int
+        Dimension of the elements
+    elem_coords_map : dict
+        Maps element indices to coordinates of its nodes
+    """
     def __init__(self, dimension, elem_coords_map):
         self.dimension = dimension
         self.elem_coords_map = elem_coords_map
 
     @property
     def elems(self):
+        """Returns the sorted indices of the elements of the set"""
         return sorted(self.elem_coords_map.keys())
 
     def intersection(self, other):
+        """Intersects this set with other set
+
+        You can only intersect sets of elements of the same dimension
+
+        Parameters
+        ----------
+        other : :class:`ElementSet`
+
+        Returns
+        -------
+        :class:`ElementSet`
+
+        """
         if self.dimension != other.dimension:
             raise ValueError("Intersection undefined for sets of elements of different dimension")
         else:
@@ -468,6 +745,28 @@ class ElementSet(object):
 
 
 def find_elem_with_vertex(vnode, position, elems_nodes):
+    """Finds an element with a node in a given position
+
+    Parameters
+    ----------
+    vnode : int
+        Node index
+    position : int
+        Position in the element
+    elems_nodes : list
+        List of nodes for each element
+
+    Returns
+    -------
+    int
+        Element index
+
+    Raises
+    ------
+    ValueError
+        If no element has `vnode` in the `position`
+
+    """
     try:
         return next(e for e, nodes in enumerate(elems_nodes)
                     if nodes[position] == vnode)
@@ -475,6 +774,26 @@ def find_elem_with_vertex(vnode, position, elems_nodes):
         raise ValueError("No element with node {} in position {}".format(vnode, position))
 
 def find_node(node, nodes_coords):
+    """Finds the index of a node given as coordinates
+
+    Parameters
+    ----------
+    node : array_like
+        Coordinates to find
+    nodes_coords : list
+        List of coordinates of each node
+
+    Returns
+    -------
+    int
+        Index of the node
+
+    Raises
+    ------
+    ValueError
+        If `node` cannot be found in `nodes_coords`
+
+    """
     try:
         return next(n for n, coords in enumerate(nodes_coords)
                     if np.all(np.isclose(node, coords)))

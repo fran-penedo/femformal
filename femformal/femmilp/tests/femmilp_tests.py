@@ -24,7 +24,7 @@ class TestFemmilp(unittest.TestCase):
         v0 = np.array([0.0, 0.0, 0.0, 0.0])
         its = 100
         d = femmilp.simulate_trajectory(sosys, [d0, v0], its)
-        d_true, _ = sys.newm_integrate(sosys, d0, v0, its * dt, dt)
+        d_true, _ = sys.central_diff_integrate(sosys, d0, v0, its * dt, dt)
 
         np.testing.assert_array_almost_equal(d, d_true)
 
@@ -91,7 +91,7 @@ class TestFemmilp(unittest.TestCase):
         csosys = sys.ControlSOSystem.from_sosys(sosys, f_nodal_control)
 
         d = femmilp.simulate_trajectory(sosys, None, its, [dset, vset, fset], [fd, fv, pwlf])
-        d_true, _ = sys.newm_integrate(csosys, d0, v0, its * dt, dt)
+        d_true, _ = sys.central_diff_integrate(csosys, d0, v0, its * dt, dt)
 
         np.testing.assert_array_almost_equal(d, d_true)
 
@@ -119,7 +119,7 @@ class TestFemmilp(unittest.TestCase):
             f[-1] = pwlf2(t, x=self.xpart[-1])
             return f
         csosys = sys.ControlSOSystem.from_sosys(sosys, f_nodal_control)
-        d_true, _ = sys.newm_integrate(csosys, d0, v0, its * dt, dt)
+        d_true, _ = sys.central_diff_integrate(csosys, d0, v0, its * dt, dt)
 
         np.testing.assert_array_almost_equal(d, d_true)
 
@@ -142,7 +142,7 @@ class TestFemmilp(unittest.TestCase):
         v0 = np.array([0.0, 0.0, 0.0, 0.0])
 
         d = femmilp.simulate_trajectory(hysys, [d0, v0], its)
-        d_true, _ = sys.newm_integrate(hysys, d0, v0, its * dt, dt)
+        d_true, _ = sys.central_diff_integrate(hysys, d0, v0, its * dt, dt)
 
         np.testing.assert_array_almost_equal(d, d_true)
 
@@ -162,6 +162,6 @@ class TestFemmilp(unittest.TestCase):
         v0 = np.array([0.0, 0.0, 0.0, 0.0])
 
         d = femmilp.simulate_trajectory(hysys, [d0, v0], its)
-        d_true, _ = sys.newm_integrate(hysys, d0, v0, its * dt, dt)
+        d_true, _ = sys.central_diff_integrate(hysys, d0, v0, its * dt, dt)
 
         np.testing.assert_array_almost_equal(d, d_true)

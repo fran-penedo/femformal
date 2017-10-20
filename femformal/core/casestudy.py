@@ -80,7 +80,7 @@ def build_cs(system, d0, g, cregions, cspec, fdt_mult=1, bounds=None,
                 spec = logic.stl_parser(xpart, fdt_mult, bounds).parseString(dspec)[0]
             else:
                 spec = logic.stl_parser(
-                        None, fdt_mult, bounds, system.mesh, system.build_elem
+                        None, fdt_mult, bounds, system.mesh
                     ).parseString(dspec)[0]
         except Exception as e:
             logger.exception("Error while parsing specification:\n{}\n".format(dspec))

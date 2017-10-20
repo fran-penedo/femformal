@@ -378,31 +378,34 @@ def draw_displacement_2d(ds, mesh, ts, apcs=None, labels=None, perts=None, **kwa
         return ls, time_text
 
 
-    pred_data = predicates_displacement_data(apcs, labels, mesh, ax, perts)
-    pred_lines = [pred_data[i]['l'] for i in pred_data.keys()] + \
-        [pred_data[i]['l_pert']
-         for i in pred_data.keys() if 'l_pert' in pred_data[i]]
-    def preds(i):
-        for key, value in pred_data.items():
-            dof = apcs[key].u_comp
-            data = value['pts'].copy()
-            data[:,dof] += value['disps']
-            sys_disps = np.array([ds[i][2*n + 1 - dof] for n in value['nodes']])
-            data[:, 1 - dof] += sys_disps
-            value['l'].set_data(data[:,0], data[:,1])
-            if 'l_pert' in value:
-                interp = mesh.interpolate(ds[i])
-                pert_data = value['pts_pert'].copy()
-                pert_sys_disps = np.array([interp(*c)[1 - dof] for c in pert_data])
-                pert_data[:,dof] += value['disps_pert']
-                pert_data[:, 1 - dof] += pert_sys_disps
-                value['l_pert'].set_data(pert_data[:,0], pert_data[:,1])
-        return tuple(pred_lines)
+    if apcs is not None:
+        pred_data = predicates_displacement_data(apcs, labels, mesh, ax, perts)
+        pred_lines = [pred_data[i]['l'] for i in pred_data.keys()] + \
+            [pred_data[i]['l_pert']
+            for i in pred_data.keys() if 'l_pert' in pred_data[i]]
+        def preds(i):
+            for key, value in pred_data.items():
+                dof = apcs[key].u_comp
+                data = value['pts'].copy()
+                data[:,dof] += value['disps']
+                sys_disps = np.array([ds[i][2*n + 1 - dof] for n in value['nodes']])
+                data[:, 1 - dof] += sys_disps
+                value['l'].set_data(data[:,0], data[:,1])
+                if 'l_pert' in value:
+                    interp = mesh.interpolate(ds[i])
+                    pert_data = value['pts_pert'].copy()
+                    pert_sys_disps = np.array([interp(*c)[1 - dof] for c in pert_data])
+                    pert_data[:,dof] += value['disps_pert']
+                    pert_data[:, 1 - dof] += pert_sys_disps
+                    value['l_pert'].set_data(pert_data[:,0], pert_data[:,1])
+            return tuple(pred_lines)
 
 
-    ax.legend(loc='lower left', fontsize='6', labelspacing=0.05, handletextpad=0.1)
+        ax.legend(loc='lower left', fontsize='6', labelspacing=0.05, handletextpad=0.1)
 
-    set_animation(fig, ts, _combine_lines([lines, preds]))
+        set_animation(fig, ts, _combine_lines([lines, preds]))
+    else:
+        set_animation(fig, ts, lines)
     fig.tight_layout()
 
     _render(fig, None, kwargs['hold'])
