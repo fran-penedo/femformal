@@ -78,7 +78,10 @@ def synthesize(system, pset, f, spec, fdt_mult=1, return_traj=False, T=None):
     else:
         return robustness, inputs
 
-def simulate_trajectory(system, d0, T, pset=None, f=None):
+def simulate_trajectory(system, d0, T, pset=None, f=None, labels=None):
+    if labels is None:
+        labels = ["d"]
+
     if pset is None:
         model_encode_f = lambda m, hd: sys_milp.add_sys_constr_x0(m, "d", system, d0, T + 1, None)
     else:
@@ -87,4 +90,8 @@ def simulate_trajectory(system, d0, T, pset=None, f=None):
 
 
     m = _build_and_solve(None, model_encode_f, 1.0)
-    return sys_milp.get_trajectory_from_model(m, "d", T + 1, system)
+    if len(labels) == 1:
+        return sys_milp.get_trajectory_from_model(m, labels[0], T + 1, system)
+    else:
+        return [sys_milp.get_trajectory_from_model(m, l, T + 1, system) for
+                l in labels]

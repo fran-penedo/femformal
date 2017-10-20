@@ -813,11 +813,7 @@ def newm_integrate(sosys, d0, v0, T, dt=.1, beta=0, gamma=.5):
                          "system dimension = {}, d shape = {}, v shape = {}".format(
                              sosys.n, d.shape, v.shape))
     a = np.zeros(d.shape[0])
-    try:
-        solve_m = _factorize(M + beta * dt * dt * K)
-    except ValueError:
-        logger.info("Integrating M + beta * dt * dt * K = 0 system")
-        solve_m = lambda x: np.zeros(len(n_e))
+    solve_m = _factorize(M + beta * dt * dt * K)
     try:
         f_nodal_c = f_nodal(0)[n_e]
     except TypeError:
@@ -831,6 +827,7 @@ def newm_integrate(sosys, d0, v0, T, dt=.1, beta=0, gamma=.5):
     ds = [d]
     vs = [v]
     for i in range(its):
+        # logger.debug(a)
         # tv[0] = tv[-1] = 0.0
         td = d + dt * v + 0.5 * dt * dt * (1 - 2 * beta) * a
         tv = v + (1 - gamma) * dt * a
