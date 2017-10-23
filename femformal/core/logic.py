@@ -122,8 +122,11 @@ class STLPred(object):
     indexed by `index`.
 
     The second case has `region_dim > 0` and `y` is the `u_comp` component of
-    the value of the `uderivs` derivative at the chebyshev center of the element
-    indexed by `index`.
+    the value of the `uderivs` derivative at the `query_point` of the element
+    indexed by `index`. Typically an element has one query point (its
+    chebyshev center), but elements can implement more query points to decrease
+    the conservativeness of the predicate discretization (in particular the
+    eta correction).
 
     Parameters
     ----------
@@ -144,10 +147,12 @@ class STLPred(object):
         Component of the field value
     region_dim : int
         Dimension of the element for which this predicate is defined
+    query_point : int
+        Index of the query point in the element
 
     """
     def __init__(self, index, r, p, dp, isnode = True, uderivs = 0, u_comp = 0,
-                 region_dim = 0):
+                 region_dim = 0, query_point = 0):
         self.index = index
         self.r = r
         self.p = p
@@ -156,17 +161,20 @@ class STLPred(object):
         self.uderivs = uderivs
         self.u_comp = u_comp
         self.region_dim = region_dim
+        self.query_point = query_point
 
     def __str__(self):
-        return "({region_dim} {u_comp} {uderivs} {index} {op} {p} {dp})".format(
+        return ("({region_dim} {u_comp} {uderivs} "
+                "{index} {query} {op} {p} {dp})".format(
             region_dim=self.region_dim,
             u_comp=self.u_comp,
             uderivs=self.uderivs,
             index=self.index,
             op="<" if self.r == 1 else ">",
             p=self.p,
-            dp=self.dp
-        )
+            dp=self.dp,
+            query=self.query_point
+        ))
 
 
 def _subst_spec_labels_disc(spec, regions):
@@ -214,13 +222,10 @@ def _ap_cont2d_to_disc(apcont, mesh_):
     stlpred_list = [
         STLPred(
             e, apcont.r,
-            elem.interpolate(
-                [apcont.p(*coord) for coord in elem.coords], [0, 0]),
-            elem.interpolate(
-                [apcont.dp(*coord) for coord in elem.coords], [0, 0]),
+            apcont.p(*coords), apcont.dp(*coords),
             isnode=elem_set.dimension == 0, uderivs=apcont.uderivs,
-            u_comp=apcont.u_comp, region_dim=elem_set.dimension
-        ) for e, elem in elems]
+            u_comp=apcont.u_comp, region_dim=elem_set.dimension, query_point=i
+        ) for e, elem in elems for i, (coords, h) in enumerate(elem.covering())]
 
     return _APDisc(stlpred_list)
 
@@ -337,8 +342,8 @@ def _build_f_elem(ap, elem):
     except:
         pass
     if uderivs == 0:
-        return lambda vs: -(elem.interpolate_phys(vs, elem.chebyshev_center())
-                           - p) * op
+        return lambda vs: - op * (
+            elem.interpolate_phys(vs, elem.covering()[ap.query_point][0]) - p)
     else:
         #FIXME think about this when implementing derivatives
         return lambda vs: -(elem.interpolate_derivatives(
@@ -438,19 +443,20 @@ def _expr_parser(xpart=None, fdt_mult=1, bounds=None, mesh_=None):
 
     integer = Word(nums).setParseAction(lambda t: int(t[0]))
     relation = (T_LE | T_GR).setParseAction(lambda t: 1 if t[0] == "<" else -1)
-    expr = integer + integer + integer + integer + relation + num + num
+    expr = integer + integer + integer + integer + integer + relation + num + num
     def action(t):
         try:
             signal = SysSignal(
                 STLPred(
                     index=t[3],
-                    r=t[4],
-                    p=t[5],
-                    dp=t[6],
+                    r=t[5],
+                    p=t[6],
+                    dp=t[7],
                     isnode=False,
                     uderivs=t[2],
                     u_comp=t[1],
-                    region_dim=t[0]
+                    region_dim=t[0],
+                    query_point=t[4]
                 ),
                 fdt_mult=fdt_mult,
                 bounds=bounds,

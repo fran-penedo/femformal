@@ -194,6 +194,13 @@ class TestQuadQuadQ9(unittest.TestCase):
         self.elem = element.QuadQuadQ9(np.array([
             [-1.0, -1], [1, -1], [1, 2], [-1, 2],
             [0, -1], [1, 0.5], [0, 2], [-1, 0.5], [0, 0.5]]))
+        self.elem1Dh = element.QuadQuadQ9(np.array([
+            [-1.0, -1], [1, -1], [1, -1], [-1, -1],
+            [0, -1], [1, -1], [0, -1], [-1, -1], [0, -1]]))
+        self.elem1Dv = element.QuadQuadQ9(np.array([
+            [-1.0, -1], [-1, -1], [-1, 2], [-1, 2],
+            [-1, -1], [-1, .5], [-1, 2], [-1, .5], [-1, .5]]))
+        self.elem0D = element.QuadQuadQ9(np.array([[-1, -1] for i in range(9)]))
 
     def test_shapes(self):
         pts = np.array([[-1.0, -1], [1, -1], [1, 1], [-1, 1],
@@ -225,3 +232,29 @@ class TestQuadQuadQ9(unittest.TestCase):
                         [0, -1], [1, 0], [0, 1], [-1, 0], [0, 0]])
         for t, e in zip(test, expected):
             np.testing.assert_array_equal(self.elem.normalize(t), e)
+
+    def test_covering(self):
+        expected_0D = [(np.array([-1, -1]), 0)]
+        expected_1Dh = [(np.array([-.5, -1]), .5), (np.array([.5, -1]), .5)]
+        expected_1Dv = [(np.array([-1, -.25]), .75), (np.array([-1, 1.25]), .75)]
+        h = np.sqrt(1 + 1.5*1.5) / 2
+        expected_full = [(np.array([-.5, -.25]), h), (np.array([-.5, 1.25]), h),
+            (np.array([.5, -.25]), h), (np.array([.5, 1.25]), h)]
+
+        for a, b in zip(self.elem0D.covering(), expected_0D):
+            npt.assert_array_almost_equal(a[0], b[0])
+            npt.assert_array_almost_equal(a[1], b[1])
+
+        for a, b in zip(self.elem1Dh.covering(), expected_1Dh):
+            npt.assert_array_almost_equal(a[0], b[0])
+            npt.assert_array_almost_equal(a[1], b[1])
+
+        for a, b in zip(self.elem1Dv.covering(), expected_1Dv):
+            npt.assert_array_almost_equal(a[0], b[0])
+            npt.assert_array_almost_equal(a[1], b[1])
+
+        for a, b in zip(self.elem.covering(), expected_full):
+            npt.assert_array_almost_equal(a[0], b[0])
+            npt.assert_array_almost_equal(a[1], b[1])
+
+

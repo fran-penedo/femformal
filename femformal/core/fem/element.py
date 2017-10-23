@@ -134,7 +134,7 @@ class Element2DOF(Element):
             values = np.c_[
                 values,
                 np.zeros((values.shape[0],
-                          str_disp.shape[-1] / np.prod(values.shape) - dof))]
+                          str_disp.shape[-1] // np.prod(values.shape) - dof))]
 
         ret = np.zeros((values.shape[-1], values.shape[-1]))
         for p in util.cycle(values.shape[-1]):
@@ -347,6 +347,9 @@ class BLQuadQ4(Element2DOF):
     def chebyshev_center(self):
         return self.interpolate(self.coords, [0, 0])
 
+    def covering(self):
+        return [(self.chebyshev_center(), self.chebyshev_radius)]
+
 
 class QuadQuadQ9(Element2DOF):
     """Quadratic quadrilateral element with 9 nodes
@@ -474,3 +477,26 @@ class QuadQuadQ9(Element2DOF):
 
     def chebyshev_center(self):
         return self.center
+
+    def _dim(self):
+        if np.all(np.isclose(self.coords, self.coords[0])):
+            return 0
+        elif np.any(np.isclose(self.coords[2] - self.coords[0], 0)):
+            return 1
+        else:
+            return 2
+
+    def covering(self):
+        dim = self._dim()
+
+        if dim == 0:
+            return [(self.coords[0], 0)]
+        elif dim == 1:
+            pts = np.array([[-.5, -.5], [.5, .5]])
+            h = self.chebyshev_radius() / 2
+            return [(self.interpolate(self.coords, pt), h) for pt in pts]
+        else:
+            pts = [-.5, .5]
+            h = self.chebyshev_radius() / 2
+            return [(self.interpolate(self.coords, np.array([i, j])), h)
+                    for i in pts for j in pts]
