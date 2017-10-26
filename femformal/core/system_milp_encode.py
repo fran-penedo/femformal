@@ -7,6 +7,7 @@ import logging
 
 import gurobipy as g
 import numpy as np
+from scipy.sparse import linalg as spla, csc_matrix
 from stlmilp import milp_util as milp_util
 
 from . import system as sys
@@ -444,13 +445,15 @@ def add_newmark_constr_x0(m, l, system, x0, N, xhist=None, beta=0.25, gamma=0.5)
             m.addConstr(x[label('f', i, j)] == 0)
     return x
 
-def _add_newmark_constr(m, l, system, N, xhist=None, beta=0.25, gamma=0.5):
+def _add_newmark_constr(m, l, system, N, xhist=None, beta=0.25, gamma=0.5,
+                        use_lu_decomp=False):
     if xhist is None:
         xhist = []
     M, F, dt = system.M, system.F, system.dt
 
     # Decision variables
-    x = _add_sosys_variables(m, l, M.shape[0], N, len(xhist), dpred=True, vpred=True)
+    x = _add_sosys_variables(m, l, M.shape[0], N, len(xhist),
+                             dpred=True, vpred=True, use_lu_decomp=use_lu_decomp)
 
     if hasattr(system, "K_global"):
         deltas = _add_hybrid_K_deltas(m, system.K_els(), x, l, N, system.bigN)
@@ -460,6 +463,18 @@ def _add_newmark_constr(m, l, system, N, xhist=None, beta=0.25, gamma=0.5):
     else:
         el_int_forces = None
         K = system.K
+
+    if use_lu_decomp:
+        matrix = (M + beta * dt * dt * K).tocsc()
+        lu = spla.splu(matrix, permc_spec='NATURAL')
+        # lu_pr = csc_matrix(lu.L.shape)
+        # lu_pc = csc_matrix(lu.L.shape)
+        # lu_pr[lu.perm_r, np.arange(lu.L.shape[0])] = 1
+        # lu_pc[np.arange(lu.L.shape[0]), lu.perm_c] = 1
+        # lu_l = lu_pr.T * lu.L
+        # lu_u = lu.U * lu_pc.T
+        lu_l = lu.L
+        lu_u = lu.U
 
     # Dynamics
     logger.debug("Adding dynamics")
@@ -491,11 +506,22 @@ def _add_newmark_constr(m, l, system, N, xhist=None, beta=0.25, gamma=0.5):
                 if M[i,i] == 0:
                     m.addConstr(x[label('dd' + l, i, j)] == 0)
                 else:
-                    m.addConstr(g.quicksum(
-                        (M[i, k] + beta * dt * dt * K[i, k])
-                        * x[label('dd' + l, k, j)] for k in range(M.shape[0]))
-                        == x[label('f', i, j)] + F[i] -
-                        _int_force(system, x, i, j, "t" + l, el_int_forces))
+                    if use_lu_decomp:
+                        m.addConstr(g.quicksum(
+                            lu_u[i,k] * x[label('dd' + l, k, j)]
+                            for k in range(M.shape[0])) ==
+                            x[label('int_dd' + l, i, j)])
+                        m.addConstr(g.quicksum(
+                            lu_l[i, k] * x[label('int_dd' + l, k, j)]
+                            for k in range(M.shape[0]))
+                            == x[label('f', i, j)] + F[i] -
+                            _int_force(system, x, i, j, "t" + l, el_int_forces))
+                    else:
+                        m.addConstr(g.quicksum(
+                            (M[i, k] + beta * dt * dt * K[i, k])
+                            * x[label('dd' + l, k, j)] for k in range(M.shape[0]))
+                            == x[label('f', i, j)] + F[i] -
+                            _int_force(system, x, i, j, "t" + l, el_int_forces))
 
                 # d = td + beta * dt * dt * a
                 m.addConstr(x[label(l, i, j)] == x[label('t' + l, i, j)] +
@@ -710,31 +736,37 @@ def _int_force(system, x, row, time, l, el_int_forces=None):
     return f
 
 
-def _add_sosys_variables(m, l, nvars, horlen, histlen, dpred=False, vpred=True):
+def _add_sosys_variables(m, l, nvars, horlen, histlen, dpred=False, vpred=True,
+                         use_lu_decomp=True):
     logger.debug("Adding decision variables")
     x = {}
+    bds = [-g.GRB.INFINITY, g.GRB.INFINITY]
     for i in range(nvars):
         for j in range(-histlen, horlen):
             labelf = label('f', i, j)
             x[labelf] = m.addVar(
-                obj=0, lb=-g.GRB.INFINITY, ub=g.GRB.INFINITY, name=labelf)
+                obj=0, lb=bds[0], ub=bds[1], name=labelf)
             labelx = label(l, i, j)
             x[labelx] = m.addVar(
-                obj=0, lb=-g.GRB.INFINITY, ub=g.GRB.INFINITY, name=labelx)
+                obj=0, lb=bds[0], ub=bds[1], name=labelx)
             labelv = label('d' + l, i, j)
             x[labelv] = m.addVar(
-                obj=0, lb=-g.GRB.INFINITY, ub=g.GRB.INFINITY, name=labelv)
+                obj=0, lb=bds[0], ub=bds[1], name=labelv)
             if vpred:
                 labeltv = label('td' + l, i, j)
                 x[labeltv] = m.addVar(
-                    obj=0, lb=-g.GRB.INFINITY, ub=g.GRB.INFINITY, name=labeltv)
+                    obj=0, lb=bds[0], ub=bds[1], name=labeltv)
             if dpred:
                 labeltd = label('t' + l, i, j)
                 x[labeltd] = m.addVar(
-                    obj=0, lb=-g.GRB.INFINITY, ub=g.GRB.INFINITY, name=labeltd)
+                    obj=0, lb=bds[0], ub=bds[1], name=labeltd)
             labela = label('dd' + l, i, j)
             x[labela] = m.addVar(
-                obj=0, lb=-g.GRB.INFINITY, ub=g.GRB.INFINITY, name=labela)
+                obj=0, lb=bds[0], ub=bds[1], name=labela)
+            if use_lu_decomp:
+                labela = label('int_dd' + l, i, j)
+                x[labela] = m.addVar(
+                    obj=0, lb=bds[0], ub=bds[1], name=labela)
 
     m.update()
     return x

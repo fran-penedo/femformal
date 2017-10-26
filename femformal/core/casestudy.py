@@ -142,6 +142,9 @@ class Perturbation(object):
     def _perturb(self, stlpred):
         raise 0.0
 
+    def perturb_pred(self, stlpred):
+        stlpred.p += stlpred.r * (-self(stlpred))
+
     def __call__(self, stlpred):
         """Computes the perturbation for a predicate
 
@@ -210,13 +213,11 @@ class EtaPerturbation(Perturbation):
 
     The eta perturbation is defined as
     :math:``.
-    Note that `eta` is not the directional derivative but the directional
-    difference.
 
     Parameters
     ----------
     eta : array_like, shape (nelems[, dofs, domain dimension])
-        Approximation of the maximum directional differences.
+        Approximation of the maximum directional differences or derivatives.
     **kwargs
         Arguments passed to :class:`Perturbation`
 
@@ -240,16 +241,16 @@ class EtaPerturbation(Perturbation):
                 return ret.tolist()
             else:
                 elem = self.mesh.get_elem(i, region_dim)
-                cheby_radius = elem.chebyshev_radius()
+                pt, h = elem.covering()[stlpred.query_point]
                 if region_dim == 0:
                     grad = 0
                 elif region_dim == 1:
-                    # FIXME
-                    # grad = np.linalg.norm(self.eta[i, ucomp]) * np.sqrt(self.eta.shape[-1])
-                    grad = 0
+                    orientation = 0 if elem.ishorizontal() else 1
+                    grad = self.eta[i, orientation, ucomp]
                 elif region_dim == 2:
                     grad = np.linalg.norm(self.eta[i, ucomp]) * np.sqrt(self.eta.shape[-1])
-                ret = cheby_radius * (dmu + grad)
+
+                ret = h * (dmu + grad)
                 return ret.tolist()
 
 
@@ -634,7 +635,8 @@ def max_tdiff(system, g, tlims, bounds, sample=None, n=50, log=True):
         logger.debug("mdiff = {}".format(mdiff))
     return mdiff
 
-def max_der_diff(system, g, tlims, bounds, sample, xderiv=False, n=50, log=True):
+def max_der_diff(system, g, tlims, bounds, sample, xderiv=False, n=50, log=True,
+                 compute_derivative=False):
     """Estimates the max spatial and temporal difference of a system
 
     This function samples initial values and nodal forces for a number of
@@ -705,7 +707,8 @@ def max_der_diff(system, g, tlims, bounds, sample, xderiv=False, n=50, log=True)
             x0 = sample_ic(bounds_ic, g, sys_x.xpart)
         else:
             x0 = sample_ic(bounds_ic, g, sys_x)
-        dx, dtx = sys.sosys_max_der_diff(sys_x, x0, tlims, xderiv=xderiv)
+        dx, dtx = sys.sosys_max_der_diff(sys_x, x0, tlims, xderiv=xderiv,
+                                         compute_derivative=compute_derivative)
         mdiff_x = np.max([mdiff_x, dx], axis=0)
         mdiff_t = np.max([mdiff_t, dtx], axis=0)
 
@@ -740,7 +743,7 @@ def _perturb_profile_eps_2d(p, eps, mesh, direction):
         return p(*x) + direction * eps[i]
     return pp
 
-def _perturb_profile_eta_2d(p, dp, eta, mesh, direction):
+def _perturb_profile_eta_2d(p, dp, eta, mesh, direction, region_dim):
     def pp(*x):
         i = mesh.find_containing_elem(x)
         elem = mesh.get_elem(i)
@@ -800,7 +803,30 @@ def perturb_profile(apc, eps, eta, nu, xpart, fdt_mult, mesh):
         eta_p = _perturb_profile_eta_2d(eps_p, apc.dp, eta[apc.uderivs][:,apc.u_comp,:], mesh, direction)
         nu_p = _perturb_profile_nu_2d(eta_p, nu[apc.uderivs][apc.u_comp::2], mesh, fdt_mult, direction)
 
-    return nu_p
+    return [eps_p, eta_p, nu_p]
+
+
+def discretized_perturbed_profile(apc, eps, eta, nu, xpart, fdt_mult, mesh):
+    if mesh is None:
+        raise NotImplementedError()
+
+    apd = logic._ap_cont2d_to_disc(apc, mesh)
+    eps_pert = EpsPerturbation(eps[0], None, xpart=xpart, mesh=mesh)
+    eta_pert = EtaPerturbation(eta[0], xpart=xpart, mesh=mesh)
+    nu_pert = NuPerturbation(nu[0], None, fdt_mult, xpart=xpart, mesh=mesh)
+
+    data = []
+    for pert in [eps_pert, eta_pert, nu_pert]:
+        for pred in apd.stlpred_list:
+            pert.perturb_pred(pred)
+        data.append(zip(*[_stlpred_data(pred, mesh) for pred in apd.stlpred_list]))
+
+    return data
+
+def _stlpred_data(stlpred, mesh):
+    elem = mesh.build_elem(mesh.elem_coords(stlpred.index, stlpred.region_dim))
+    point = elem.covering()[stlpred.query_point][0]
+    return [point, stlpred.p]
 
 
 class CaseStudy(object):

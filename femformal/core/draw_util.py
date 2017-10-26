@@ -381,8 +381,9 @@ def draw_displacement_2d(ds, mesh, ts, apcs=None, labels=None, perts=None, **kwa
     if apcs is not None:
         pred_data = predicates_displacement_data(apcs, labels, mesh, ax, perts)
         pred_lines = [pred_data[i]['l'] for i in pred_data.keys()] + \
-            [pred_data[i]['l_pert']
-            for i in pred_data.keys() if 'l_pert' in pred_data[i]]
+            [line for i in pred_data.keys() if 'l_pert' in pred_data[i]
+             for line in pred_data[i]['l_pert']]
+
         def preds(i):
             for key, value in pred_data.items():
                 dof = apcs[key].u_comp
@@ -391,13 +392,19 @@ def draw_displacement_2d(ds, mesh, ts, apcs=None, labels=None, perts=None, **kwa
                 sys_disps = np.array([ds[i][2*n + 1 - dof] for n in value['nodes']])
                 data[:, 1 - dof] += sys_disps
                 value['l'].set_data(data[:,0], data[:,1])
+
                 if 'l_pert' in value:
                     interp = mesh.interpolate(ds[i])
-                    pert_data = value['pts_pert'].copy()
-                    pert_sys_disps = np.array([interp(*c)[1 - dof] for c in pert_data])
-                    pert_data[:,dof] += value['disps_pert']
-                    pert_data[:, 1 - dof] += pert_sys_disps
-                    value['l_pert'].set_data(pert_data[:,0], pert_data[:,1])
+
+                    for j in range(len(value['l_pert'])):
+                        line = value['l_pert'][j]
+                        vs = value['perts'][j]
+                        pert_data = np.array(vs[0]).copy()
+                        pert_sys_disps = np.array([interp(*c)[1 - dof] for c in pert_data])
+                        pert_data[:,dof] += vs[1]
+                        pert_data[:, 1 - dof] += pert_sys_disps
+                        line.set_data(pert_data[:,0], pert_data[:,1])
+
             return tuple(pred_lines)
 
 
@@ -503,18 +510,19 @@ def draw_predicates_2d(apcs, labels, mesh, axs, perts=None):
         update_ax_ylim(ax, verts[:, -1])
         if perts is not None:
             elems = mesh.find_elems_between(apc.A[0], apc.A[1])
-            el_values = [{
-                e: perts[i](*mesh.get_elem(e, elems.dimension).chebyshev_center())
-                for e in elems.elems} for i in range(len(perts))]
-            for el_value in el_values:
-                # logger.debug(el_value[elems.elems[0]])
-                verts_pert = np.array([
-                    np.hstack(
-                        [elems[e], np.ones((elems[e].shape[0], 1)) * el_value[e]])
-                    for e in elems.elems
-                ])
-                ax.add_collection(p3.art3d.Poly3DCollection(verts_pert))
-                update_ax_ylim(ax, verts_pert[:, :, -1])
+            for pert in perts:
+                el_values = [{
+                    e: pert[i](*mesh.get_elem(e, elems.dimension).chebyshev_center())
+                    for e in elems.elems} for i in range(len(pert))]
+                for el_value in el_values:
+                    # logger.debug(el_value[elems.elems[0]])
+                    verts_pert = np.array([
+                        np.hstack(
+                            [elems[e], np.ones((elems[e].shape[0], 1)) * el_value[e]])
+                        for e in elems.elems
+                    ])
+                    ax.add_collection(p3.art3d.Poly3DCollection(verts_pert))
+                    update_ax_ylim(ax, verts_pert[:, :, -1])
     # for ax in axs:
     #     ax.legend(loc='lower left', fontsize='6', labelspacing=0.05, handletextpad=0.1)
 
@@ -537,14 +545,10 @@ def predicates_displacement_data(apcs, labels, mesh, ax, perts=None):
         ret[i] = {'nodes': nodes, 'disps': disps, 'pts': pts, 'l':l}
 
         if perts is not None:
-            pts_pert = np.array([
-                mesh.get_elem(e, elem_set.dimension).chebyshev_center()
-                for e in elem_set.elems])
-            disps_pert = np.array([perts[i](*c) for c in pts_pert])
-            l_pert = ax.plot([], [], lw=1, ls='--', c=l.get_c())[0]
-            ret[i].update({'pts_pert': pts_pert, 'disps_pert': disps_pert,
-                           'l_pert': l_pert})
-
+            l_pert = [ax.plot([], [], ms=5, ls='none', marker=m, c=l.get_c())[0]
+                      for pert, m in zip(range(len(perts[i])), "os^")]
+            logger.debug(len(l_pert))
+            ret[i].update({'perts': perts[i], 'l_pert': l_pert})
 
     return ret
 

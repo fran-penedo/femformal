@@ -9,7 +9,7 @@ apc1 = logic.APCont2D(1, np.array([[0.0, 0], [16, 0]]), '>',
                       lambda x, y: v * (-x * x / 64.0 + x / 4.0),
                       lambda x, y: v * (-x / 32.0 + 1/4.0))
 cregions = {'A': apc1}
-cspec = "(G_[2.0, 2.5] (A))".format(T)
+cspec = "(G_[4.5, 5.0] (A))".format(T)
 bounds = [-10e-0, 10e-0]
 
 cs = casestudy.build_cs(

@@ -450,15 +450,17 @@ class PWLFunction(object):
         ts = self.ts
         if self.ys is not None:
             ys = self.ys
-            if t < ts[0] or t > ts[-1]:
-                raise Exception("Argument out of domain. t = {}".format(t))
+            # if t < ts[0] or t > ts[-1]:
+            #     raise Exception("Argument out of domain. t = {}".format(t))
         else:
             if p is None:
                 raise Exception("y values not set")
             self.ys = ys = p
         # FIXME probable issue with t = ts[-1]
-        if t == ts[-1]:
+        if t >= ts[-1]:
             return ys[-1]
+        elif t <= ts[0]:
+            return ys[0]
         else:
             i = bisect_right(ts, t) - 1
             return ys[i] + (ys[i+1] - ys[i]) * (t - ts[i]) / (ts[i+1] - ts[i])
@@ -1007,8 +1009,8 @@ def sosys_diff(xsys, ysys, x0, y0, tlims, xlims, xderiv=False, plot=False):
     """
     dtx, dty = xsys.dt, ysys.dt
     t0, T = tlims
-    x = newm_integrate(xsys, x0[0], x0[1], T, dtx)[0]
-    y = newm_integrate(ysys, y0[0], y0[1], T, dty)[0]
+    x = newm_integrate(xsys, x0[0], x0[1], T, dtx, beta=0.25)[0]
+    y = newm_integrate(ysys, y0[0], y0[1], T, dty, beta=0.25)[0]
     x = x[int(round(t0/dtx)):]
     y = y[int(round(t0/dty)):]
     # draw.draw_pde_trajectory(x, xpart, np.linspace(0, T, (int(round(T / dtx)))), animate=False)
@@ -1142,7 +1144,7 @@ def sys_max_tdiff(sys, x0, t0, T):
 
     return mdtx
 
-def sosys_max_der_diff(sys, x0, tlims, xderiv=False):
+def sosys_max_der_diff(sys, x0, tlims, xderiv=False, compute_derivative=False):
     """Maximum spatial and time spatial derivative of an SO system
 
     Parameters
@@ -1163,7 +1165,7 @@ def sosys_max_der_diff(sys, x0, tlims, xderiv=False):
         Maximum time derivative of the system at each node
 
     """
-    x, vx = newm_integrate(sys, x0[0], x0[1], tlims[1], sys.dt)
+    x, vx = newm_integrate(sys, x0[0], x0[1], tlims[1], sys.dt, beta=0.25)
     x = x[int(round(tlims[0]/sys.dt)):]
     # draw.draw_pde_trajectory(x, sys.xpart, np.linspace(0, tlims[1], (int(round(tlims[1] / sys.dt)))), animate=False)
     if sys.xpart is not None:
@@ -1178,17 +1180,30 @@ def sosys_max_der_diff(sys, x0, tlims, xderiv=False):
         if xderiv:
             raise NotImplementedError("xderiv > 0 not implemented yet")
 
-        interps = [sys.mesh.interpolate_derivatives(d) for d in x]
-        dxs = []
-        for interp in interps:
-            dx = []
-            for e in range(sys.mesh.nelems):
-                partials = np.abs(
-                    np.array([interp(*coords) for coords in sys.mesh.elem_coords(e)]))
-                # logger.debug(partials)
-                dx.append(np.max(partials, axis=0))
-            dxs.append(dx)
-        mdx = np.max(dxs, axis=0)
+        # Compute max differences
+        if not compute_derivative:
+            interps = [sys.mesh.interpolate_derivatives(d) for d in x]
+            dxs = []
+            for interp in interps:
+                dx = []
+                for e in range(sys.mesh.nelems):
+                    partials = np.abs(
+                        np.array([interp(*coords) for coords in sys.mesh.elem_coords(e)]))
+                    # logger.debug(partials)
+                    dx.append(np.max(partials, axis=0))
+                dxs.append(dx)
+            mdx = np.max(dxs, axis=0)
+        else:
+            mdx = None
+            for d in x:
+                mpartials = np.array(
+                    [sys.mesh.elements[e].max_partial_derivs(
+                        sys.mesh.get_elem_values(d, e, 2))
+                     for e in range(sys.mesh.nelems)])
+                if mdx is None:
+                    mdx = mpartials
+                else:
+                    mdx = np.max([mdx, mpartials], axis=0)
 
         dtx = np.abs(np.diff(x, axis=0))
         mdtx = np.max(dtx, axis=0)

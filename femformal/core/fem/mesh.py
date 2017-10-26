@@ -41,6 +41,9 @@ class Mesh(object):
     nelems : int
         Number of elements of the mesh
     elem_shape : array_like
+    elements : list
+        List of all the elements in the mesh, given as
+        :class:`femformal.core.fem.element.Element` objects
 
     """
     __metaclass__ = abc.ABCMeta
@@ -235,6 +238,10 @@ class Mesh(object):
             e = self.find_containing_elem(coords)
             n = self.elem_nodes(e)[position]
         return n
+
+    def get_elem_values(self, values, elem, dim):
+        vs = self._reshape_int_values(values)
+        return vs[self.elem_nodes(elem, dim)]
 
 
 class GridMesh(Mesh):

@@ -3,6 +3,7 @@ import logging
 
 import numpy as np
 from numpy import testing as npt
+from scipy.optimize import differential_evolution
 
 from .. import element as element
 
@@ -257,4 +258,34 @@ class TestQuadQuadQ9(unittest.TestCase):
             npt.assert_array_almost_equal(a[0], b[0])
             npt.assert_array_almost_equal(a[1], b[1])
 
+
+    def test_max_partial_derivs(self):
+        np.random.seed(0)
+        vs = np.random.random((9, 2))
+        derivs = self.elem.max_partial_derivs(vs)
+        bounds = [(-1, 1), (-1, 1)]
+
+        f00 = lambda x: -np.abs(self.elem.interpolate_derivatives(vs, x)[0, 0])
+        res = differential_evolution(f00, bounds, tol=0.0001)
+        m00 = -res.fun
+        logger.debug(res.x)
+        npt.assert_almost_equal(derivs[0, 0], m00, decimal=3)
+
+        f10 = lambda x: -np.abs(self.elem.interpolate_derivatives(vs, x)[1, 0])
+        res = differential_evolution(f10, bounds, tol=0.0001)
+        m10 = -res.fun
+        logger.debug(res.x)
+        npt.assert_almost_equal(derivs[1, 0], m10, decimal=3)
+
+        f01 = lambda x: -np.abs(self.elem.interpolate_derivatives(vs, x)[0, 1])
+        res = differential_evolution(f01, bounds, tol=0.0001)
+        m01 = -res.fun
+        logger.debug(res.x)
+        npt.assert_almost_equal(derivs[0, 1], m01, decimal=3)
+
+        f11 = lambda x: -np.abs(self.elem.interpolate_derivatives(vs, x)[1, 1])
+        res = differential_evolution(f11, bounds, tol=0.0001)
+        m11 = -res.fun
+        logger.debug(res.x)
+        npt.assert_almost_equal(derivs[1, 1], m11, decimal=3)
 

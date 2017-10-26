@@ -86,11 +86,11 @@ class Element2DOF(Element):
         values : array, shape (nnodes, 2)
             Values asigned to each node
         coords : array, shape (1, 2)
-            Psi-Eta coordinates
+            Physical coordinates
 
         Returns
         -------
-        array, shape (1, 2)
+        array, shape (3, 1)
             Interpolation of the strain at `coords`
 
         """
@@ -117,6 +117,30 @@ class Element2DOF(Element):
 
         """
         return self.shapes(*coords).dot(np.array(values))
+
+    def interpolate_derivatives(self, values, coords):
+        """Interpolates derivatives of values at the nodes at some coordinates
+
+        Parameters
+        ----------
+        values : array, shape (nnodes, 2)
+            Values asigned to each node
+        coords : array, shape (1, 2)
+            Psi-Eta coordinates
+
+        Returns
+        -------
+        array, shape (2, 2)
+            Interpolation of the derivatives of `values` at `coords`
+
+        """
+        a, b = coords
+        x, y = zip(*self.coords)
+        values = np.array(values)
+        jac_inv, jac_det = self.jacobian(a, b, x, y)
+        dshapes = jac_inv.dot(self.shapes_derivatives(a, b))
+        return dshapes.dot(values)
+
 
     def interpolate_derivatives_phys(self, values, coords):
         """Deprecated
@@ -350,6 +374,11 @@ class BLQuadQ4(Element2DOF):
     def covering(self):
         return [(self.chebyshev_center(), self.chebyshev_radius)]
 
+    def ishorizontal(self):
+        return np.all(np.isclose(self.coords[0], self.coords[-1]))
+
+    def isvertical(self):
+        return np.all(np.isclose(self.coords[0], self.coords[1]))
 
 class QuadQuadQ9(Element2DOF):
     """Quadratic quadrilateral element with 9 nodes
@@ -472,6 +501,84 @@ class QuadQuadQ9(Element2DOF):
         else:
             raise ValueError("Axis must be 0 or 1. Given: {}".format(axis))
 
+    def max_partial_derivs(self, values):
+        corners = np.array([[a, b] for a in [-1, 1] for b in [-1, 1]])
+        int_opt_coords = self._int_opt_coords(values.T)
+        border_opt_coords = self._border_opt_coords(values.T)
+        opt_coords = np.vstack([corners, int_opt_coords, border_opt_coords])
+        return np.max([np.abs(self.interpolate_derivatives(values, coords))
+                       for coords in opt_coords], axis=0)
+
+    @staticmethod
+    def _cross_deriv_arrays():
+        return np.array([
+            [-1, 1, 1, -1, 0, 2, 0, -2, 0],  # a,0
+            [2, 2, 2, 2, -4, 4, -4, 4, -8],  # a,1
+            [-1, -1, 1, 1, -1, 0, 1, 0, 0],  # b,0
+            [2, 2, 2, 2, 2, -2, 2, -2, -2]]) # b,1
+
+    def _int_opt_coords(self, values):
+        opt_coords = []
+        m = self._cross_deriv_arrays()
+        for v in values:
+            # w.r.t a
+            A = v[0] + v[1] - 2 * v[4]
+            B = v[2] + v[3] - 2 * v[6]
+            C = v[5] + v[7] - 2 * v[8]
+            try:
+                b1 = list(_q9_soeq_sol(A, B, C))
+                a1 = [_q9_foeq_sol(v, m[0], m[1], m[3] * b + m[2]) for b in b1]
+            except ValueError as e:
+                # logger.exception(e)
+                b1 = []
+                a1 = []
+
+            # w.r.t b
+            A = v[0] + v[3] - 2 * v[7]
+            B = v[1] + v[2] - 2 * v[5]
+            C = v[4] + v[6] - 2 * v[8]
+            try:
+                a2 = list(_q9_soeq_sol(A, B, C))
+                b2 = [_q9_foeq_sol(v, m[2], m[3], m[1] * a + m[0]) for a in a2]
+            except ValueError as e:
+                # logger.exception(e)
+                b2 = []
+                a2 = []
+
+            b = b1 + b2
+            a = a1 + a2
+            pairs = np.array([a, b]).T
+            opt_coords.extend(
+                [ab for ab in pairs if np.all(ab >= -1) and np.all(ab <= 1)])
+
+        ret = np.array(opt_coords)
+        if len(ret) == 0:
+            ret = ret.reshape((0, 2))
+        return ret
+
+    def _border_opt_coords(self, values):
+        opt_coords = []
+        m = self._cross_deriv_arrays()
+        for v in values:
+            # w.r.t b
+            b1 = [-1, 1]
+            a1 = [_q9_foeq_sol(v, m[0], m[1], m[3] * b + m[2]) for b in b1]
+
+            # w.r.t a
+            a2 = [-1, 1]
+            b2 = [_q9_foeq_sol(v, m[2], m[3], m[1] * a + m[0]) for a in a2]
+
+            b = b1 + b2
+            a = a1 + a2
+            pairs = np.array([a, b]).T
+            opt_coords.extend(
+                [ab for ab in pairs if np.all(ab >= -1) and np.all(ab <= 1)])
+
+        ret = np.array(opt_coords)
+        if len(ret) == 0:
+            ret = ret.reshape((0, 2))
+        return ret
+
     def chebyshev_radius(self):
         return np.linalg.norm(self.coords[0] - self.coords[2]) / 2.0
 
@@ -500,3 +607,33 @@ class QuadQuadQ9(Element2DOF):
             h = self.chebyshev_radius() / 2
             return [(self.interpolate(self.coords, np.array([i, j])), h)
                     for i in pts for j in pts]
+
+    def ishorizontal(self):
+        return np.all(np.isclose(self.coords[0], self.coords[-1]))
+
+    def isvertical(self):
+        return np.all(np.isclose(self.coords[0], self.coords[1]))
+
+
+def _q9_soeq_sol(a, b, c):
+    A = a + b - 2 * c
+    B = b - a
+    C = 2 * c
+    if np.isclose(A, 0):
+        if not np.isclose(B, 0):
+            return (-C / B,)
+        else:
+            raise ValueError("A == B == 0")
+    else:
+        discr = B**2 - 4 * A * C
+        if discr >= 0:
+            return (- B + np.sqrt(discr)) / (2 * A), (- B - np.sqrt(discr)) / (2 * A)
+        else:
+            raise ValueError("Negative discriminant")
+
+def _q9_foeq_sol(d, m0, m1, n):
+    div = (m1 * n).dot(d)
+    if not np.isclose(div, 0):
+        return -(m0 * n).dot(d) / div
+    else:
+        return 10000

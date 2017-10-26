@@ -280,8 +280,8 @@ def _get_apcs_perts(cregions, error_bounds, fdt_mult, xpart=None, mesh=None):
     apcs = zip(*sorted(cregions.items()))[1]
     if error_bounds is not None:
         epss, etas, nus = error_bounds
-        perts = [fem.perturb_profile(apc, epss, etas, nus, xpart, fdt_mult, mesh)
-                for apc in apcs]
+        perts = [fem.discretized_perturbed_profile(
+            apc, epss, etas, nus, xpart, fdt_mult, mesh) for apc in apcs]
     else:
         perts = None
 

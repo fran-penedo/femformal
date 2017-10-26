@@ -46,5 +46,5 @@ def g(x, y):
         return [None, None]
 
 
-dt = 0.1
+dt = 0.075
 T = 5.0

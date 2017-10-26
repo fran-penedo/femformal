@@ -10,7 +10,7 @@ T = 5.0
 
 sosys = mech2d.mech2d(xs, ys, rho, C, g, force, dt, None, q4=False)
 
-input_dt = 0.5
+input_dt = 0.75
 pwlf = sys.PWLFunction(
     np.linspace(0, T, round(T / input_dt) + 1), ybounds=[-4e6, 0.0], x=None)
 traction_force = mech2d.TimeVaryingTractionForce(pwlf, traction_templ, sosys.mesh)
@@ -26,4 +26,4 @@ fv = lambda x, p: p[0]
 d0, v0 = mech2d.state(u0, du0, sosys.mesh.nodes_coords, g)
 
 error_bounds = [[mdiff.eps, None], [mdiff.eta, None], [mdiff.nu, None]]
-error_bounds = None
+# error_bounds = None
