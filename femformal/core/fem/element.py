@@ -375,7 +375,7 @@ class BLQuadQ4(Element2DOF):
         return [(self.chebyshev_center(), self.chebyshev_radius)]
 
     def ishorizontal(self):
-        return np.all(np.isclose(self.coords[0], self.coords[-1]))
+        return np.all(np.isclose(self.coords[0], self.coords[2]))
 
     def isvertical(self):
         return np.all(np.isclose(self.coords[0], self.coords[1]))
@@ -593,7 +593,7 @@ class QuadQuadQ9(Element2DOF):
         else:
             return 2
 
-    def covering(self):
+    def _2elem_covering(self):
         dim = self._dim()
 
         if dim == 0:
@@ -607,6 +607,25 @@ class QuadQuadQ9(Element2DOF):
             h = self.chebyshev_radius() / 2
             return [(self.interpolate(self.coords, np.array([i, j])), h)
                     for i in pts for j in pts]
+
+    def _4elem_covering(self):
+        dim = self._dim()
+
+        if dim == 0:
+            return [(self.coords[0], 0)]
+        elif dim == 1:
+            pts = np.array([[-.75, -.75], [-.25, -.25], [.25, .25], [.75, .75]])
+            h = self.chebyshev_radius() / 4
+            return [(self.interpolate(self.coords, pt), h) for pt in pts]
+        else:
+            pts = [-.75, -.25, .25, .75]
+            h = self.chebyshev_radius() / 4
+            return [(self.interpolate(self.coords, np.array([i, j])), h)
+                    for i in pts for j in pts]
+
+    def covering(self):
+        return self._4elem_covering()
+
 
     def ishorizontal(self):
         return np.all(np.isclose(self.coords[0], self.coords[-1]))

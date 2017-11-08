@@ -4,9 +4,9 @@ from femformal.core import casestudy, system as sys
 from femformal.core.fem import mech2d as mech2d
 from examples.column2d.c2d_model import *
 
-n_its = 2
+n_its = 50
 
-mult_t = 2
+mult_t = 4
 elem_num_x_t = elem_num_x * mult_t
 elem_num_y_t = elem_num_y * mult_t
 xs_t = np.linspace(0, length, elem_num_x_t + 1)
@@ -65,7 +65,7 @@ input_dt = .75
 tlims = [int(round(0.0 / dt)) * dt, (int(round(T / dt)) - 1) * dt]
 xlims = np.array([[0.0, 0.0], [length, width]])
 fbounds = {'xs': np.linspace(0, T, round(T / input_dt) + 1),
-           'ybounds': [-4e6, 0.0]}
+           'ybounds': [-4e3, 0.0]}
 
 mds = casestudy.max_diff(
     sosys, g, tlims, xlims, sosys_t,

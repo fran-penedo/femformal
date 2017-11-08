@@ -96,9 +96,11 @@ def build_cs(system, d0, g, cregions, cspec, fdt_mult=1, bounds=None,
         eta_pert = EtaPerturbation(eta, xpart=xpart, mesh=system.mesh)
         nu_pert = NuPerturbation(nu, nu_xderiv, fdt_mult, xpart=xpart, mesh=system.mesh)
 
+        logger.debug(spec)
         logic.perturb(spec, eps_pert)
         logic.perturb(spec, eta_pert)
         logic.perturb(spec, nu_pert)
+        logger.debug(spec)
     else:
         spec = None
         # regions = None

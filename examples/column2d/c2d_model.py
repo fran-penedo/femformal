@@ -3,17 +3,17 @@ from __future__ import division, absolute_import, print_function
 import numpy as np
 
 
-length = 16.0
-width = 1.0
+length = 16.0e3
+width = 1.0e3
 mult = 4
 elem_num_x = 4 * mult
 elem_num_y = 2 * mult
 xs = np.linspace(0, length, elem_num_x + 1)
 ys = np.linspace(0, width, elem_num_y + 1)
-C = np.array([[1.346153846153846e+07, 5.769230769230769e+06, 0.000000000000000e+00],
+C = 1e-3 * np.array([[1.346153846153846e+07, 5.769230769230769e+06, 0.000000000000000e+00],
                        [5.769230769230769e+06, 1.346153846153846e+07, 0.000000000000000e+00],
                        [0.000000000000000e+00, 0.000000000000000e+00, 3.846153846153846e+06]])
-rho = 8e3
+rho = 8e-6
 center = 0.45
 left = .25
 right = .75
