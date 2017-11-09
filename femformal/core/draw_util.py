@@ -354,7 +354,8 @@ def draw_pde_snapshot(
     _render(fig, None, hold)
 
 
-def draw_displacement_2d(ds, mesh, ts, apcs=None, labels=None, perts=None, **kwargs):
+def draw_displacement_2d(ds, mesh, ts, apcs=None, labels=None, perts=None,
+                         ds_t=None, mesh_t=None, **kwargs):
     global _holds
     fig = plt.figure()
     ax = fig.add_subplot(111)
@@ -368,12 +369,15 @@ def draw_displacement_2d(ds, mesh, ts, apcs=None, labels=None, perts=None, **kwa
 
     ls = ax.add_collection(LineCollection([], colors='k'))
     time_text = ax.text(.02, .95, '', transform=ax.transAxes)
+    if ds_t is None:
+        ds_t = ds
+        mesh_t = None
 
     def lines(i):
-        nodes = mesh.nodes_coords + ds[i].reshape(mesh.nodes_coords.shape[0], 2)
+        nodes = mesh_t.nodes_coords + ds_t[i].reshape(mesh_t.nodes_coords.shape[0], 2)
         ls.set_segments([[nodes[n], nodes[nex]]
-                         for n in range(mesh.nnodes)
-                         for nex in mesh.connected_fwd(n)])
+                         for n in range(mesh_t.nnodes)
+                         for nex in mesh_t.connected_fwd(n)])
         time_text.set_text('t = {}'.format(ts[i]))
         return ls, time_text
 
@@ -386,16 +390,16 @@ def draw_displacement_2d(ds, mesh, ts, apcs=None, labels=None, perts=None, **kwa
 
         def preds(i):
             for key, value in pred_data.items():
+                interp = mesh_t.interpolate(ds_t[i])
                 dof = apcs[key].u_comp
-                data = value['pts'].copy()
+                pts = value['pts']
+                data = pts.copy()
                 data[:,dof] += value['disps']
-                sys_disps = np.array([ds[i][2*n + 1 - dof] for n in value['nodes']])
+                sys_disps = np.array([interp(*c)[1 - dof] for c in pts])
                 data[:, 1 - dof] += sys_disps
                 value['l'].set_data(data[:,0], data[:,1])
 
                 if 'l_pert' in value:
-                    interp = mesh.interpolate(ds[i])
-
                     for j in range(len(value['l_pert'])):
                         line = value['l_pert'][j]
                         vs = value['perts'][j]
@@ -417,6 +421,10 @@ def draw_displacement_2d(ds, mesh, ts, apcs=None, labels=None, perts=None, **kwa
 
     _render(fig, None, kwargs['hold'])
 
+def save_ani(fig):
+    Writer = animation.writers['ffmpeg']
+    writer = Writer(fps=15, bitrate=1800)
+    fig.__line_ani.save('lines.mp4', writer=writer)
 
 def _render(fig, savefun, hold):
     global _holds

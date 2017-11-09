@@ -141,10 +141,13 @@ def run_draw_displacement(m, inputm, draw_opts, args):
     (fig, ) = sys.draw_displacement_plot(
         cs.system, cs.d0, cs.g, cs.T, t0=0, hold=True, xlabel=draw_opts.xlabel,
         ylabel=draw_opts.ylabel, derivative_ylabel=draw_opts.derivative_ylabel,
-        apcs=apcs, labels=sorted(cregions.keys()), perts=perts)
+        apcs=apcs, labels=sorted(cregions.keys()), perts=perts, system_t=cs.system_t,
+        d0_t=cs.d0_t)
 
     _set_fig_opts(fig, [0], draw_opts, tight=False)
 
+    if args.movie:
+        draw.save_ani(fig)
     draw.plt.show()
 
 
@@ -303,6 +306,8 @@ def get_argparser():
     parser_draw = subparsers.add_parser(
         'draw', help='Plot PDE trajectories')
     parser_draw.add_argument('-i', '--input-file', help='file with extra inputs')
+    parser_draw.add_argument('-m', '--movie', action='store_true',
+                             help='save a movie when drawing an animation')
     _add_draw_argparser(parser_draw)
     parser_milp = subparsers.add_parser(
         'milp', help='Run an example using MILP')

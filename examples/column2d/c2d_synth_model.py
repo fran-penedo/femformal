@@ -25,5 +25,11 @@ fv = lambda x, p: p[0]
 
 d0, v0 = mech2d.state(u0, du0, sosys.mesh.nodes_coords, g)
 
+sosys_t = sys.ControlSOSystem.from_sosys(
+    mech2d.mech2d(xs_t, ys_t, rho, C, g, force_t, dt_t, q4=False), None)
+traction_force_t = mech2d.TimeVaryingTractionForce(pwlf, traction_templ, sosys_t.mesh)
+sosys_t.add_f_nodal(traction_force_t.traction_force)
+d0_t, v0_t = mech2d.state(u0, du0, sosys_t.mesh.nodes_coords, g)
+
 error_bounds = [[mdiff.eps, None], [mdiff.eta, None], [mdiff.nu, None]]
 # error_bounds = None

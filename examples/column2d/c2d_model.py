@@ -48,3 +48,11 @@ def g(x, y):
 
 dt = 0.075
 T = 5.0
+
+mult_t = 1
+elem_num_x_t = elem_num_x * mult_t
+elem_num_y_t = elem_num_y * mult_t
+xs_t = np.linspace(0, length, elem_num_x_t + 1)
+ys_t = np.linspace(0, width, elem_num_y_t + 1)
+force_t = None
+dt_t = dt

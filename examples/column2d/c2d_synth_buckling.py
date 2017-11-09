@@ -39,4 +39,5 @@ bounds = [-10e3, 10e3]
 cs = casestudy.build_cs(
     sosys, [d0, v0], g, cregions, cspec,
     discretize_system=False, bounds=bounds, error_bounds=error_bounds,
-    pset=[dset, vset, fset], f=[fd, fv, traction_force])
+    pset=[dset, vset, fset], f=[fd, fv, traction_force], system_t=sosys_t,
+    d0_t=[d0_t, v0_t])

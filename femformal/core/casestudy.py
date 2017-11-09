@@ -16,7 +16,8 @@ logger = logging.getLogger(__name__)
 
 def build_cs(system, d0, g, cregions, cspec, fdt_mult=1, bounds=None,
              pset=None, f=None, discretize_system=False, cstrue=None, error_bounds=None,
-             eps=None, eta=None, nu=None, eps_xderiv=None, nu_xderiv=None, T=1.0):
+             eps=None, eta=None, nu=None, eps_xderiv=None, nu_xderiv=None, T=1.0,
+             system_t=None, d0_t=None):
     """Builds a FEM model
 
     Builds a :class:`CaseStudy` object with all the information of the model,
@@ -57,6 +58,8 @@ def build_cs(system, d0, g, cregions, cspec, fdt_mult=1, bounds=None,
         the parameters of the same name
     T : float, optional
         Final time
+    system_t : any `System` class in :mod:`femformal.core.system`
+        True system
 
     Returns
     -------
@@ -117,7 +120,9 @@ def build_cs(system, d0, g, cregions, cspec, fdt_mult=1, bounds=None,
         'f': f,
         # 'regions': regions,
         'spec': spec,
-        'T': T
+        'T': T,
+        'system_t': system_t,
+        'd0_t': d0_t,
     })
 
 
@@ -853,6 +858,7 @@ class CaseStudy(object):
         'f'         List of parameterized functions
         'spec'      STL formula
         'T'         Final time
+        'system_t'  True system
         ==========  ===================================================
 
     """
@@ -869,6 +875,8 @@ class CaseStudy(object):
         self.f        = copy.pop('f', None)
         self.spec     = copy.pop('spec', None)
         self.T        = copy.pop('T', 0)
+        self.system_t = copy.pop('system_t', None)
+        self.d0_t     = copy.pop('d0_t', None)
 
         if len(copy) > 0:
             raise Exception('Undefined parameters in CaseStudy: {}'.format(copy))
