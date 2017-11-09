@@ -135,7 +135,8 @@ def run_draw_displacement(m, inputm, draw_opts, args):
     if inputm is not None and hasattr(inputm, 'inputs'):
         inputs = inputm.inputs
         m.pwlf.ys = inputs
-        cs.system = sys.ControlSOSystem.from_sosys(cs.system, m.traction_force.traction_force)
+        cs.system = sys.ControlSOSystem.from_sosys(
+            cs.system, m.traction_force.traction_force)
 
     apcs, perts = _get_apcs_perts(cregions, error_bounds, cs.fdt_mult, mesh=cs.system.mesh)
     (fig, ) = sys.draw_displacement_plot(
@@ -177,6 +178,40 @@ def run_draw_animated(m, inputm, draw_opts, args):
     _set_fig_opts(fig, [0, 1, 2, 3], draw_opts, tight=False)
 
     draw.plt.show()
+
+def run_draw_snapshots_disp(m, inputm, draw_opts, args):
+    cs = getattr(m, 'cs')
+    cregions = getattr(m, 'cregions', None)
+    error_bounds = getattr(m, 'error_bounds', None)
+    if inputm is None:
+        raise Exception("Input file needed to draw snapshots")
+    ts = getattr(inputm, 'ts')
+    inputs = getattr(inputm, 'inputs')
+    if inputs is not None:
+        m.pwlf.ys = inputs
+        cs.system = sys.ControlSOSystem.from_sosys(
+            cs.system, m.traction_force.traction_force)
+
+    apcs, perts = _get_apcs_perts(cregions, error_bounds, cs.fdt_mult, mesh=cs.system.mesh)
+    figs = sys.draw_displacement_snapshots(
+        cs.system, cs.d0, cs.g, ts, xlabel=draw_opts.xlabel,
+        ylabel=draw_opts.ylabel, derivative_ylabel=draw_opts.derivative_ylabel,
+        apcs=apcs, labels=sorted(cregions.keys()), perts=perts, system_t=cs.system_t,
+        d0_t=cs.d0_t)
+
+    ylims = [fig.get_axes()[0].get_ylim() for fig in figs]
+    ylims_flat = [a for b in ylims for a in b]
+    for fig, t in zip(figs, ts):
+        _set_fig_opts(fig, [0], draw_opts, tight=False)
+        draw.update_ax_ylim(fig.get_axes()[0], ylims_flat)
+
+    prefix = draw_opts.file_prefix
+    if prefix is None:
+        draw.plt.show()
+    else:
+        for fig, t in zip(figs, ts):
+            fig.savefig(_fix_filename(prefix + "_disp_t{}".format(t)) + ".png",
+                         bbox_inches='tight', pad_inches=0)
 
 def run_draw_snapshots(m, inputm, draw_opts, args):
     cs = getattr(m, 'cs')
@@ -330,6 +365,7 @@ def _add_draw_argparser(parser):
     subparsers.add_parser('animated_2d')
     subparsers.add_parser('inputs')
     subparsers.add_parser('snapshots')
+    subparsers.add_parser('snapshots_disp')
     subparsers.add_parser('displacement')
 
 

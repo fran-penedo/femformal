@@ -353,6 +353,23 @@ def draw_pde_snapshot(
 
     _render(fig, None, hold)
 
+def draw_displacement_2d_snapshot(ds, mesh, ts, query_ts, apcs=None, labels=None,
+                                  perts=None, ds_t=None, mesh_t=None, **kwargs):
+    figs = []
+    for t in query_ts:
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+
+        lines = _update_func_disp_2d(ax, ds, mesh, ts, apcs, labels, perts, ds_t,
+                                    mesh_t, **kwargs)
+        i = np.where(np.isclose(ts, t))[0][0]
+        lines(i)
+        fig.tight_layout()
+        figs.append(fig)
+
+    return figs
+
+
 
 def draw_displacement_2d(ds, mesh, ts, apcs=None, labels=None, perts=None,
                          ds_t=None, mesh_t=None, **kwargs):
@@ -360,6 +377,15 @@ def draw_displacement_2d(ds, mesh, ts, apcs=None, labels=None, perts=None,
     fig = plt.figure()
     ax = fig.add_subplot(111)
 
+    lines = _update_func_disp_2d(ax, ds, mesh, ts, apcs, labels, perts, ds_t,
+                                 mesh_t, **kwargs)
+    set_animation(fig, ts, lines)
+    fig.tight_layout()
+
+    _render(fig, None, kwargs['hold'])
+
+def _update_func_disp_2d(ax, ds, mesh, ts, apcs, labels, perts, ds_t, mesh_t,
+                         **kwargs):
     ax.set_xlim(mesh.partitions[0][0], mesh.partitions[0][-1])
     ax.set_xticks(mesh.partitions[0])
     ax.set_ylim(mesh.partitions[1][0], mesh.partitions[1][-1])
@@ -414,12 +440,9 @@ def draw_displacement_2d(ds, mesh, ts, apcs=None, labels=None, perts=None,
 
         ax.legend(loc='lower left', fontsize='6', labelspacing=0.05, handletextpad=0.1)
 
-        set_animation(fig, ts, _combine_lines([lines, preds]))
+        return _combine_lines([lines, preds])
     else:
-        set_animation(fig, ts, lines)
-    fig.tight_layout()
-
-    _render(fig, None, kwargs['hold'])
+        return lines
 
 def save_ani(fig):
     Writer = animation.writers['ffmpeg']
@@ -555,7 +578,6 @@ def predicates_displacement_data(apcs, labels, mesh, ax, perts=None):
         if perts is not None:
             l_pert = [ax.plot([], [], ms=5, ls='none', marker=m, c=l.get_c())[0]
                       for pert, m in zip(range(len(perts[i])), "os^")]
-            logger.debug(len(l_pert))
             ret[i].update({'perts': perts[i], 'l_pert': l_pert})
 
     return ret

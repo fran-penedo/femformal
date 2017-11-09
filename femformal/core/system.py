@@ -1355,7 +1355,7 @@ def draw_displacement_plot(sys, d0, g, T, t0=0, **kwargs):
 
     """
     dt = sys.dt
-    ts = np.linspace(t0, T, int(round((T - t0) / dt)))
+    ts = np.linspace(t0, T, int(round((T - t0) / dt)) + 1)
     d, v = newm_integrate(sys, d0[0], d0[1], T, dt, beta=.25)
     if 'system_t' in kwargs:
         sys_t = kwargs['system_t']
@@ -1366,6 +1366,18 @@ def draw_displacement_plot(sys, d0, g, T, t0=0, **kwargs):
     # d = d[int(round(t0/dt)):]
     draw.draw_displacement_2d(d, sys.mesh, ts, ds_t=d_t, mesh_t=sys_t.mesh, **kwargs)
     return draw.pop_holds()
+
+def draw_displacement_snapshots(sys, d0, g, ts, **kwargs):
+    t0, T = 0, max(ts)
+    tx = np.linspace(t0, T, int(round((T - t0)/sys.dt)) + 1)
+    d, v = newm_integrate(sys, d0[0], d0[0], T, sys.dt, beta=.25)
+    if 'system_t' in kwargs:
+        sys_t = kwargs['system_t']
+        d0_t = kwargs['d0_t']
+        d_t, v_t = newm_integrate(sys_t, d0_t[0], d0_t[1], T, sys_t.dt, beta=.25)
+        tx = np.linspace(t0, T, int(round((T - t0) / sys_t.dt)) + 1)
+    return draw.draw_displacement_2d_snapshot(d, sys.mesh, tx, ts, ds_t=d_t,
+                                              mesh_t=sys_t.mesh, **kwargs)
 
 
 def draw_pwlf(pwlf, ylabel='Force $u_L$', xlabel='Time t', axes=None):

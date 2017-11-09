@@ -33,7 +33,7 @@ apc2 = logic.APCont2D(1, np.array([[8e3, 0], [14e3, 0]]), '<',
                       lambda x, y: abs(soderinterp(apc2_nodes)(x)))
 
 cregions = {'A': apc1, 'B': apc2}
-cspec = "((G_[3.5, 4.0] (A)) & (G_[3.5, 4.0] (B)))".format(T)
+cspec = "((G_[3.45, 4.05] (A)) & (G_[3.45, 4.05] (B)))".format(T)
 bounds = [-10e3, 10e3]
 
 cs = casestudy.build_cs(
