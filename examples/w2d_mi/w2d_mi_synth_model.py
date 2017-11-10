@@ -2,7 +2,7 @@ import numpy as np
 
 from femformal.core import system as sys
 from femformal.core.fem import mech2d as mech2d
-from examples.column2d.c2d_model import *
+from examples.w2d_mi.w2d_mi_model import *
 from examples.column2d.results import c2d_maxdiff_results as mdiff
 
 

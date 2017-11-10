@@ -40,11 +40,11 @@ def create_unif_traction_templ(xs, ys, f):
 
 def combine_tractions(tractions):
     def traction_templ(x, y, U):
-        return np.sum([traction(x, y, U) for traction in tractions], axis=0)
+        return np.sum([traction(x, y, Ut) for traction, Ut in zip(tractions, U)], axis=0)
     return traction_templ
 
-traction1 = create_unif_traction_templ([16,16], [0, 0.4], lambda x, y, U: [U, 0])
-traction2 = create_unif_traction_templ([16,16], [0.6, 1.0], lambda x, y, U: [U, 0])
+traction1 = create_unif_traction_templ([16e3,16e3], [0, 0.4e3], lambda x, y, U: [U, 0])
+traction2 = create_unif_traction_templ([16e3,16e3], [0.6e3, 1.0e3], lambda x, y, U: [U, 0])
 traction_templ = combine_tractions([traction1, traction2])
 
 force = None

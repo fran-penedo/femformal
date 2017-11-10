@@ -68,7 +68,10 @@ def synthesize(system, pset, f, spec, fdt_mult=1, return_traj=False, T=None):
         m.computeIIS()
         m.write("out.ilp")
         return None, None
-    inputs = [y.getAttr('x') for y in f[-1].ys]
+    if isinstance(f[-1].ys[0], list):
+        inputs = [[y.getAttr('x') for y in yy] for yy in f[-1].ys]
+    else:
+        inputs = [y.getAttr('x') for y in f[-1].ys]
     try:
         robustness = m.getVarByName("spec").getAttr("x")
     except:
