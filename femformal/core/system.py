@@ -406,9 +406,18 @@ class PWLFunction(object):
 
     """
     def __init__(self, ts, ys=None, ybounds=None, x=None):
-        self.ts = ts
-        self.ys = ys
-        self.ybounds = ybounds
+        self.ts = np.array(ts)
+        if ys is not None:
+            self.ys = np.array(ys)
+        else:
+            self.ys = None
+        if ybounds is None:
+            if len(self.ys.shape) == 1:
+                self.ybounds = np.zeros(2)
+            else:
+                self.ybounds = np.zeros(self.ys.shape[0], 2)
+        else:
+            self.ybounds = np.array(ybounds)
         self.x = x
 
     def pset(self):
@@ -422,11 +431,22 @@ class PWLFunction(object):
         ndarray
 
         """
+        ybounds = self.ybounds
+        if len(ybounds.shape) == 1:
+            ybounds = ybounds[None]
+
+        matrix = []
         left = np.hstack([np.identity(len(self.ts)),
-                             -np.identity(len(self.ts))])
-        right = np.r_[[self.ybounds[1] for x in self.ts],
-                      [-self.ybounds[0] for x in self.ts]]
-        return np.vstack([left, right]).T
+                          -np.identity(len(self.ts))])
+        for yb in ybounds:
+            right = np.r_[[yb[1] for x in self.ts],
+                        [-yb[0] for x in self.ts]]
+            matrix.append(np.vstack([left, right]).T)
+
+        if ybounds.shape[0] == 1:
+            return matrix[0]
+        else:
+            return np.array(matrix)
 
     def __call__(self, t, p=None, x=None):
         """Computes the value of the function at some point of the domain
@@ -456,14 +476,22 @@ class PWLFunction(object):
             if p is None:
                 raise Exception("y values not set")
             self.ys = ys = p
+        if len(self.ybounds.shape) == 1:
+            ys = [ys]
         # FIXME probable issue with t = ts[-1]
         if t >= ts[-1]:
-            return ys[-1]
+            ret = [y[-1] for y in ys]
         elif t <= ts[0]:
-            return ys[0]
+            ret = [y[0] for y in ys]
         else:
             i = bisect_right(ts, t) - 1
-            return ys[i] + (ys[i+1] - ys[i]) * (t - ts[i]) / (ts[i+1] - ts[i])
+            ret = [y[i] + (y[i+1] - y[i]) * (t - ts[i]) / (ts[i+1] - ts[i])
+                    for y in ys]
+
+        if len(self.ybounds.shape) == 1:
+            return ret[0]
+        else:
+            return ret
 
 
 # Abstraction based approach utilities

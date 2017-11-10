@@ -371,8 +371,13 @@ def add_newmark_constr_x0_set(m, l, system, pset, f, N, beta=0.25, gamma=0.5):
           for i in range(dset.shape[1] - 1)]
     pv = [m.addVar(obj=0, lb=-g.GRB.INFINITY, ub=g.GRB.INFINITY, name=label('pv', i, 0))
           for i in range(vset.shape[1] - 1)]
-    pf = [m.addVar(obj=0, lb=-g.GRB.INFINITY, ub=g.GRB.INFINITY, name=label('pf', i, 0))
-          for i in range(fset.shape[1] - 1)]
+    if len(fset.shape) == 2:
+        pf = [m.addVar(obj=0, lb=-g.GRB.INFINITY, ub=g.GRB.INFINITY, name=label('pf', i, 0))
+            for i in range(fset.shape[1] - 1)]
+    elif len(fset.shape) == 3:
+        pf = [[m.addVar(obj=0, lb=-g.GRB.INFINITY, ub=g.GRB.INFINITY, name=label('pf', i, 0))
+                for i in range(fset.shape[1] - 1)]
+              for k in range(fset.shape[0])]
 
     m.update()
 
@@ -382,9 +387,15 @@ def add_newmark_constr_x0_set(m, l, system, pset, f, N, beta=0.25, gamma=0.5):
     for i in range(vset.shape[0]):
         m.addConstr(g.quicksum(
             pv[j] * vset[i][j] for j in range(vset.shape[1] - 1)) <= vset[i][-1])
-    for i in range(fset.shape[0]):
-        m.addConstr(g.quicksum(
-            pf[j] * fset[i][j] for j in range(fset.shape[1] - 1)) <= fset[i][-1])
+    if len(fset.shape) == 2:
+        for i in range(fset.shape[0]):
+            m.addConstr(g.quicksum(
+                pf[j] * fset[i][j] for j in range(fset.shape[1] - 1)) <= fset[i][-1])
+    elif len(fset.shape) == 3:
+        for k in range(fset.shape[0]):
+            for i in range(fset.shape[1]):
+                m.addConstr(g.quicksum(
+                    pf[k][j] * fset[k][i][j] for j in range(fset.shape[2] - 1)) <= fset[k][i][-1])
 
     logger.debug("Adding initial and boundary conditions")
     if xpart is not None:

@@ -242,19 +242,19 @@ class TestQuadQuadQ9(unittest.TestCase):
         expected_full = [(np.array([-.5, -.25]), h), (np.array([-.5, 1.25]), h),
             (np.array([.5, -.25]), h), (np.array([.5, 1.25]), h)]
 
-        for a, b in zip(self.elem0D.covering(), expected_0D):
+        for a, b in zip(self.elem0D._2elem_covering(), expected_0D):
             npt.assert_array_almost_equal(a[0], b[0])
             npt.assert_array_almost_equal(a[1], b[1])
 
-        for a, b in zip(self.elem1Dh.covering(), expected_1Dh):
+        for a, b in zip(self.elem1Dh._2elem_covering(), expected_1Dh):
             npt.assert_array_almost_equal(a[0], b[0])
             npt.assert_array_almost_equal(a[1], b[1])
 
-        for a, b in zip(self.elem1Dv.covering(), expected_1Dv):
+        for a, b in zip(self.elem1Dv._2elem_covering(), expected_1Dv):
             npt.assert_array_almost_equal(a[0], b[0])
             npt.assert_array_almost_equal(a[1], b[1])
 
-        for a, b in zip(self.elem.covering(), expected_full):
+        for a, b in zip(self.elem._2elem_covering(), expected_full):
             npt.assert_array_almost_equal(a[0], b[0])
             npt.assert_array_almost_equal(a[1], b[1])
 

@@ -2,6 +2,7 @@ import logging
 import unittest
 
 import numpy as np
+from numpy import testing as npt
 
 from .. import system as sys
 from ..fem import mesh, element
@@ -137,8 +138,14 @@ class TestComplexSystem(unittest.TestCase):
 
 
     def test_pwlf(self):
-        self.assertEquals(self.pwlf.ys, [self.pwlf(t) for t in self.pwlf.ts])
+        npt.assert_array_equal(self.pwlf.ys, [self.pwlf(t) for t in self.pwlf.ts])
         self.assertEquals(self.pwlf(1.5), 0.75)
+
+    def test_pwlf_vector(self):
+        pwlf = sys.PWLFunction([0, 1, 2, 3], [[0, 1.0, 0.5, 2.0] for i in range(2)],
+                               ybounds=[[-10.0, 10.0] for i in range(2)])
+        npt.assert_array_equal(pwlf.ys.T, [pwlf(t) for t in pwlf.ts])
+        npt.assert_array_equal(pwlf(1.5), [0.75, 0.75])
 
     def test_pwlf_disc(self):
         pwlf = sys.PWLFunction([0, 1, 1, 2], [0, 0, 1.0, 1.0])
@@ -163,6 +170,21 @@ class TestComplexSystem(unittest.TestCase):
                          [0, 0, -1, 0, 10.0],
                          [0, 0, 0, -1, 10.0]])
         np.testing.assert_array_equal(self.pwlf.pset(), pset)
+
+    def test_pwlf_pset_vector(self):
+        pwlf = sys.PWLFunction([0, 1, 2, 3], [0, 1.0, 0.5, 2.0],
+                               ybounds=[[-10.0, 10.0] for i in range(2)])
+        p = np.array([[1, 0, 0, 0, 10.0],
+                         [0, 1, 0, 0, 10.0],
+                         [0, 0, 1, 0, 10.0],
+                         [0, 0, 0, 1, 10.0],
+                         [-1, 0, 0, 0, 10.0],
+                         [0, -1, 0, 0, 10.0],
+                         [0, 0, -1, 0, 10.0],
+                         [0, 0, 0, -1, 10.0]])
+        pset = np.array([p, p])
+        np.testing.assert_array_equal(pwlf.pset(), pset)
+
 
     def test_control(self):
         pwlf = sys.PWLFunction([0, 1, 1, 2], [1.0, 1.0, 0.0, 0.0])
