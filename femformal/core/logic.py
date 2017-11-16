@@ -64,6 +64,10 @@ class APCont(object):
 class APCont2D(APCont):
     """2D S-STL predicate :math:`\\forall x \in A : u_j \\sim p(x)`
 
+    If `deriv` is supplied, then the predicate is defined using the
+    corresponding directional derivative:
+    :math:`\\forall x \in A : \\frac{d u_j}{d x_i} \\sim p(x)`
+
     Parameters
     ----------
     u_comp : int
@@ -75,14 +79,17 @@ class APCont2D(APCont):
         Inequality direction.
     p : callable
         The reference profile. Must have signature p(float) -> float
-    dp : callable, optional
+    dp : callable
         The derivative of the reference profile. Must have signature
         dp(float) -> float
+    deriv : int, optional
+        Directional derivative (:math:`i` in the above equation)
 
     """
-    def __init__(self, u_comp, A, r, p, dp):
-        APCont.__init__(self, A, r, p, dp)
+    def __init__(self, u_comp, A, r, p, dp, deriv=None):
+        APCont.__init__(self, A, r, p, dp, uderivs=(0 if deriv is None else 1))
         self.u_comp = u_comp
+        self.deriv = deriv
 
 
 # S-STL to STL
@@ -123,7 +130,9 @@ class STLPred(object):
 
     The second case has `region_dim > 0` and `y` is the `u_comp` component of
     the value of the `uderivs` derivative at the `query_point` of the element
-    indexed by `index`. Typically an element has one query point (its
+    indexed by `index`. If the element is multidimensional, 'deriv' specifies
+    the direction of the derivative and `uderivs` is restricted to 1.
+    Typically an element has one query point (its
     chebyshev center), but elements can implement more query points to decrease
     the conservativeness of the predicate discretization (in particular the
     eta correction).
@@ -149,10 +158,12 @@ class STLPred(object):
         Dimension of the element for which this predicate is defined
     query_point : int
         Index of the query point in the element
+    deriv : int, optional
+        Directional derivative
 
     """
     def __init__(self, index, r, p, dp, isnode = True, uderivs = 0, u_comp = 0,
-                 region_dim = 0, query_point = 0):
+                 region_dim = 0, query_point = 0, deriv = None):
         self.index = index
         self.r = r
         self.p = p
@@ -162,6 +173,7 @@ class STLPred(object):
         self.u_comp = u_comp
         self.region_dim = region_dim
         self.query_point = query_point
+        self.deriv = deriv
 
     def __str__(self):
         return ("({region_dim} {u_comp} {uderivs} "
@@ -224,7 +236,8 @@ def _ap_cont2d_to_disc(apcont, mesh_):
             e, apcont.r,
             apcont.p(*coords), apcont.dp(*coords),
             isnode=elem_set.dimension == 0, uderivs=apcont.uderivs,
-            u_comp=apcont.u_comp, region_dim=elem_set.dimension, query_point=i
+            u_comp=apcont.u_comp, region_dim=elem_set.dimension, query_point=i,
+            deriv=apcont.deriv
         ) for e, elem in elems for i, (coords, h) in enumerate(elem.covering())]
 
     return _APDisc(stlpred_list)
@@ -345,9 +358,16 @@ def _build_f_elem(ap, elem):
         return lambda vs: - op * (
             elem.interpolate_phys(vs, elem.covering()[ap.query_point][0]) - p)
     else:
-        #FIXME think about this when implementing derivatives
-        return lambda vs: -(elem.interpolate_derivatives(
-            vs, [0 for i in range(elem.dimension)]) - p) * op
+        # return lambda vs: - op * (
+        #     elem.interpolate_derivatives(
+        #         [[vs[i*2 + j] for j in range(2)] for i in range(len(vs) // 2)],
+        #         elem.covering()[ap.query_point][0])[ap.u_comp][ap.deriv] - p)
+
+        component = ap.u_comp if ap.u_comp == ap.deriv else 2
+        return lambda vs: - op * (
+            elem.interpolate_strain(
+                vs,
+                elem.covering()[ap.query_point][0])[component] - p)
 
 class SysSignal(stl.Signal):
     """Secondary signal from a FEM system
@@ -388,10 +408,19 @@ class SysSignal(stl.Signal):
             self.f = _build_f(self.apdisc, self.elem_len)
         else:
             #FIXME dofs?
-            self.labels = [
-                (lambda t, i=i: label("d", self.apdisc.u_comp + 2 * i, t))
-                for i in mesh_.elem_nodes(
-                    self.apdisc.index, self.apdisc.region_dim)]
+            if self.apdisc.deriv is None:
+                self.labels = [
+                    (lambda t, i=i: label("d", self.apdisc.u_comp + 2 * i, t))
+                    for i in mesh_.elem_nodes(
+                        self.apdisc.index, self.apdisc.region_dim)]
+            else:
+                self.labels = [
+                    (lambda t, i=i, j=j: label("d", j + 2 * i, t))
+                    for i in mesh_.elem_nodes(
+                        self.apdisc.index, self.apdisc.region_dim)
+                    for j in range(2)
+                ]
+
             self.elem = mesh_.build_elem(
                 mesh_.elem_coords(self.apdisc.index, self.apdisc.region_dim))
             self.f = _build_f_elem(self.apdisc, self.elem)

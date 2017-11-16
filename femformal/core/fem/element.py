@@ -141,7 +141,6 @@ class Element2DOF(Element):
         dshapes = jac_inv.dot(self.shapes_derivatives(a, b))
         return dshapes.dot(values)
 
-
     def interpolate_derivatives_phys(self, values, coords):
         """Deprecated
 

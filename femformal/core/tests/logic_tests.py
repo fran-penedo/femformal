@@ -151,6 +151,18 @@ class test_logic(unittest.TestCase):
         expected_f = np.mean(vs) - 5.0
         npt.assert_equal(s1.f(vs), expected_f)
 
+    def test_syssignal_2d_full_stress(self):
+        s1 = logic.SysSignal(
+            logic.STLPred(
+                1, -1, 5.0, 10.0, False, uderivs=1, region_dim=2, u_comp=1,
+                query_point=0, deriv=1),
+            mesh_=self.mesh)
+        expected_labels = ["d_2_5", "d_3_5", "d_4_5", "d_5_5", "d_14_5", "d_15_5", "d_12_5", "d_13_5"]
+        self.assertListEqual([l(5) for l in s1.labels], expected_labels)
+        vs = [1,2,3,4,1,6,1,4]
+        expected_f = 2 / (self.c / (len(self.ys) - 1)) - 5.0
+        npt.assert_equal(s1.f(vs), expected_f)
+
     def test_syssignal_2d_hor(self):
         s1 = logic.SysSignal(
             logic.STLPred(1, 1, 5.0, 10.0, False, uderivs=0, region_dim=1),
