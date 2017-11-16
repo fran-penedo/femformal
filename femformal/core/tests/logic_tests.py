@@ -22,7 +22,7 @@ class test_logic(unittest.TestCase):
             logic.STLPred(2, r, 6.0, 10.0, isnode, uderivs=uderivs, region_dim=region_dim)
         ])
         self.xpart = np.linspace(0, 5, 11)
-        self.apd1_string = "((1 0 1 1 0 < 5.0 10.0) & (1 0 1 2 0 < 6.0 10.0))"
+        self.apd1_string = "((1 0 1 1 0 < 5.0 10.0 -1) & (1 0 1 2 0 < 6.0 10.0 -1))"
         self.form = "G_[0, 1] ({})".format(self.apd1_string)
         self.signal1 = logic.SysSignal(
             logic.STLPred(1, -1, 5.0, 10.0, isnode=False, uderivs=1, region_dim=1),
@@ -83,8 +83,8 @@ class test_logic(unittest.TestCase):
         form = parser.parseString(self.apd1_string)[0]
         s1, s2 = [f.args[0] for f in form.args]
 
-        self.assertEqual(str(s1), "(1 0 1 1 0 < 5.0 10.0)")
-        self.assertEqual(str(s2), "(1 0 1 2 0 < 6.0 10.0)")
+        self.assertEqual(str(s1), "(1 0 1 1 0 < 5.0 10.0 -1)")
+        self.assertEqual(str(s2), "(1 0 1 2 0 < 6.0 10.0 -1)")
         self.assertEqual(s1.fdt_mult, fdt_mult)
         self.assertEqual(s1.bounds, bounds)
         self.assertEqual(s2.fdt_mult, fdt_mult)
@@ -94,7 +94,7 @@ class test_logic(unittest.TestCase):
         fdt_mult = 2
         bounds = [-1000, 1000]
         parser = logic.stl_parser(None, fdt_mult, bounds, self.mesh)
-        pred = "(2 0 0 1 0 > 5.0 10.0)"
+        pred = "(2 0 0 1 0 > 5.0 10.0 -1)"
         form = parser.parseString(pred)[0]
         s4 = form.args[0]
 

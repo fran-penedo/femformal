@@ -59,6 +59,7 @@ class APCont(object):
             self.dp = dp
         else:
             self.dp = lambda x: 0
+        self.deriv = -1
 
 
 class APCont2D(APCont):
@@ -86,8 +87,8 @@ class APCont2D(APCont):
         Directional derivative (:math:`i` in the above equation)
 
     """
-    def __init__(self, u_comp, A, r, p, dp, deriv=None):
-        APCont.__init__(self, A, r, p, dp, uderivs=(0 if deriv is None else 1))
+    def __init__(self, u_comp, A, r, p, dp, deriv=-1):
+        APCont.__init__(self, A, r, p, dp, uderivs=(0 if deriv < 0 else 1))
         self.u_comp = u_comp
         self.deriv = deriv
 
@@ -163,7 +164,7 @@ class STLPred(object):
 
     """
     def __init__(self, index, r, p, dp, isnode = True, uderivs = 0, u_comp = 0,
-                 region_dim = 0, query_point = 0, deriv = None):
+                 region_dim = 0, query_point = 0, deriv = -1):
         self.index = index
         self.r = r
         self.p = p
@@ -177,7 +178,7 @@ class STLPred(object):
 
     def __str__(self):
         return ("({region_dim} {u_comp} {uderivs} "
-                "{index} {query} {op} {p} {dp})".format(
+                "{index} {query} {op} {p} {dp} {deriv})".format(
             region_dim=self.region_dim,
             u_comp=self.u_comp,
             uderivs=self.uderivs,
@@ -185,7 +186,8 @@ class STLPred(object):
             op="<" if self.r == 1 else ">",
             p=self.p,
             dp=self.dp,
-            query=self.query_point
+            query=self.query_point,
+            deriv=self.deriv
         ))
 
 
@@ -221,7 +223,8 @@ def _ap_cont_to_disc(apcont, xpart):
                 i, r,
                 apcont.p((xpart[i] + xpart[i+1]) / 2.0),
                 apcont.dp((xpart[i] + xpart[i+1]) / 2.0),
-                isnode=False, uderivs=apcont.uderivs, region_dim=1
+                isnode=False, uderivs=apcont.uderivs, region_dim=1,
+                deriv=apcont.deriv
             ) for i in range(i_min, i_max)]
     return _APDisc(stlpred_list)
 
@@ -408,7 +411,7 @@ class SysSignal(stl.Signal):
             self.f = _build_f(self.apdisc, self.elem_len)
         else:
             #FIXME dofs?
-            if self.apdisc.deriv is None:
+            if self.apdisc.deriv < 0:
                 self.labels = [
                     (lambda t, i=i: label("d", self.apdisc.u_comp + 2 * i, t))
                     for i in mesh_.elem_nodes(
@@ -466,13 +469,13 @@ class SysSignal(stl.Signal):
 def _expr_parser(xpart=None, fdt_mult=1, bounds=None, mesh_=None):
     # Must parse the result of STLPred.__str__
     num = stl.num_parser()
+    integer = stl.int_parser()
 
     T_LE = Literal("<")
     T_GR = Literal(">")
 
-    integer = Word(nums).setParseAction(lambda t: int(t[0]))
     relation = (T_LE | T_GR).setParseAction(lambda t: 1 if t[0] == "<" else -1)
-    expr = integer + integer + integer + integer + integer + relation + num + num
+    expr = integer + integer + integer + integer + integer + relation + num + num + integer
     def action(t):
         try:
             signal = SysSignal(
@@ -485,7 +488,8 @@ def _expr_parser(xpart=None, fdt_mult=1, bounds=None, mesh_=None):
                     uderivs=t[2],
                     u_comp=t[1],
                     region_dim=t[0],
-                    query_point=t[4]
+                    query_point=t[4],
+                    deriv=t[8]
                 ),
                 fdt_mult=fdt_mult,
                 bounds=bounds,
