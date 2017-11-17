@@ -6,4 +6,5 @@ draw_opts = {
     # 'file_prefix': 'temp_plots/complex_synth',
     'input_ylabel': 'Force $U$ (N)',
     'input_xlabel': 'Time $t$ (s)',
+    'deriv': 0,
 }

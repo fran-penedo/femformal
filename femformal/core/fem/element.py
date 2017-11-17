@@ -97,7 +97,10 @@ class Element2DOF(Element):
         a, b = self.normalize(coords)
         x, y = zip(*self.coords)
         values = np.array(values)
-        v = values.reshape(np.prod(values.shape))
+        if len(values.shape) == 3:
+            v = values.reshape(values.shape[0] * values.shape[1], values.shape[2])
+        else:
+            v = values.reshape(np.prod(values.shape))
         return self.strain_displacement(a, b, x, y).dot(v)
 
     def interpolate(self, values, coords):

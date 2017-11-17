@@ -1,4 +1,4 @@
-from examples.mech2d.results.draw_opts import draw_opts
+from examples.w2d_mi.results.draw_opts import draw_opts
 
 draw_opts['file_prefix'] = 'temp_plots/c2d_buckling'
 draw_opts['xaxis_scale'] = 1e-3

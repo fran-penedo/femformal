@@ -502,6 +502,55 @@ def _draw_grid(partition, ax):
             ax.plot(data[0], data[1], color='k', linestyle='--', linewidth=2)
 
 
+def draw_derivative_2d(ds, mesh, ts, comp, apcs=None, labels=None, perts=None,
+                       ds_t=None, mesh_t=None, **kwargs):
+    global _holds
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+
+    if mesh_t.nodes_coords.shape[0] > 4:
+        remesh = mesh_t.remesh_to_simple_elements()
+    else:
+        remesh = mesh_t
+
+    elems_ds = []
+    for e in range(remesh.nelems):
+        elem_coords = remesh.elem_coords(e)
+        e_t = mesh_t.find_elems_covering(elem_coords[0], elem_coords[2]).elems[0]
+        nodes_t = mesh_t.elem_nodes(e_t)
+        elem_t = mesh_t.get_elem(e_t)
+        # import pdb; pdb.set_trace()
+        elem_t_ds = np.array([elem_t.interpolate_strain(
+            np.array(
+                [ds_t[:, nodes_t * 2], ds_t[:, nodes_t * 2 + 1]]
+            ).transpose(2, 0, 1), coord)
+            for coord in elem_t.coords])
+        if e == 8:
+            logger.debug(elem_t_ds[:,0, -1])
+            logger.debug(nodes_t * 2)
+            logger.debug(ds_t[-1, nodes_t * 2])
+        nodes = [next(n for n, e_t_coord in enumerate(elem_t.coords)
+                      if np.all(np.isclose(e_coord, e_t_coord)))
+                 for e_coord in remesh.elem_coords(e)]
+        elems_ds.append(elem_t_ds[nodes])
+
+    elems_ds = np.array(elems_ds)
+    polys_verts = np.array(
+        [[[np.hstack([remesh.nodes_coords[n], elems_ds[e, n_loc, comp, t]])
+           for n_loc, n in enumerate(remesh.elem_nodes(e))]
+          for e in range(remesh.nelems)]
+         for t in range(len(ts))])
+
+    poly_update = set_traj_poly(ax, polys_verts, ts)
+    ax.set_xlim3d(np.amin(polys_verts[:, :, :, 0]), np.amax(polys_verts[:, :, :, 0]))
+    ax.set_ylim3d(np.amin(polys_verts[:, :, :, 1]), np.amax(polys_verts[:, :, :, 1]))
+    ax.set_zlim3d(np.amin(polys_verts[:, :, :, 2]), np.amax(polys_verts[:, :, :, 2]))
+    set_animation(fig, ts, poly_update)
+
+    fig.tight_layout()
+    _holds.append(fig)
+
+
 def draw_predicates(apcs, labels, xpart, axs, perts=None):
     if perts is not None:
         mids = (xpart[:-1] + xpart[1:]) / 2.0
@@ -611,6 +660,7 @@ class DrawOpts(object):
         'input_ylabel': '$U$',
         'input_xlabel': '$t$',
         'xaxis_scale': 1,
+        'deriv': -1,
     }
 
     def __init__(self, dic):

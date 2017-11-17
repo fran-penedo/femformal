@@ -1354,6 +1354,48 @@ def draw_system_2d(sys, d0, g, T, t0=0, **kwargs):
         d, sys.mesh.nodes_coords, sys.mesh.elems_nodes, ts, **kwargs)
     return draw.pop_holds()
 
+def draw_system_deriv_2d(sys, d0, g, T, comp, t0=0, **kwargs):
+    """Draws the trajectory of a FEM system from a 2D PDE
+
+    Computes the trajectory and draws using the
+    :func:`femformal.core.draw_util.draw_2d_pde_trajectory`
+
+    Parameters
+    ----------
+    sys : :class:`SOSystem`
+    d0 : array_like
+        Initial value. Must have a row for each degree of freedom
+    g : array_like
+        Boundary conditions of the PDE
+    T : float
+        Final time of the trajectory
+    comp : int
+        Component of the stress vector to draw
+    t0 : float, optional
+        Start time
+    hold : bool
+        Whether the figure should be held
+    kwargs : dict, optional
+        Extra arguments passed to the drawing function
+
+    Returns
+    -------
+    list, only returned if hold == True
+        List of `matplotlib` figures created
+
+    """
+    dt = sys.dt
+    ts = np.linspace(t0, T, int(round((T - t0) / dt)) + 1)
+    d, v = newm_integrate(sys, d0[0], d0[1], T, dt, beta=.25)
+    if 'system_t' in kwargs:
+        sys_t = kwargs['system_t']
+        d0_t = kwargs['d0_t']
+        d_t, v_t = newm_integrate(sys_t, d0_t[0], d0_t[1], T, sys_t.dt, beta=.25)
+        ts = np.linspace(t0, T, int(round((T - t0) / sys_t.dt)) + 1)
+    draw.draw_derivative_2d(
+        d, sys.mesh, ts, comp, ds_t=d_t, mesh_t=sys_t.mesh, **kwargs)
+    return draw.pop_holds()
+
 def draw_displacement_plot(sys, d0, g, T, t0=0, **kwargs):
     """Draws the trajectory of a FEM system from a 2D PDE
 
@@ -1389,7 +1431,7 @@ def draw_displacement_plot(sys, d0, g, T, t0=0, **kwargs):
         sys_t = kwargs['system_t']
         d0_t = kwargs['d0_t']
         d_t, v_t = newm_integrate(sys_t, d0_t[0], d0_t[1], T, sys_t.dt, beta=.25)
-        ts = np.linspace(t0, T, int(round((T - t0) / sys_t.dt)))
+        ts = np.linspace(t0, T, int(round((T - t0) / sys_t.dt)) + 1)
     # d, v = central_diff_integrate(sys, d0[0], d0[1], T, dt)
     # d = d[int(round(t0/dt)):]
     draw.draw_displacement_2d(d, sys.mesh, ts, ds_t=d_t, mesh_t=sys_t.mesh, **kwargs)

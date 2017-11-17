@@ -267,6 +267,7 @@ class GridMesh(Mesh):
                 "Shape {} not compatible with number of nodes {}".format(
                     shape, self.nnodes))
         self.shape = shape
+        self.h = np.min([np.min(np.diff(part)) for part in self.partitions])
 
     def find_nodes_between(self, coords1, coords2):
         """Finds all nodes in a rectangle
@@ -353,6 +354,15 @@ class GridMesh(Mesh):
         """
         n1 = self.find_near_node(coords1, 0)
         n2 = self.find_near_node(coords2, 2)
+
+        # Make sure we always pick corner nodes
+        v = coords2 - coords1
+        v = v / np.linalg.norm(v) * (self.h / 2)
+        c1 = self.nodes_coords[n1] + v
+        c2 = self.nodes_coords[n2] - v
+        n1 = self.find_near_node(c1, 0)
+        n2 = self.find_near_node(c2, 2)
+
         return self.find_elems_between(self.nodes_coords[n1], self.nodes_coords[n2])
 
     def find_containing_elem(self, coords):
@@ -685,6 +695,9 @@ class GridQ9(GridMesh2D):
         right = [len(self.elems1d_nodes) - i for i in range(1, self.elem_shape[1] + 1)]
         return bottom + top + left + right
 
+    def remesh_to_simple_elements(self):
+        remesh = GridQ4(self.partitions, None)
+        return remesh
 
 class ElementSet(object):
     """Set of elements of the same dimension
