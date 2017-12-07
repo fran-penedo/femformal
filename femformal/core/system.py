@@ -1045,10 +1045,15 @@ def sosys_diff(xsys, ysys, x0, y0, tlims, xlims, xderiv=False, plot=False):
     if xsys.xpart is not None:
         return _sosys_diff_1d(x, y, dtx, dty, xsys.xpart, ysys.xpart, xlims)
     else:
-        if xderiv > 0:
-            raise NotImplementedError("xderiv > 0 not implemented yet")
+        err = diff2d(x, y, dtx, dty, xsys.mesh, ysys.mesh, xlims[0], xlims[1])
+        if xderiv:
+            return np.array([
+                    [ysys.mesh.elements[elem].max_partial_derivs(
+                        err_t[ysys.mesh.elem_nodes(elem, 2)])
+                     for elem in range(ysys.mesh.nelems)]
+                for err_t in err.transpose([2,0,1])]).transpose([1,2,3,0])
         else:
-            return np.abs(diff2d(x, y, dtx, dty, xsys.mesh, ysys.mesh, xlims[0], xlims[1]))
+            return np.abs(err)
 
 def _sosys_diff_1d(x, y, dtx, dty, xpart, ypart, xlims):
     if xderiv:

@@ -378,6 +378,33 @@ class TestSystemDiff2D2DOF(unittest.TestCase):
             sys.sosys_diff(self.xsys, self.ysys, self.x0, self.y0, [0, self.T], self.xlims),
             1 + np.zeros((self.ymesh.nnodes - 4*5, 2, 1 + int(round(self.T / self.xsys.dt)))))
 
+    def test_sosys_diff_2d_derivs(self):
+        xxs = np.linspace(0, 16, 5)
+        yxs = np.linspace(0, 16, 9)
+        xys = np.linspace(0, 2, 3)
+        yys = np.linspace(0, 2, 5)
+        self.xmesh = mesh.GridQ9([xxs, xys], element.QuadQuadQ9)
+        self.ymesh = mesh.GridQ9([yxs, yys], element.QuadQuadQ9)
+        xn, yn = 2 * self.xmesh.nnodes, 2 * self.ymesh.nnodes
+        self.T = 10
+        self.xsys = sys.SOSystem(
+            np.zeros((xn, xn)), np.identity(xn), np.ones(xn), dt=2.0, mesh=self.xmesh)
+        self.ysys = sys.SOSystem(
+            np.zeros((yn, yn)), np.identity(yn), np.ones(yn), dt=1.0, mesh=self.ymesh)
+        self.x0 = [1 + np.zeros(xn), np.zeros(xn)]
+        self.y0 = [2 + np.zeros(yn), np.zeros(yn)]
+        self.x, _ = sys.central_diff_integrate(
+            self.xsys, self.x0[0], self.x0[1], self.T, self.xsys.dt)
+        self.y, _ = sys.central_diff_integrate(
+            self.ysys, self.y0[0], self.y0[1], self.T, self.ysys.dt)
+        self.xlims = np.array([[4, 0], [12, 2]])
+        xlims = np.array([[0, 0], [16, 2]])
+        np.testing.assert_array_almost_equal(
+            sys.sosys_diff(self.xsys, self.ysys, self.x0, self.y0, [0, self.T], xlims, xderiv=True),
+            np.zeros((self.ymesh.nelems, 2, 2, 1 + int(round(self.T / self.xsys.dt))))
+        )
+
+
     def test_sosys_max_der_diff_2d(self):
         d0 = np.zeros(2 * self.xmesh.nnodes)
         d0[::2] = np.tile(np.arange(5), 3)

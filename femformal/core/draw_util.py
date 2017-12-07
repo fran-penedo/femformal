@@ -519,7 +519,6 @@ def draw_derivative_2d(ds, mesh, ts, comp, apcs=None, labels=None, perts=None,
         e_t = mesh_t.find_elems_covering(elem_coords[0], elem_coords[2]).elems[0]
         nodes_t = mesh_t.elem_nodes(e_t)
         elem_t = mesh_t.get_elem(e_t)
-        # import pdb; pdb.set_trace()
         elem_t_ds = np.array([elem_t.interpolate_strain(
             np.array(
                 [ds_t[:, nodes_t * 2], ds_t[:, nodes_t * 2 + 1]]
