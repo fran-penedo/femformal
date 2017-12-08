@@ -423,6 +423,7 @@ class QuadQuadQ9(Element2DOF):
     @staticmethod
     def _transf_matrix(coords):
         #FIXME I'm not sure this applies as is for Q9 from Q4
+        #FIXME It definitely does not
         x, y = coords.T
         det = 2 * ((-x[0] + x[2]) * (-y[1] + y[3]) + (x[1] - x[3]) * (-y[0] + y[2]))
         if not np.isclose(det, 0):
@@ -473,6 +474,21 @@ class QuadQuadQ9(Element2DOF):
              2 * (aa - a) * (- 2 * b),
              4 * (1 - aa) * (- 2 * b)]])
 
+    @staticmethod
+    def shapes_second_derivatives(*parameters):
+        a, b = parameters
+        aa = a*a
+        bb = b*b
+        m = self._cross_deriv_arrays()
+        return np.array([
+            m[0,1] * (bb * m[1,1] * .5 + b * m[1,0] +
+                      np.array([0, 0, 0, 0, 0, 1, 0, 1, 1])),
+            (m[0,1] * a + m[0,0]) * (m[1,1] * b + m[1,0]),
+            (m[0,1] * a + m[0,0]) * (m[1,1] * b + m[1,0]),
+            m[1,1] * (aa * m[0,1] * .5 + a * m[0,0] +
+                      np.array([0, 0, 0, 0, 1, 0, 1, 0, 1])),
+        ])
+
     def _normalize_full(self, coords):
         return self.transf_matrix.dot(coords - self.center)
 
@@ -511,9 +527,17 @@ class QuadQuadQ9(Element2DOF):
         return np.max([np.abs(self.interpolate_derivatives(values, coords))
                        for coords in opt_coords], axis=0)
 
+    def max_second_derivs(self, values):
+        corners = np.array([[a, b] for a in [-1, 1] for b in [-1, 1]])
+        int_opt_coords = self._int_opt_second_coords(values.T)
+        opt_coords = np.vstack([corners, int_opt_second_coords])
+        # return np.max([np.abs(self.interpolate_derivatives(values, coords))
+        #                for coords in opt_coords], axis=0)
+
+
     @staticmethod
     def _cross_deriv_arrays():
-        return np.array([
+        return .25 * np.array([
             [-1, 1, 1, -1, 0, 2, 0, -2, 0],  # a,0
             [2, 2, 2, 2, -4, 4, -4, 4, -8],  # a,1
             [-1, -1, 1, 1, -1, 0, 1, 0, 0],  # b,0
@@ -557,6 +581,15 @@ class QuadQuadQ9(Element2DOF):
         if len(ret) == 0:
             ret = ret.reshape((0, 2))
         return ret
+
+    def _int_opt_second_coords(self, values):
+        opt_coords = []
+        m = self._cross_deriv_arrays()
+        for v in values:
+            a = _q9_foeq_sol(v, m[0, 1], m[0, 0], m[1, 0])
+            b = _q9_foeq_sol(v, m[1, 1], m[1, 0], m[0, 0])
+            opt_coords.append([a,b])
+        return opt_coords
 
     def _border_opt_coords(self, values):
         opt_coords = []
