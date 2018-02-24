@@ -11,4 +11,4 @@ E = lambda x: E_steel if x < 30 or x > 60 else E_brass
 xpart = np.linspace(0, L, N + 1)
 g = [300.0, None]
 f_nodal = np.zeros(N + 1)
-dt = .005
+dt = .1

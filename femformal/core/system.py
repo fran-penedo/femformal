@@ -664,6 +664,8 @@ def trapez_integrate(fosys, d0, T, dt=.1, alpha=0.5):
         the first row
 
     """
+    logger.info(
+        "Integrating FO system with trapezoidal rule: alpha = {}".format(alpha))
     M, K, F, n_e = _ns_sys_matrices(fosys)
 
     try:
@@ -1005,12 +1007,12 @@ def sys_diff(xsys, ysys, x0, y0, tlims, xlims, xderiv=False, plot=False):
     xpart, ypart = xsys.xpart, ysys.xpart
     t0, T = tlims
     xl, xr = xlims
-    x = trapez_integrate(xsys, x0, T, dtx, alpha=0.0)
+    x = trapez_integrate(xsys, x0, T, dtx, alpha=0.5)
     x = x[int(t0/dtx):]
     y = trapez_integrate(ysys, y0, T, dty, alpha=0.5)
     y = y[int(t0/dty):]
     absdif = np.abs(diff(x, y, dtx, dty, xpart, ypart, xl, xr))
-    return absdif
+    return absdif.T
 
 def sosys_diff(xsys, ysys, x0, y0, tlims, xlims, xderiv=False, plot=False):
     """Computes the absolute diff between the trajectories of two SO systems
@@ -1144,7 +1146,7 @@ def sys_max_xdiff(sys, x0, t0, T):
 
     """
     dt = sys.dt
-    x = trapez_integrate(sys, x0, T, dt, alpha=0.0)
+    x = trapez_integrate(sys, x0, T, dt, alpha=0.5)
     x = x[int(round(t0/dt)):]
 
     dx = np.abs(np.diff(x))
@@ -1169,7 +1171,7 @@ def sys_max_tdiff(sys, x0, t0, T):
 
     """
     dt = sys.dt
-    x = trapez_integrate(sys, x0, T, dt, alpha=0.0)
+    x = trapez_integrate(sys, x0, T, dt, alpha=0.5)
     x = x[int(round(t0/dt)):]
 
     dtx = np.abs(np.diff(x, axis=0))

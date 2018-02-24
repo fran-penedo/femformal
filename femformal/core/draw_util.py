@@ -650,7 +650,7 @@ def zoom_axes(ax, factor):
 class DrawOpts(object):
     defaults = {
         'file_prefix': None,
-        'plot_size_inches': (3, 2),
+        'plot_size_inches': (6, 4),
         'font_size': 8,
         'window_title': 'i3_7',
         'xlabel': '$x$',

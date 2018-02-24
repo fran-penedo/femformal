@@ -400,7 +400,7 @@ class IDSampleFO(Sample):
     @staticmethod
     def _sample(bounds, g, mesh):
         u0 = bounds
-        x0 = [u0(x) for x in xpart_x]
+        x0 = [u0(x) for x in mesh]
         return x0
 
 

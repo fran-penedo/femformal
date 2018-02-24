@@ -8,11 +8,11 @@ n_its = 100
 
 u0 = lambda x: 300.0
 
-mult_t = 10
-N_t = mult_t * N
+# mult_t = 10
+N_t = 200
 xpart_t = np.linspace(0, L, N_t + 1)
 f_nodal_t = np.zeros(N_t + 1)
-dt_t = 0.001
+dt_t = 0.005
 
 fosys = sys.ControlFOSystem.from_fosys(heatlinfem_mix(xpart, rho, E, g, f_nodal, dt), None)
 fosys_t = sys.ControlFOSystem.from_fosys(heatlinfem_mix(xpart_t, rho, E, g, f_nodal_t, dt_t), None)
