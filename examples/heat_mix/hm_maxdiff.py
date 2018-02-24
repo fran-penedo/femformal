@@ -17,10 +17,17 @@ dt_t = 0.005
 fosys = sys.ControlFOSystem.from_fosys(heatlinfem_mix(xpart, rho, E, g, f_nodal, dt), None)
 fosys_t = sys.ControlFOSystem.from_fosys(heatlinfem_mix(xpart_t, rho, E, g, f_nodal_t, dt_t), None)
 
+
+__SAMPLE_PREDEF = True
 def f_unif_sample(bounds, g, xpart_x, xpart_y=None):
+    global __SAMPLE_PREDEF
     xs = bounds['xs']
     ybounds = bounds['ybounds']
-    ys = [np.random.rand() * (ybounds[1] - ybounds[0]) + ybounds[0] for x in xs]
+    if __SAMPLE_PREDEF:
+        ys = [ybounds[1] for x in xs]
+        __SAMPLE_PREDEF = False
+    else:
+        ys = [np.random.rand() * (ybounds[1] - ybounds[0]) + ybounds[0] for x in xs]
     pwlf = sys.PWLFunction(xs, ys)
     def f_x(t):
         f = np.zeros(len(xpart_x))
@@ -44,12 +51,15 @@ xlims = [0.0, L]
 fbounds = {'xs': np.linspace(0, T, round(T / input_dt) + 1),
            'ybounds': [0.0, 1e6]}
 
+__SAMPLE_PREDEF = True
 mds = casestudy.max_diff(fosys, g, tlims, xlims, fosys_t,
                          (u0, fbounds), (casestudy.id_sample_fo, f_unif_sample),
                          n=n_its, pw=True)
+__SAMPLE_PREDEF = True
 mdxs = casestudy.max_xdiff(fosys, g, tlims,
                      (u0, fbounds), [casestudy.id_sample_fo, f_unif_sample],
                      n=n_its)
+__SAMPLE_PREDEF = True
 mdtxs = casestudy.max_tdiff(fosys, g, tlims,
                       (u0, fbounds), [casestudy.id_sample_fo, f_unif_sample],
                       n=n_its)
