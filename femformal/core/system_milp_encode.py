@@ -298,27 +298,35 @@ def _add_trapez_constr(m, l, system, N, xhist=None):
                                 _int_force(system, x, i, j, l, el_int_forces))
             elif j > 0:
                 # d = d + dt * v
-                m.addConstr(x[label(l, i, j)] == x[label(l, i, j - 1)] +
-                            dt * x[label('d' + l, i, j - 1)])
+                # m.addConstr(x[label(l, i, j)] == x[label(l, i, j - 1)] +
+                #             dt * x[label('d' + l, i, j - 1)])
                 # td = d + (1 - alpha) * dt * v
-                # m.addConstr(x[label('t' + l, i, j)] == x[label(l, i, j - 1)] +
-                #             (1 - alpha) * dt * x[label('d' + l, i, j - 1)])
+                m.addConstr(x[label('t' + l, i, j)] == x[label(l, i, j - 1)] +
+                            (1 - alpha) * dt * x[label('d' + l, i, j - 1)])
                 # M v = F - Kd
-                if M[i,i] == 0:
-                    m.addConstr(x[label('d' + l, i, j)] == 0)
-                else:
-                    m.addConstr(g.quicksum(M[i, k] * x[label('d' + l, k, j)]
-                                        for k in range(M.shape[0])) ==
-                                x[label('f', i, j)] + F[i] -
-                                _int_force(system, x, i, j, l, el_int_forces))
-                # (M + alpha * dt * K) d = alpha * dt * F + M td
                 # if M[i,i] == 0:
                 #     m.addConstr(x[label('d' + l, i, j)] == 0)
                 # else:
                 #     m.addConstr(g.quicksum(M[i, k] * x[label('d' + l, k, j)]
                 #                         for k in range(M.shape[0])) ==
                 #                 x[label('f', i, j)] + F[i] -
-                #                 int_force(system, x, i, j, l, el_int_forces))
+                #                 _int_force(system, x, i, j, l, el_int_forces))
+                # (M + alpha * dt * K) d = alpha * dt * F + M td
+                if M[i,i] == 0:
+                    m.addConstr(x[label('d' + l, i, j)] == 0)
+                else:
+                    m.addConstr(
+                        g.quicksum(M[i, k] * x[label(l, k, j)]
+                                   for k in range(M.shape[0])) +
+                        alpha * dt * _int_force(system, x, i, j, l, el_int_forces)
+                        == (alpha * dt * (x[label('f', i, j)] + F[i]) +
+                            g.quicksum(M[i, k] * x[label('t' + l, k, j)]
+                                       for k in range(M.shape[0]))))
+
+                # v = (d - dt) / (alpha * dt)
+                m.addConstr(
+                    x[label('d' + l, i, j)] ==
+                    (x[label(l, i, j)] - x[label('t' + l, i, j)]) / (alpha * dt))
     m.update()
 
     return x
@@ -796,9 +804,9 @@ def _add_fosys_variables(m, l, nvars, horlen, histlen):
             labelv = label('d' + l, i, j)
             x[labelv] = m.addVar(
                 obj=0, lb=-g.GRB.INFINITY, ub=g.GRB.INFINITY, name=labelv)
-            # labeltv = label('t' + l, i, j)
-            # x[labeltv] = m.addVar(
-            #     obj=0, lb=-g.GRB.INFINITY, ub=g.GRB.INFINITY, name=labeltv)
+            labeltv = label('t' + l, i, j)
+            x[labeltv] = m.addVar(
+                obj=0, lb=-g.GRB.INFINITY, ub=g.GRB.INFINITY, name=labeltv)
     m.update()
     return x
 
