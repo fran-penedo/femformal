@@ -558,9 +558,11 @@ def draw_predicates(apcs, labels, xpart, axs, perts=None):
         ax = axs[apc.uderivs]
         ys = [apc.p(x) for x in apc.A]
         if not np.isclose(apc.A[0], apc.A[1]):
-            (l,) = ax.plot(apc.A, ys, lw=1, label=labels[i])
+            (l,) = ax.plot(apc.A, ys, lw=2, label=labels[i])
         else:
-            (l,) = ax.plot(apc.A[0], ys[0], marker='_', markersize=3, label=labels[i])
+            size = (xpart[-1] - xpart[0]) / 100
+            (l,) = ax.plot([apc.A[0] - size / 2, apc.A[0] + size / 2],
+                           [ys[0], ys[0]], lw=2, label=labels[i])
         update_ax_ylim(ax, ys)
         if perts is not None:
             mids_in_domain = [x for x in mids if x >= apc.A[0] and x <= apc.A[1]]
@@ -569,10 +571,10 @@ def draw_predicates(apcs, labels, xpart, axs, perts=None):
                 ax.plot(mids_in_domain, ys, lw=1, ls='--', c=l.get_c())
             elif len(mids_in_domain) == 1:
                 ys = [perts[i](x) for x in mids_in_domain]
-                ax.plot(mids_in_domain, ys, marker='_', markersize=3, c=l.get_c())
+                ax.plot(mids_in_domain, ys, marker='o', markersize=5, mew=0, c=l.get_c())
             else:
                 ys = [perts[i](apc.A[0])]
-                ax.plot([apc.A[0]], ys, marker='o', markersize=3, c=l.get_c())
+                ax.plot([apc.A[0]], ys, marker='o', markersize=5, mew=0, c=l.get_c())
         update_ax_ylim(ax, ys)
     for ax in axs:
         ax.legend(loc='lower left', fontsize='6', labelspacing=0.05, handletextpad=0.1)
@@ -650,7 +652,7 @@ def zoom_axes(ax, factor):
 class DrawOpts(object):
     defaults = {
         'file_prefix': None,
-        'plot_size_inches': (6, 4),
+        'plot_size_inches': (3, 2),
         'font_size': 8,
         'window_title': 'i3_7',
         'xlabel': '$x$',

@@ -1,7 +1,7 @@
 from examples.heat_mix.results.draw_opts import draw_opts
 
 
-draw_opts['file_prefix'] = 'temp_plots/hm_simple2_N10'
+draw_opts['file_prefix'] = 'temp_plots/hm_simple2_N60'
 ts = [0.0, 4.0, 5.0]
 robustness = 1.07536609993
 inputs = [623219.7059450947, 1000000.0, 1000000.0, 947968.5781107872, 692682.9513803528, 585833.8577264121, 528513.3035502972, 152733.7441413131, 0.0, 371641.166806066, 0.0]
