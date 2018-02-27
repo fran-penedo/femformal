@@ -291,10 +291,22 @@ def _set_fig_opts(fig, ax_indices, draw_opts, tight=True):
     fig.canvas.set_window_title(draw_opts.window_title)
     for i in ax_indices:
         ax = fig.get_axes()[i]
-        ax.set_xticklabels([x * draw_opts.xaxis_scale for x in ax.get_xticks()])
+        ax.set_xticklabels([
+            (ax.get_xticks()[j] * draw_opts.xaxis_scale
+            if j % draw_opts.xticklabels_pick == 0 else '')
+            for j in range(len(ax.get_xticks()))])
+        ax.set_yticklabels([
+            (ax.get_yticks()[j] * draw_opts.yaxis_scale
+            if j % draw_opts.yticklabels_pick == 0 else '')
+            for j in range(len(ax.get_yticks()))])
+        draw.zoom_axes(ax, draw_opts.zoom_factors)
     for ax in fig.get_axes():
         try:
             ax.ticklabel_format(style='sci', axis='y', scilimits=(-2, 2))
+        except:
+            pass
+        try:
+            ax.ticklabel_format(style='sci', axis='x', scilimits=(-2, 2))
         except:
             pass
         for item in ([ax.title, ax.xaxis.label, ax.yaxis.label,

@@ -386,15 +386,16 @@ def draw_displacement_2d(ds, mesh, ts, apcs=None, labels=None, perts=None,
 
 def _update_func_disp_2d(ax, ds, mesh, ts, apcs, labels, perts, ds_t, mesh_t,
                          **kwargs):
+    corrections_shown = kwargs.get('corrections_shown', DrawOpts.defaults['corrections_shown'])
     ax.set_xlim(mesh.partitions[0][0], mesh.partitions[0][-1])
     ax.set_xticks(mesh.partitions[0])
     ax.set_ylim(mesh.partitions[1][0], mesh.partitions[1][-1])
     ax.set_yticks(mesh.partitions[1])
-    zoom_axes(ax, .9)
+    # zoom_axes(ax, [.1, .9])
     ax.grid()
 
     ls = ax.add_collection(LineCollection([], colors='k'))
-    time_text = ax.text(.02, .95, '', transform=ax.transAxes)
+    time_text = ax.text(.02, .95, '', transform=ax.transAxes, fontsize=8)
     if ds_t is None:
         ds_t = ds
         mesh_t = None
@@ -427,13 +428,14 @@ def _update_func_disp_2d(ax, ds, mesh, ts, apcs, labels, perts, ds_t, mesh_t,
 
                 if 'l_pert' in value:
                     for j in range(len(value['l_pert'])):
-                        line = value['l_pert'][j]
-                        vs = value['perts'][j]
-                        pert_data = np.array(vs[0]).copy()
-                        pert_sys_disps = np.array([interp(*c)[1 - dof] for c in pert_data])
-                        pert_data[:,dof] += vs[1]
-                        pert_data[:, 1 - dof] += pert_sys_disps
-                        line.set_data(pert_data[:,0], pert_data[:,1])
+                        if j in corrections_shown:
+                            line = value['l_pert'][j]
+                            vs = value['perts'][j]
+                            pert_data = np.array(vs[0]).copy()
+                            pert_sys_disps = np.array([interp(*c)[1 - dof] for c in pert_data])
+                            pert_data[:,dof] += vs[1]
+                            pert_data[:, 1 - dof] += pert_sys_disps
+                            line.set_data(pert_data[:,0], pert_data[:,1])
 
             return tuple(pred_lines)
 
@@ -622,7 +624,7 @@ def predicates_displacement_data(apcs, labels, mesh, ax, perts=None):
         disps = np.array([apc.p(*mesh.nodes_coords[n]) for n in nodes])
         pts = np.array([mesh.nodes_coords[n] for n in nodes])
 
-        l = ax.plot([], [], lw=1, label=labels[i])[0]
+        l = ax.plot([], [], lw=2, label=labels[i])[0]
         ret[i] = {'nodes': nodes, 'disps': disps, 'pts': pts, 'l':l}
 
         if perts is not None:
@@ -642,9 +644,13 @@ def update_ax_ylim(ax, ys):
         ax.set_ylim([min(ax.get_ylim()[0], m), max(ax.get_ylim()[1], M)])
 
 def zoom_axes(ax, factor):
+    try:
+        factorx, factory = factor
+    except:
+        factorx, factory = (factor, factor)
     lims = [ax.get_xlim(), ax.get_ylim()]
-    newlims = [sum(lim)/2.0 + np.array([-.5, .5]) * (lim[1] - lim[0]) * (1 + factor)
-               for lim in lims]
+    newlims = [sum(lim)/2.0 + np.array([-.5, .5]) * (lim[1] - lim[0]) * (1 + factoraxis)
+               for lim, factoraxis in zip(lims, [factorx, factory])]
     ax.set_xlim(newlims[0])
     ax.set_ylim(newlims[1])
 
@@ -661,7 +667,12 @@ class DrawOpts(object):
         'input_ylabel': '$U$',
         'input_xlabel': '$t$',
         'xaxis_scale': 1,
+        'yaxis_scale': 1,
+        'xticklabels_pick': 1,
+        'yticklabels_pick': 1,
+        'zoom_factors' : [.9, .9],
         'deriv': -1,
+        'corrections_shown': []
     }
 
     def __init__(self, dic):
