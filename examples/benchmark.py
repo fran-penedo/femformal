@@ -242,8 +242,6 @@ def run_draw_snapshots(m, inputm, draw_opts, args):
     figs_grouped = [(figs[2*i], figs[2*i + 1]) for i in range(len(ts))]
 
     for fig_pair, t in zip(figs_grouped, ts):
-        for fig in fig_pair:
-            _set_fig_opts(fig, [0], draw_opts, tight=False)
         if cregions is not None:
             draw_predicates_to_axs(
                 [fig.get_axes()[0] for fig in fig_pair], cregions,
@@ -253,6 +251,7 @@ def run_draw_snapshots(m, inputm, draw_opts, args):
         ylims_flat = [a for b in ylims for a in b]
         for fig in figs_group:
             draw.update_ax_ylim(fig.get_axes()[0], ylims_flat)
+            _set_fig_opts(fig, [0], draw_opts, tight=False)
 
     prefix = draw_opts.file_prefix
     if prefix is None:
@@ -299,6 +298,7 @@ def _set_fig_opts(fig, ax_indices, draw_opts, tight=True):
             (ax.get_yticks()[j] * draw_opts.yaxis_scale
             if j % draw_opts.yticklabels_pick == 0 else '')
             for j in range(len(ax.get_yticks()))])
+        #FIXME may break 1d figures, no idea why
         draw.zoom_axes(ax, draw_opts.zoom_factors)
     for ax in fig.get_axes():
         try:

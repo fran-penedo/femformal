@@ -387,8 +387,8 @@ class IDSample(Sample):
     @staticmethod
     def _sample(bounds, g, mesh):
         u0, v0 = bounds
-        x0 = [u0(x) for x in xpart_x]
-        vx0 = [v0(x) for x in xpart_x]
+        x0 = [u0(x) for x in mesh]
+        vx0 = [v0(x) for x in mesh]
         return [x0, vx0]
 
 
@@ -732,11 +732,14 @@ def _perturb_profile_eps(p, eps, xpart, direction):
     return pp
 
 def _perturb_profile_eta(p, dp, eta, xpart, direction):
-    def pp(x):
-        i = bisect_left(xpart, x) - 1
-        return p(x) + direction * (
-            eta[i] / 2.0 + dp(x) * (xpart[i + 1] - xpart[i]) / 2.0)
-    return pp
+    if eta is None:
+        return p
+    else:
+        def pp(x):
+            i = bisect_left(xpart, x) - 1
+            return p(x) + direction * (
+                eta[i] / 2.0 + dp(x) * (xpart[i + 1] - xpart[i]) / 2.0)
+        return pp
 
 def _perturb_profile_nu(p, nu, xpart, fdt_mult, direction):
     def pp(x):

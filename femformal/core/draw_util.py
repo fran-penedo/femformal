@@ -331,8 +331,9 @@ def _set_snap_figure(t, xlabel, ylabel, font_size, ylims=None):
     ax = fig.add_subplot(111)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
-    if ylims is not None:
-        ax.set_ylim(ylims)
+    #FIXME not sure about this
+    # if ylims is not None:
+    #     ax.set_ylim(ylims)
     ax.text(.02, .90, 't = {}'.format(t), transform=ax.transAxes, fontsize=font_size)
     return fig
 
@@ -342,14 +343,12 @@ def draw_pde_snapshot(
     fig = _set_snap_figure(t, xlabel, ylabel, font_size, ylims)
     ax = fig.get_axes()[0]
     ax.plot(xs, ds, 'k-')
-    zoom_axes(ax, .05)
 
     _render(fig, None, hold)
 
     fig = _set_snap_figure(t, xlabel, derivative_ylabel, font_size, ylims)
     ax = fig.get_axes()[0]
     ax.hlines(dds, xs[:-1], xs[1:], colors='k')
-    zoom_axes(ax, .05)
 
     _render(fig, None, hold)
 

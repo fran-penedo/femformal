@@ -1,43 +1,33 @@
 import numpy as np
 
-from femformal.core import system as s, casestudy as fem
+from femformal.core import system as sys, casestudy as casestudy
 from femformal.core.fem.mechlinfem import mechlinfem
+from examples.mech_mix.mm_model import *
 
 
-Ns = [20]
-L = 100000
-rho_steel = 8e-6
-rho_brass = 8.5e-6
-E_steel = 200e6
-E_brass = 100e6
-rho = lambda x: rho_steel if x < 30000 or x > 60000 else rho_brass
-E = lambda x: E_steel if x < 30000 or x > 60000 else E_brass
-xparts = [np.linspace(0, L, N + 1) for N in Ns]
-g = [0.0, None]
-fs_nodal = [np.zeros(N + 1) for N in Ns]
-dts = [min((L / N) / np.sqrt(E_steel / rho_steel),
-           (L / N) / np.sqrt(E_brass / rho_brass)) for N in Ns]
+n_its = 100
+
 u0 = lambda x: 0.0
 v0 = lambda x: 0.0
 
-sosys_list = [s.ControlSOSystem.from_sosys(
+sosys = sys.ControlSOSystem.from_sosys(
     mechlinfem(xpart, rho, E, g, f_nodal, dt), None)
-    for xpart, f_nodal, dt in zip(xparts, fs_nodal, dts)]
+sosys_t = sys.ControlSOSystem.from_sosys(
+    mechlinfem(xpart_t, rho, E, g, f_nodal_t, dt_t), None)
 
-Ntrue = 200
-xparttrue = np.linspace(0, L, Ntrue + 1)
-f_nodal_true = np.zeros(Ntrue + 1)
-# f_nodal_true[-1] = 1000.0
-dt_true = min((L / Ntrue) / np.sqrt(E_steel / rho_steel),
-           (L / Ntrue) / np.sqrt(E_steel / rho_steel))
-systrue = s.ControlSOSystem.from_sosys(
-    mechlinfem(xparttrue, rho, E, g, f_nodal_true, dt_true), None)
 
+__SAMPLE_PREDEF = True
 def f_unif_sample(bounds, g, xpart_x, xpart_y=None):
+    global __SAMPLE_PREDEF
     xs = bounds['xs']
     ybounds = bounds['ybounds']
-    ys = [np.random.rand() * (ybounds[1] - ybounds[0]) + ybounds[0] for x in xs]
-    pwlf = s.PWLFunction(xs, ys)
+    if __SAMPLE_PREDEF:
+        ys = [ybounds[1] for x in xs]
+        __SAMPLE_PREDEF = False
+    else:
+        ys = [np.random.rand() * (ybounds[1] - ybounds[0]) + ybounds[0] for x in xs]
+    ys[0] = 0.0
+    pwlf = sys.PWLFunction(xs, ys)
     def f_x(t):
         f = np.zeros(len(xpart_x))
         f[-1] = pwlf(t)
@@ -52,32 +42,32 @@ def f_unif_sample(bounds, g, xpart_x, xpart_y=None):
         return f_x
 
 
-n = 100
-dt = dts[-1]
-tlims = [int(round(0.0 / dt)) * dt, int(round(0.3 / dt)) * dt]
-xlims = [0, 100000]
-bounds = {'xs' : np.linspace(0, 0.55, 55/5 + 1),
-          'ybounds' : [-5e3, 5e3]}
-mds = [fem.max_diff(system, g, tlims, xlims, systrue,
-                    ([u0, v0], bounds),
-                     [fem.id_sample, f_unif_sample], n=n, pw=True, log=False)
-       for system in sosys_list]
-mds_xderiv = [fem.max_diff(system, g, tlims, xlims, systrue,
-                    ([u0, v0], bounds),
-                     [fem.id_sample, f_unif_sample], n=n, pw=True, xderiv=True, log=False)
-       for system in sosys_list]
+t0 = 0.0
+input_dt = .1
+tlims = [int(round(t0 / dt)) * dt, int(round(T / dt)) * dt]
+xlims = [0.0, L]
+fbounds = {'xs': np.linspace(0, T, round(T / input_dt) + 1),
+           'ybounds': [-5e3, 5e3]}
 
-mdxs, mdtxs = zip(*[fem.max_der_diff(system, g, tlims,
-                    ([u0, v0], bounds),
-                     [fem.id_sample, f_unif_sample], n=n)
-       for system in sosys_list])
-mdxs_xderiv, mdtxs_xderiv = zip(*[fem.max_der_diff(system, g, tlims,
-                    ([u0, v0], bounds),
-                     [fem.id_sample, f_unif_sample], n=n, xderiv=True, log=False)
-       for system in sosys_list])
+__SAMPLE_PREDEF = True
+mds = casestudy.max_diff(sosys, g, tlims, xlims, sosys_t,
+                         ([u0, v0], fbounds), (casestudy.id_sample, f_unif_sample),
+                         n=n_its, pw=True)
+__SAMPLE_PREDEF = True
+mds_xderiv = casestudy.max_diff(sosys, g, tlims, xlims, sosys_t,
+                                ([u0, v0], fbounds), [casestudy.id_sample, f_unif_sample],
+                                n=n_its, pw=True, xderiv=True, log=False)
+__SAMPLE_PREDEF = True
+mdxs, mdtxs = casestudy.max_der_diff(sosys, g, tlims,
+                     ([u0, v0], fbounds), [casestudy.id_sample, f_unif_sample],
+                     n=n_its)
+__SAMPLE_PREDEF = True
+mdxs_xderiv, mdtxs_xderiv = casestudy.max_der_diff(sosys, g, tlims,
+                      ([u0, v0], fbounds), [casestudy.id_sample, f_unif_sample],
+                      n=n_its, xderiv=True)
 
-print "eps = {}".format(mds[0].tolist())
-print "eps_xderiv = {}".format(mds_xderiv[0].tolist())
-print "eta = {}".format(mdxs[0].tolist())
-print "nu = {}".format(mdtxs[0].tolist())
-print "nu_xderiv = {}".format(mdtxs_xderiv[0].tolist())
+print "eps = {}".format(mds.__repr__())
+print "eps_xderiv = {}".format(mds_xderiv.__repr__())
+print "eta = {}".format(mdxs.__repr__())
+print "nu = {}".format(mdtxs.__repr__())
+print "nu_xderiv = {}".format(mdtxs_xderiv.__repr__())

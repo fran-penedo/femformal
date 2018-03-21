@@ -302,7 +302,7 @@ def make_control_system(sys, f_nodal):
     if isinstance(sys, FOSystem):
         return ControlFOSystem.from_fosys(sys, f_nodal)
     else:
-        return ControlSOSystem.from_fosys(sys, f_nodal)
+        return ControlSOSystem.from_sosys(sys, f_nodal)
 
 
 class _MatrixFunction(object):
@@ -1045,7 +1045,7 @@ def sosys_diff(xsys, ysys, x0, y0, tlims, xlims, xderiv=False, plot=False):
     y = y[int(round(t0/dty)):]
     # draw.draw_pde_trajectory(x, xpart, np.linspace(0, T, (int(round(T / dtx)))), animate=False)
     if xsys.xpart is not None:
-        return _sosys_diff_1d(x, y, dtx, dty, xsys.xpart, ysys.xpart, xlims)
+        return _sosys_diff_1d(x, y, dtx, dty, xsys.xpart, ysys.xpart, xlims, xderiv, plot)
     else:
         err = diff2d(x, y, dtx, dty, xsys.mesh, ysys.mesh, xlims[0], xlims[1])
         if xderiv:
@@ -1057,7 +1057,8 @@ def sosys_diff(xsys, ysys, x0, y0, tlims, xlims, xderiv=False, plot=False):
         else:
             return np.abs(err)
 
-def _sosys_diff_1d(x, y, dtx, dty, xpart, ypart, xlims):
+def _sosys_diff_1d(x, y, dtx, dty, xpart, ypart, xlims, xderiv, plot):
+    # plot=True
     if xderiv:
         x = np.true_divide(np.diff(x), np.diff(xpart))
         y = np.true_divide(np.diff(y), np.diff(ypart))
@@ -1074,8 +1075,8 @@ def _sosys_diff_1d(x, y, dtx, dty, xpart, ypart, xlims):
     if plot:
         # ttx = np.linspace(0, T, int(round(T / dtx)))
         # tty = np.linspace(0, T, int(round(T / dty)))
-        ttx = np.arange(0, T + dtx / 2.0, dtx)
-        tty = np.arange(0, T + dty / 2.0, dty)
+        ttx = np.arange(0, 1.0 + dtx / 2.0, dtx)
+        tty = np.arange(0, 1.0 + dty / 2.0, dty)
         # draw.draw_pde_trajectory(x, xpart, ttx, hold=True)
         # draw.draw_pde_trajectory(y, ypart, tty, hold=True)
         draw.draw_pde_trajectories([x, y], [xpart, ypart], [ttx, tty], pwc=pwc)
@@ -1088,7 +1089,7 @@ def _sosys_diff_1d(x, y, dtx, dty, xpart, ypart, xlims):
         #     print yl, yr
         #     draw.draw_pde_trajectory(dif, ypart[yl:yr], ttx, hold=True)
         # draw.plt.show()
-    return absdif
+    return absdif.T
 
 def sys_max_diff(xsys, ysys, x0, y0, tlims, xlims, xderiv=False, pw=False, plot=False):
     """Computes maximum absolute diff between two systems
@@ -1281,7 +1282,7 @@ def _draw_sosys(sosys, d0, v0, g, T, t0=0, hold=False, **kargs):
     xpart = sosys.xpart
 
     tx = np.linspace(t0, T, int(round((T - t0)/dt)))
-    d, v = newm_integrate(sosys, d0, v0, T, dt)
+    d, v = newm_integrate(sosys, d0, v0, T, dt, beta=.25)
     d = d[int(round(t0/dt)):]
     draw.draw_pde_trajectory(d, xpart, tx, hold=hold, **kargs)
     if hold:
@@ -1481,7 +1482,7 @@ def _draw_sosys_snapshots(sosys, d0, v0, g, ts, hold=False, **kargs):
 
     t0, T = 0, max(ts)
     tx = np.linspace(t0, T, int(round((T - t0)/dt)))
-    d, v = newm_integrate(sosys, d0, v0, T, dt)
+    d, v = newm_integrate(sosys, d0, v0, T, dt, beta=.25)
     for t in ts:
         index = bisect_right(tx, t) -1
         draw.draw_pde_snapshot(
