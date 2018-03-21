@@ -299,7 +299,7 @@ def _set_fig_opts(fig, ax_indices, draw_opts, tight=True):
             if j % draw_opts.yticklabels_pick == 0 else '')
             for j in range(len(ax.get_yticks()))])
         #FIXME may break 1d figures, no idea why
-        draw.zoom_axes(ax, draw_opts.zoom_factors)
+        # draw.zoom_axes(ax, draw_opts.zoom_factors)
     for ax in fig.get_axes():
         try:
             ax.ticklabel_format(style='sci', axis='y', scilimits=(-2, 2))

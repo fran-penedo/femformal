@@ -331,9 +331,19 @@ class HybridParameter(object):
     @property
     def invariants(self):
         try:
-            return [inv(self.p) for inv in self._invariants]
+            invs = [inv(self.p) for inv in self._invariants]
         except TypeError:
             return self._invariants
+        def _fix_inv(inv):
+            (a, b) = inv
+            if len(a.shape) == 1:
+                a = a[None]
+            if not isinstance(b, np.ndarray):
+                b = np.array([b])
+            return (a, b)
+
+        return [_fix_inv(inv) for inv in invs]
+
 
     @invariants.setter
     def invariants(self, value):
@@ -845,16 +855,17 @@ def newm_integrate(sosys, d0, v0, T, dt=.1, beta=0, gamma=.5):
                          "system dimension = {}, d shape = {}, v shape = {}".format(
                              sosys.n, d.shape, v.shape))
     a = np.zeros(d.shape[0])
-    solve_m = _factorize(M + beta * dt * dt * K)
+    try:
+        K_cur = K(d)
+        hybrid = True
+    except TypeError:
+        K_cur = K
+        hybrid = False
+    solve_m = _factorize(M + beta * dt * dt * K_cur)
     try:
         f_nodal_c = f_nodal(0)[n_e]
     except TypeError:
         f_nodal_c = f_nodal
-    K_cur = K
-    # try:
-    #     K_cur = K(d)
-    # except TypeError:
-    #     K_cur = K
     a[n_e] = _factorize(M)(F + f_nodal_c - K_cur.dot(d[n_e]))
     ds = [d]
     vs = [v]
@@ -867,15 +878,14 @@ def newm_integrate(sosys, d0, v0, T, dt=.1, beta=0, gamma=.5):
             f_nodal_c = f_nodal((i+1) * dt)[n_e]
         except TypeError:
             f_nodal_c = f_nodal
-        # try:
-        #     K_cur = K(d)
-        # except TypeError:
-        #     K_cur = K
         a[n_e] = solve_m(F + f_nodal_c - K_cur.dot(td[n_e]))
         d = td + beta * dt * dt * a
         v = tv + gamma * dt * a
         ds.append(d)
         vs.append(v)
+        if hybrid:
+            K_cur = K(d)
+            solve_m = _factorize(M + beta * dt * dt * K_cur)
     return np.array(ds), np.array(vs)
 
 
