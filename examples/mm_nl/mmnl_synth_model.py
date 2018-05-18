@@ -18,11 +18,13 @@ fv = lambda x, p: p[0]
 d0, v0 = mechnlfem.state(u0, du0, xpart, g)
 
 input_dt = .05
-pwlf = sys.PWLFunction(np.linspace(0, T, round(T / input_dt) + 1), ybounds=[-5e3, 5e3], x=L)
+pwlf = sys.PWLFunction(np.linspace(0, T, round(T / input_dt) + 1), ybounds=[-5e2, 5e2], x=L)
 fset = pwlf.pset()
 fset[0, -1] = fset[fset.shape[0] // 2, -1] = 0.0
 
-sosys = mechnlfem.mechnlfem(xpart, rho, E, g, f_nodal, dt)
+bigN_acc = np.max([bigN_int_force, np.max(np.abs(pwlf.ybounds))]) / (rho * L / N)
+
+sosys = mechnlfem.mechnlfem(xpart, rho, E, g, f_nodal, dt, bigN_deltas, bigN_int_force, bigN_acc)
 
 # error_bounds = [[mdiff.eps, mdiff.eps_xderiv], [mdiff.eta, None], [mdiff.nu, mdiff.nu_xderiv]]
 error_bounds = None

@@ -7,7 +7,7 @@ from .. import system as sys
 
 logger = logging.getLogger(__name__)
 
-def mechnlfem(xpart, rho, E, g, f_nodal, dt):
+def mechnlfem(xpart, rho, E, g, f_nodal, dt, bigN_deltas, bigN_int_force, bigN_acc):
     # n_g = len([x for x in g if x is not None])
     gg = [x if x is not None else 0.0 for x in g]
     # Number of equations for n_g = 2
@@ -62,7 +62,7 @@ def mechnlfem(xpart, rho, E, g, f_nodal, dt):
     M = np.diag(Mdiag) / 2.0
     F = F + f_nodal
 
-    sosys = sys.HybridSOSystem(M, K, F, xpart, dt)
+    sosys = sys.HybridSOSystem(M, K, F, xpart, dt, bigN_deltas=bigN_deltas, bigN_int_force=bigN_int_force, bigN_acc=bigN_acc)
 
     return sosys
 

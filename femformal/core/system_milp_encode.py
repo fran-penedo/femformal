@@ -475,11 +475,15 @@ def _add_newmark_constr(m, l, system, N, xhist=None, beta=0.25, gamma=0.5,
                              dpred=True, vpred=True, use_lu_decomp=use_lu_decomp)
 
     if hasattr(system, "K_global"):
-        deltas = _add_hybrid_K_deltas(m, system.K_els(), x, l, N, system.bigN)
+        deltas = _add_hybrid_K_deltas(m, system.K_els(), x, l, N, system.bigN_deltas)
         el_int_forces = [_elements_int_force(
-            m, l, system.K_els(), x, deltas, time, system.bigN)
+            m, l, system.K_els(), x, deltas, time, system.bigN_int_force)
+            for time in range(N)]
+        el_int_forces_acc = [_elements_int_force(
+            m, 'dd' + l, system.K_els(), x, deltas, time, system.bigN_acc)
             for time in range(N)]
     else:
+        el_int_forces = None
         el_int_forces = None
         K = system.K
 
@@ -537,8 +541,10 @@ def _add_newmark_constr(m, l, system, N, xhist=None, beta=0.25, gamma=0.5,
                             _int_force(system, x, i, j, "t" + l, el_int_forces))
                     else:
                         m.addConstr(g.quicksum(
-                            (M[i, k] + beta * dt * dt * K[i, k])
-                            * x[label('dd' + l, k, j)] for k in range(M.shape[0]))
+                            (M[i, k] * x[label('dd' + l, k, j)] +
+                             beta * dt * dt * _int_force(
+                                 system, x, i, j, 'dd' + l, el_int_forces_acc))
+                            for k in range(M.shape[0]))
                             == x[label('f', i, j)] + F[i] -
                             _int_force(system, x, i, j, "t" + l, el_int_forces))
 
@@ -731,10 +737,10 @@ def _elements_int_force(m, l, kels, x, deltas, time, bigN):
             v2 = g.quicksum(
                 kel.values[1][i][j] * x[label(l, n_el * (n - 1) + j, time)]
                 for j in range(n))
-            bigNN = bigN * np.max(np.abs(kel.values))
+            # bigNN = bigN * np.max(np.abs(kel.values))
             f = milp_util.add_binary_switch(
-                m, "elintf_{}_{}_{}".format(n_el, i, time), v1, v2,
-                deltas[time][n_el], bigNN)
+                m, "elintf_{}_{}_{}_{}".format(l, n_el, i, time), v1, v2,
+                deltas[time][n_el], bigN)
             el_fs.append(f)
         fs.append(el_fs)
 

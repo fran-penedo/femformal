@@ -364,6 +364,12 @@ class HybridParameter(object):
 
 
 class HybridSOSystem(SOSystem):
+    def __init__(self, M, K, F, xpart=None, dt=1.0, mesh=None, bigN_deltas=1.0, bigN_int_force=1.0, bigN_acc=1.0):
+        SOSystem.__init__(self, M, K, F, xpart, dt, mesh)
+        self.bigN_deltas = bigN_deltas
+        self.bigN_int_force = bigN_int_force
+        self.bigN_acc = bigN_acc
+
     @property
     def K(self):
         return _MatrixFunction(self.K_global)

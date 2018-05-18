@@ -11,12 +11,14 @@ from examples.mm_nl.mmnl_synth_model import *
 # cregions = {'B': apc2, 'C': apc3}
 #
 # cspec = "(G_[0.4, 0.5] (B))"
-cregions = None
-cspec = None
+apc1 = logic.APCont([400, 600], ">", lambda x: 10 * x / 1000 - 1, lambda x: 10 / 1000)
+apc2 = logic.APCont([600, 1000], "<", lambda x: 10.0, lambda x: 0.0)
+cregions = {'A': apc1, 'B': apc2}
+cspec = "((F_[0.2, 0.25] (A)) & (G_[0.2, 0.25] (B)))"
 
 
 fdt_mult = 1
-bounds = [-100, 100]
+bounds = [-1000, 1000]
 
 cs = fem.build_cs(sosys, [d0, v0], g, cregions, cspec, discretize_system=False,
                   pset=[dset, vset, fset], f=[fd, fv, pwlf], fdt_mult=fdt_mult,
