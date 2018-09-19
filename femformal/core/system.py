@@ -658,7 +658,7 @@ def _factorize(M):
         logger.info("Integrating M = 0 system")
         return lambda x: np.zeros(len(x))
 
-def trapez_integrate(fosys, d0, T, dt=.1, alpha=0.5):
+def trapez_integrate(fosys, d0, T, dt=.1, alpha=0.5, log=True):
     """Integrates a FO system using the trapezoidal rule
 
     Parameters
@@ -680,8 +680,9 @@ def trapez_integrate(fosys, d0, T, dt=.1, alpha=0.5):
         the first row
 
     """
-    logger.info(
-        "Integrating FO system with trapezoidal rule: alpha = {}".format(alpha))
+    if log:
+        logger.info(
+            "Integrating FO system with trapezoidal rule: alpha = {}".format(alpha))
     M, K, F, n_e = _ns_sys_matrices(fosys)
 
     try:

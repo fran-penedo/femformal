@@ -11,7 +11,7 @@ from scipy.sparse import linalg as spla, csc_matrix
 from stlmilp import milp_util as milp_util
 
 from . import system as sys
-from .util import label
+from .util import label, unlabel
 
 
 logger = logging.getLogger(__name__)
