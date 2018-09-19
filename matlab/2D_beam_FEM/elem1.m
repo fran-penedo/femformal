@@ -4,7 +4,7 @@
 function [ke] = elem1(node,x,y,gauss,weight,young,pr,e)
 
 % 2D Quad Element Stiffness Subroutine
-ke = zeros(8,8);
+ke = zeros(8,8);    
 one = ones(1,4);
 psiJ=[-1,+1,+1,-1];etaJ=[-1,-1,+1,+1];
 % compute element stiffness
@@ -25,6 +25,13 @@ psiJ=[-1,+1,+1,-1];etaJ=[-1,-1,+1,+1];
       BJ=zeros(3,8);
       BJ(1,1:2:7)=NJdxy(1,1:4)  ;BJ(2,2:2:8)=NJdxy(2,1:4);
       BJ(3,1:2:7)=NJdxy(2,1:4)  ;BJ(3,2:2:8)=NJdxy(1,1:4);
+      if (e == 32)
+          psi
+          eta
+          NJdpsieta
+          Jinv
+          
+      end
   
 % plane stress
 %      fac=young(e)/(1.-pr(e)^2);  

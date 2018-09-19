@@ -3,7 +3,7 @@
 % 2D FEM matlab code for 4 or 9-node element
 % Application to a cantilever beam
 %--------------------------------------------------------------------
-clear all;
+%clear all;
 
 nnode=input(' Nodes per element (4 or 9): ');
 MaxNgaus=3;
@@ -31,7 +31,7 @@ ebar = YoungModule/(1-PossionRatio^2);
 Q_force = -1;
 % mesh of the beam
 if (nnode==4) 
-   [coord,numnod,numele,node,tnd,bnd,lnd,rnd]=beammsh4(xl,xr,numelex,yl,yr,numeley);
+   [coord,numnod,numele,node,tnd,bnd,lnd,rnd]=beammsh4(xl,xr,numelex,yl,yr,numeley)
 elseif (nnode==9) 
    [coord,numnod,numele,node,tnd,bnd,lnd,rnd]=beammsh9(xl,xr,numelex,yl,yr,numeley);
 end 
@@ -45,7 +45,7 @@ numeqns=numnod*ndof;
 % external force
 force=zeros(1,numeqns);
 % nodal force due to tractions on surfaces
-force=traction(nnode,lnd,rnd,Inertia,L,c,Q_force,y);
+force=traction(nnode,lnd,rnd,Inertia,L,c,Q_force,y)
   
 % displacement boundary condition
 ifix=[zeros(2,numnod)];
