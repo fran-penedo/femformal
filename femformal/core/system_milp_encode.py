@@ -484,7 +484,7 @@ def _add_newmark_constr(m, l, system, N, xhist=None, beta=0.25, gamma=0.5,
             for time in range(N)]
     else:
         el_int_forces = None
-        el_int_forces = None
+        el_int_forces_acc = None
         K = system.K
 
     if use_lu_decomp:
