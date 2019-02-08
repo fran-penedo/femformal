@@ -29,7 +29,11 @@ class TestMechNLFem(unittest.TestCase):
         f_nodal = np.zeros(N + 1)
         dt = min((L / N) / np.sqrt(E_steel / rho_steel), (L / N) / np.sqrt(E_steel / 2 * rho_steel))
 
-        nlsys = mechnl.mechnlfem(xpart, rho_steel, E_steel_hybrid, g, f_nodal, dt)
+        bigN_deltas = .1
+        bigN_int_force = 10 * E_steel * yield_point_steel
+        bigN_acc = bigN_int_force
+
+        nlsys = mechnl.mechnlfem(xpart, rho_steel, E_steel_hybrid, g, f_nodal, dt, bigN_deltas, bigN_int_force, bigN_acc)
         lsys1 = mechlin.mechlinfem(xpart, rho_steel, E_steel, g, f_nodal, dt)
         lsys2 = mechlin.mechlinfem(xpart, rho_steel, E_steel / 2.0, g, f_nodal, dt)
 

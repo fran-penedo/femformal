@@ -540,11 +540,11 @@ def _add_newmark_constr(m, l, system, N, xhist=None, beta=0.25, gamma=0.5,
                             == x[label('f', i, j)] + F[i] -
                             _int_force(system, x, i, j, "t" + l, el_int_forces))
                     else:
-                        m.addConstr(g.quicksum(
-                            (M[i, k] * x[label('dd' + l, k, j)] +
-                             beta * dt * dt * _int_force(
-                                 system, x, i, j, 'dd' + l, el_int_forces_acc))
-                            for k in range(M.shape[0]))
+                        m.addConstr(
+                            g.quicksum(M[i, k] * x[label('dd' + l, k, j)]
+                                       for k in range(M.shape[0])) +
+                            beta * dt * dt * _int_force(
+                                system, x, i, j, 'dd' + l, el_int_forces_acc)
                             == x[label('f', i, j)] + F[i] -
                             _int_force(system, x, i, j, "t" + l, el_int_forces))
 
