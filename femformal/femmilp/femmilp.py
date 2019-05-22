@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 def _build_and_solve(spec, model_encode_f, spec_obj):
     # print spec
     if spec is not None:
-        hd = max(0, spec.horizon())
+        hd = max(0, spec.horizon()) + 1
     else:
         hd = 0
 
@@ -24,7 +24,7 @@ def _build_and_solve(spec, model_encode_f, spec_obj):
         fvar.setAttr("obj", spec_obj)
     # m.params.outputflag = 0
     # m.params.numericfocus = 3
-    m.params.threads = 4
+    m.params.threads = 10
     m.update()
     m.write("out.lp")
     logger.debug(

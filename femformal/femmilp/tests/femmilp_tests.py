@@ -84,7 +84,7 @@ class TestFemmilp(unittest.TestCase):
         vset = np.array([[1, 0], [-1, 0]])
         fd = lambda x, p: p[0]
         fv = lambda x, p: p[0]
-        inputs = [-5, 5, -5, 5]
+        inputs = np.array([-5, 5, -5, 5])
         pwlf = sys.PWLFunction(np.linspace(0, dt * its, len(inputs)), inputs,
                                ybounds=[-10, 10], x=self.xpart[-1])
         fset = pwlf.pset()
@@ -95,6 +95,7 @@ class TestFemmilp(unittest.TestCase):
         csosys = sys.ControlSOSystem.from_sosys(sosys, f_nodal_control)
 
         d = femmilp.simulate_trajectory(sosys, None, its, [dset, vset, fset], [fd, fv, pwlf])
+        pwlf.ys = inputs
         d_true, _ = sys.newm_integrate(csosys, d0, v0, its * dt, dt, beta=0.25)
 
         np.testing.assert_array_almost_equal(d, d_true)

@@ -14,7 +14,7 @@ from examples.mm_nl.mmnl_synth_model import *
 apc1 = logic.APCont([400, 600], ">", lambda x: 10 * x / 1000 - 1, lambda x: 10 / 1000)
 apc2 = logic.APCont([600, 1000], "<", lambda x: 10.0, lambda x: 0.0)
 cregions = {'A': apc1, 'B': apc2}
-cspec = "((F_[0.2, 0.25] (A)) & (G_[0.2, 0.25] (B)))"
+cspec = "((F_[0.1, 0.15] (A)) & (G_[0.1, 0.15] (B)))"
 
 
 fdt_mult = 1
