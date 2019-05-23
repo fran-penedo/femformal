@@ -439,7 +439,9 @@ class PWLFunction(object):
     def pset(self):
         """Creates an H-representation of the `ys` polytope
 
-        If `ybounds` was specified, this function computes the polytope in which
+        If `ys` was specified, this function computes an H-representation of
+        the vector. Otherwise,
+        if `ybounds` was specified, this function computes the polytope in which
         the `ys` are contained.
 
         Returns
@@ -447,17 +449,19 @@ class PWLFunction(object):
         ndarray
 
         """
-        ybounds = self.ybounds
+        if self.ys is None:
+            ybounds = self.ybounds
+        else:
+            ybounds = np.vstack([[y, y] for y in self.ys])
+
         if len(ybounds.shape) == 1:
-            ybounds = ybounds[None]
+            ybounds = np.repeat(ybounds[None], len(self.ts), 0)
 
         matrix = []
         left = np.hstack([np.identity(len(self.ts)),
                           -np.identity(len(self.ts))])
-        for yb in ybounds:
-            right = np.r_[[yb[1] for x in self.ts],
-                        [-yb[0] for x in self.ts]]
-            matrix.append(np.vstack([left, right]).T)
+        right = np.r_[ybounds[:, 1], -ybounds[:, 0]]
+        matrix = np.vstack([left, right]).T
 
         if ybounds.shape[0] == 1:
             return matrix[0]

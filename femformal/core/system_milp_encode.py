@@ -383,6 +383,7 @@ def add_newmark_constr_x0_set(m, l, system, pset, f, N, beta=0.25, gamma=0.5):
         pf = [m.addVar(obj=0, lb=-g.GRB.INFINITY, ub=g.GRB.INFINITY, name=label('pf', i, 0))
             for i in range(fset.shape[1] - 1)]
     elif len(fset.shape) == 3:
+        raise NotImplementedError("Multiple control inputs not implemented")
         pf = [[m.addVar(obj=0, lb=-g.GRB.INFINITY, ub=g.GRB.INFINITY, name=label('pf', i, 0))
                 for i in range(fset.shape[1] - 1)]
               for k in range(fset.shape[0])]

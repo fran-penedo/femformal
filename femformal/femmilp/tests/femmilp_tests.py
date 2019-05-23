@@ -1,6 +1,7 @@
 from __future__ import division, absolute_import, print_function
 
 import logging
+import os
 import unittest
 
 import numpy as np
@@ -10,6 +11,8 @@ from femformal.femmilp import femmilp as femmilp
 
 
 logger = logging.getLogger(__name__)
+
+FOCUSED = os.environ.get('FOCUSED', False)
 
 class TestFemmilp(unittest.TestCase):
     def setUp(self):
@@ -40,7 +43,7 @@ class TestFemmilp(unittest.TestCase):
 
         np.testing.assert_array_almost_equal(d, d_true)
 
-    @unittest.skip("Long test for heat")
+    @unittest.skipUnless(FOCUSED, "Long test for heat")
     def test_fosys_trajectory_heat(self):
         from examples.heat_mix.hm_synth_simple import cs
         T = 5.0
@@ -53,7 +56,7 @@ class TestFemmilp(unittest.TestCase):
 
         np.testing.assert_array_almost_equal(d, d_true)
 
-    @unittest.skip("Long test for heat")
+    @unittest.skipUnless(FOCUSED, "Long test for heat")
     def test_fosys_trajectory_heat_2(self):
         from examples.heat_mix.hm_synth_simple import cs
         T = 5.0
