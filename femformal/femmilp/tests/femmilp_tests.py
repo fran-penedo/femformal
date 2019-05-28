@@ -142,14 +142,16 @@ class TestFemmilp(unittest.TestCase):
         dt = 0.1
         its = 30
         hysys = sys.HybridSOSystem(self.M, K, self.F, self.xpart, dt)
-        hysys.bigN = 1e7
+        hysys.bigN_deltas = 1e7
+        hysys.bigN_int_force = 10
+        hysys.bigN_acc = 100
         d0 = np.array([1.0, 0.5, -0.5, -1.0])
         v0 = np.array([0.0, 0.0, 0.0, 0.0])
 
         d = femmilp.simulate_trajectory(hysys, [d0, v0], its)
-        d_true, _ = sys.central_diff_integrate(hysys, d0, v0, its * dt, dt)
+        d_true, _ = sys.newm_integrate(hysys, d0, v0, its * dt, dt, beta=0.25)
 
-        np.testing.assert_array_almost_equal(d, d_true)
+        np.testing.assert_array_almost_equal(d, d_true, decimal=1)
 
     def test_hybsys_trajectory(self):
         invariants = [(np.array([[1.0, 1.0]]), np.array([5])),
@@ -162,11 +164,35 @@ class TestFemmilp(unittest.TestCase):
         dt = 0.1
         its = 30
         hysys = sys.HybridSOSystem(self.M, K, self.F, self.xpart, dt)
-        hysys.bigN = 10000
+        hysys.bigN_deltas = 10
+        hysys.bigN_int_force = 10
+        hysys.bigN_acc = 100
         d0 = np.array([1.0, 0.5, -0.5, -1.0])
         v0 = np.array([0.0, 0.0, 0.0, 0.0])
 
         d = femmilp.simulate_trajectory(hysys, [d0, v0], its)
-        d_true, _ = sys.central_diff_integrate(hysys, d0, v0, its * dt, dt)
+        d_true, _ = sys.newm_integrate(hysys, d0, v0, its * dt, dt, beta=0.25)
 
-        np.testing.assert_array_almost_equal(d, d_true)
+        np.testing.assert_array_almost_equal(d, d_true, decimal=1)
+
+    def test_hybsys_trajectory2(self):
+        invariants = [(np.array([[1.0, 1.0]]), np.array([3])),
+                      (-np.array([[1.0, 1.0]]), -np.array([3]))]
+        values = [np.array([[1.0, -1.0],[-1.0, 1.0]]),
+                  np.array([[1.0, -1.0], [-1.0, 1.0]]) * 0.5]
+
+        K = [sys.HybridParameter(invariants, values) for i in range(3)]
+        K[0].values = [np.identity(2) for i in range(2)]
+        dt = 0.1
+        its = 30
+        hysys = sys.HybridSOSystem(self.M, K, self.F, self.xpart, dt)
+        hysys.bigN_deltas = 10
+        hysys.bigN_int_force = 10
+        hysys.bigN_acc = 100
+        d0 = np.array([1.0, 0.5, -0.5, -1.0])
+        v0 = np.array([0.0, 0.0, 0.0, 0.0])
+
+        d = femmilp.simulate_trajectory(hysys, [d0, v0], its, numericfocus=0)
+        d_true, _ = sys.newm_integrate(hysys, d0, v0, its * dt, dt, beta=0.25)
+
+        np.testing.assert_array_almost_equal(d, d_true, decimal=1)

@@ -43,9 +43,9 @@ def add_sys_constr_x0(m, l, system, x0, N, xhist=None):
     elif isinstance(system, sys.FOSystem):
         x = add_trapez_constr_x0(m, l, system, x0, N, xhist)
     elif isinstance(system, sys.SOSystem):
-        if isinstance(system, sys.HybridSOSystem):
-            x = add_central_diff_constr_x0(m, l, system, x0, N, xhist)
-        else:
+        # if isinstance(system, sys.HybridSOSystem):
+        #     x = add_central_diff_constr_x0(m, l, system, x0, N, xhist)
+        # else:
             x = add_newmark_constr_x0(m, l, system, x0, N, xhist)
     else:
         raise Exception(
