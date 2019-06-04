@@ -35,7 +35,7 @@ def synthesize(system, pset, f, spec, fdt_mult=1, return_traj=False, T=None, **k
         model_encode_f = lambda m, hd: sys_milp.add_sys_constr_x0_set(
             m, "d", system, pset, f, fdt_mult * hd)
 
-    m = _build_and_solve(spec, model_encode_f, -1.0, threads=10, **kwargs)
+    m = _build_and_solve(spec, model_encode_f, -1.0, **kwargs)
     if m.status == milp.GRB.status.INFEASIBLE:
         return None, None
     if isinstance(f[-1].ys[0], list):
@@ -62,10 +62,10 @@ def simulate_trajectory(system, d0, T, pset=None, f=None, labels=None, **kwargs)
         model_encode_f = lambda m, hd: sys_milp.add_sys_constr_x0_set(
             m, "d", system, pset, f, T + 1)
 
-
     m = _build_and_solve(None, model_encode_f, 1.0, **kwargs)
     if len(labels) == 1:
         return sys_milp.get_trajectory_from_model(m, labels[0], T + 1, system)
     else:
         return [sys_milp.get_trajectory_from_model(m, l, T + 1, system) for
                 l in labels]
+

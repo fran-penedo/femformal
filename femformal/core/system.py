@@ -900,6 +900,15 @@ def newm_integrate(sosys, d0, v0, T, dt=.1, beta=0, gamma=.5):
             solve_m = _factorize(M + beta * dt * dt * K_cur)
     return np.array(ds), np.array(vs)
 
+def integrate(sys, d0, T, dt):
+    if isinstance(sys, SOSystem):
+        res = newm_integrate(sys, d0[0], d0[1], T, dt, beta=0.25)
+    elif isinstance(sys, FOSystem):
+        res = trapez_integrate(sys, d0, T, dt)
+    else:
+        raise Exception("Unsupported system type")
+
+    return res
 
 # Functions computing differences between systems and time-space differences
 
@@ -1292,6 +1301,8 @@ def _draw_system_cont(sys, x0, T, t0=0, hold=False, **kargs):
 
     tx = np.linspace(t0, T, int(round((T - t0)/dt)))
     x = trapez_integrate(sys, x0, T, dt)
+    # import femformal.femmilp.femmilp as femmilp
+    # x = femmilp.simulate_trajectory(sys, x0, int(round((T - t0)/dt)))
     # x = np.c_[x0[0] * np.ones(x.shape[0]), x, x0[-1] * np.ones(x.shape[0])]
     x = x[int(round(t0/dt)):]
     tx = tx[int(round(t0/dt)):]

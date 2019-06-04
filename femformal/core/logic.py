@@ -323,18 +323,19 @@ def scale_time(formula, dt):
 class ContModel(object):
     def __init__(self, model):
         self.model = model
+        # logger.debug(model)
         self.tinter = 1
 
     def getVarByName(self, var_t):
         _, i, t = unlabel(var_t)
         return self.model[t][i]
 
-def csystem_robustness(spec, system, d0, dt):
+
+def csystem_robustness(spec, system, d0):
     # scale_time(spec, dt)
-    h = spec.horizon()
-    T = dt * h
-    t = np.linspace(0, T, h + 1)
-    model = ContModel(sys.cont_integrate(system, d0[1:-1], t))
+    h = max(0, spec.horizon()) + 1
+    T = system.dt * (h - 1)
+    model = ContModel(sys.integrate(system, d0, T, system.dt))
 
     return stl.robustness(spec, model)
 

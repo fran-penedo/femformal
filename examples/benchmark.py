@@ -23,6 +23,12 @@ def run_abstract(m, args):
     print 'Res: {}'.format(res)
     print 'Time {}'.format(finish - start)
 
+def _get_gurobi_args(args):
+    return {'threads': args.threads,
+            'outputflag': args.outputflag,
+            'numericfocus': args.numericfocus
+            }
+
 def run_milp(m, args):
     # logger.debug(m.system)
     start = timer()
@@ -31,23 +37,36 @@ def run_milp(m, args):
     else:
         container = m
     res = verify_singleton(
-        container.dsystem, container.d0, container.spec, container.fdt_mult)
+        container.dsystem, container.d0, container.spec, container.fdt_mult, **_get_gurobi_args(args))
     finish = timer()
-    print 'Res: {}'.format(res)
-    print 'Time {}'.format(finish - start)
+    print 'robustness = {}'.format(res)
+    print 'time = {}'.format(finish - start)
 
 def run_milp_set(m, args):
     cs = m.cs
     start = timer()
-    res = verify_set(cs.dsystem, cs.pset, cs.f, cs.spec, cs.fdt_mult)
+    res = verify_set(cs.dsystem, cs.pset, cs.f, cs.spec, cs.fdt_mult, **_get_gurobi_args(args))
     finish = timer()
-    print 'Res: {}'.format(res)
-    print 'Time {}'.format(finish - start)
+    print('robustness = {}'.format(res))
+    print('time = {}'.format(finish - start))
+
+def run_verify(m, args):
+    cs = m.cs
+    if 'input_file' in args:
+        inputm = load_module(args.input_file)
+        draw_opts = draw.DrawOpts(getattr(inputm, 'draw_opts', None))
+        def f_nodal_control(t):
+            f = np.zeros(m.N + 1)
+            f[-1] = m.pwlf(t, x=m.pwlf.x)
+            return f
+        cs.system = sys.make_control_system(cs.system, f_nodal_control)
+    res = csystem_robustness(cs.spec, cs.system, cs.d0)
+    print('robustness = {}'.format(res))
 
 def run_milp_synth(m, args):
     cs = m.cs
     start = timer()
-    res, synths = synthesize(cs.dsystem, cs.pset, cs.f, cs.spec, cs.fdt_mult)
+    res, synths = synthesize(cs.dsystem, cs.pset, cs.f, cs.spec, cs.fdt_mult, **_get_gurobi_args(args))
     finish = timer()
     print 'robustness = {}'.format(res)
     print 'inputs = {}'.format(synths)
@@ -366,6 +385,9 @@ def get_argparser():
     parser_draw.add_argument('-m', '--movie', action='store_true',
                              help='save a movie when drawing an animation')
     _add_draw_argparser(parser_draw)
+    parser_verify = subparsers.add_parser(
+        'verify', help='Verify a model by direct integration')
+    parser_verify.add_argument('-i', '--input-file', help='file with extra inputs')
     parser_milp = subparsers.add_parser(
         'milp', help='Run an example using MILP')
     parser_milp_set = subparsers.add_parser(
@@ -378,7 +400,19 @@ def get_argparser():
         'load', help='Load a benchmark file')
     parser.add_argument('module', help='file containing the case study')
     parser.add_argument('-v', '--verbosity', action='count')
+    parser.add_argument(
+        '--log-level', default='DEBUG', choices=['DEBUG', 'INFO'],
+        help='Logging level')
     parser.add_argument('--check-inv', action='store_true')
+    gurobi_group = parser.add_argument_group('Gurobi options')
+    gurobi_group.add_argument('--gthreads', dest='threads', type=int, default=10,
+                              help='Number of threads that gurobi will use')
+    gurobi_group.add_argument('--goutputflag', dest='outputflag', type=int,
+                              default=1, choices=[0, 1],
+                              help='Enable (1) or disable (0) gurobi output')
+    gurobi_group.add_argument(
+        '--gnumericfocus', dest='numericfocus', type=int, default=0,
+        choices=[0, 1, 2, 3], help='Degree of control over numerical issues')
     return parser
 
 def _add_draw_argparser(parser):
@@ -399,8 +433,7 @@ def load_module(f):
         traceback.print_exc()
         return None
 
-
-def main():
+def _logging_setup(args):
     import logging.config
     logging.config.dictConfig({
         'version': 1,
@@ -420,15 +453,18 @@ def main():
         'loggers': {
             'femformal': {
                 'handlers': ['console'],
-                'level': 'DEBUG',
+                'level': args.log_level,
                 'propagate': True
             }
         }
     })
 
 
+def main():
     parser = get_argparser()
     args = parser.parse_args()
+    _logging_setup(args)
+
     runstr = 'run_' + args.action
     module = load_module(args.module)
     if module is None:

@@ -115,8 +115,16 @@ def add_affsys_constr_x0_set(m, l, system, pset, f, N):
     m.update()
 
     for i in range(pset.shape[0]):
-        m.addConstr(g.quicksum(
-            pset[i][j] * p[j] for j in range(pset.shape[1] - 1)) <= pset[i][-1])
+        for k in range(pset.shape[0]):
+            if i != k and np.all(np.isclose(pset[i] + pset[k], 0.0)):
+                m.addConstr(g.quicksum(
+                    pset[i][j] * p[j] for j in range(pset.shape[1] - 1))
+                    == pset[i][-1])
+                break
+        else: # didn't find a matching row
+            m.addConstr(g.quicksum(
+                pset[i][j] * p[j] for j in range(pset.shape[1] - 1))
+                <= pset[i][-1])
     # for i in range(pset.shape[0]):
     #     m.addConstr(p0 * pset[i][0] + p1 * pset[i][1] <= pset[i][2])
 
@@ -159,6 +167,22 @@ def _add_affsys_constr(m, l, system, N, xhist=None):
 
     return x
 
+def _add_set_constraints(m, l, pset):
+    ps = [m.addVar(obj=0, lb=-g.GRB.INFINITY, ub=g.GRB.INFINITY, name=label(l, i, 0))
+          for i in range(pset.shape[1] - 1)]
+    m.update()
+    for i in range(pset.shape[0]):
+        for k in range(pset.shape[0]):
+            if i != k and np.all(np.isclose(pset[i] + pset[k], 0.0)):
+                m.addConstr(g.quicksum(
+                    pset[i][j] * ps[j] for j in range(pset.shape[1] - 1))
+                    == pset[i][-1])
+                break
+        else: # didn't find a matching row
+            m.addConstr(g.quicksum(
+                pset[i][j] * ps[j] for j in range(pset.shape[1] - 1))
+                <= pset[i][-1])
+    return ps
 
 def add_trapez_constr_x0_set(m, l, system, pset, f, N):
     """Adds the parameterized FO system trajectory to a `gurobi` model
@@ -196,19 +220,22 @@ def add_trapez_constr_x0_set(m, l, system, pset, f, N):
     fd, ff = f
 
     logger.debug("Adding parameter constraints")
-    pd = [m.addVar(obj=0, lb=-g.GRB.INFINITY, ub=g.GRB.INFINITY, name=label('pd', i, 0))
-          for i in range(dset.shape[1] - 1)]
-    pf = [m.addVar(obj=0, lb=-g.GRB.INFINITY, ub=g.GRB.INFINITY, name=label('pf', i, 0))
-          for i in range(fset.shape[1] - 1)]
+    pd = _add_set_constraints(m, 'pd', dset)
+    pf = _add_set_constraints(m, 'pf', fset)
 
-    m.update()
-
-    for i in range(dset.shape[0]):
-        m.addConstr(g.quicksum(
-            pd[j] * dset[i][j] for j in range(dset.shape[1] - 1)) <= dset[i][-1])
-    for i in range(fset.shape[0]):
-        m.addConstr(g.quicksum(
-            pf[j] * fset[i][j] for j in range(fset.shape[1] - 1)) <= fset[i][-1])
+    # pd = [m.addVar(obj=0, lb=-g.GRB.INFINITY, ub=g.GRB.INFINITY, name=label('pd', i, 0))
+    #       for i in range(dset.shape[1] - 1)]
+    # pf = [m.addVar(obj=0, lb=-g.GRB.INFINITY, ub=g.GRB.INFINITY, name=label('pf', i, 0))
+    #       for i in range(fset.shape[1] - 1)]
+    #
+    # m.update()
+    #
+    # for i in range(dset.shape[0]):
+    #     m.addConstr(g.quicksum(
+    #         pd[j] * dset[i][j] for j in range(dset.shape[1] - 1)) <= dset[i][-1])
+    # for i in range(fset.shape[0]):
+    #     m.addConstr(g.quicksum(
+    #         pf[j] * fset[i][j] for j in range(fset.shape[1] - 1)) <= fset[i][-1])
 
     logger.debug("Adding initial and boundary conditions")
     if xpart is not None:
