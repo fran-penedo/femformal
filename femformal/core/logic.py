@@ -15,6 +15,7 @@ import logging
 import numpy as np
 from pyparsing import Word, Literal, MatchFirst, nums
 from stlmilp import stl as stl
+from enum import Enum
 
 from . import system as sys
 from .util import state_label, label, unlabel
@@ -24,8 +25,10 @@ logger = logging.getLogger(__name__)
 
 # S-STL data structures
 
+Quantifier = Enum('Quantifier', 'forall exists')
+
 class APCont(object):
-    """1D S-STL predicate :math:`\\forall x \in A : \\frac{d^i u}{d x^i} \\sim p(x)`
+    """1D S-STL predicate :math:`Q x \in A : \\frac{d^i u}{d x^i} \\sim p(x)`
 
     Parameters
     ----------
@@ -40,10 +43,12 @@ class APCont(object):
         dp(float) -> float
     uderivs : int, optional
         The order of the u derivative
+    quantifier : :class:`femformal.core.logic.Quantifier`, optional
+        The spatial quantifier `Q`
 
     """
 
-    def __init__(self, A, r, p, dp = None, uderivs = 0):
+    def __init__(self, A, r, p, dp=None, uderivs=0, quantifier=Quantifier.forall):
         # A : [x_min, x_max] (np.array)
         self.A = A
         # r == 1: f < p, r == -1: f > p
@@ -60,6 +65,7 @@ class APCont(object):
         else:
             self.dp = lambda x: 0
         self.deriv = -1
+        self.quantifier = quantifier
 
 
 class APCont2D(APCont):
@@ -97,18 +103,14 @@ class APCont2D(APCont):
 
 class _APDisc(object):
     # Intermediate structure between S-STL predicates and STL discretization
-    def __init__(self, stlpred_list, quantifier="forall"):
-        allowed = {"forall", "exists"}
-        if quantifier not in allowed:
-            raise ValueError("quantifier must be one of {}. Given: {}".format(
-                allowed, quantifier))
+    def __init__(self, stlpred_list, quantifier=Quantifier.forall):
         self.stlpred_list = stlpred_list
         self.quantifier = quantifier
 
     def _quant_str(self):
-        if self.quantifier == "forall":
+        if self.quantifier == Quantifier.forall:
             return " & "
-        elif self.quantifier == "exists":
+        elif self.quantifier == Quantifier.exists:
             return " | "
         else:
             raise ValueError()
@@ -119,6 +121,7 @@ class _APDisc(object):
                 [str(pred) for pred in self.stlpred_list]))
         else:
             return str(self.stlpred_list[0])
+
 
 class STLPred(object):
     """Regular STL predicate obtained after discretizing an S-STL predicate
@@ -226,7 +229,7 @@ def _ap_cont_to_disc(apcont, xpart):
                 isnode=False, uderivs=apcont.uderivs, region_dim=1,
                 deriv=apcont.deriv
             ) for i in range(i_min, i_max)]
-    return _APDisc(stlpred_list)
+    return _APDisc(stlpred_list, apcont.quantifier)
 
 def _ap_cont2d_to_disc(apcont, mesh_):
     region = apcont.A

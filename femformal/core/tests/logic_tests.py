@@ -23,6 +23,7 @@ class test_logic(unittest.TestCase):
         ])
         self.xpart = np.linspace(0, 5, 11)
         self.apd1_string = "((1 0 1 1 0 < 5.0 10.0 -1) & (1 0 1 2 0 < 6.0 10.0 -1))"
+        self.apd1_string_exists = self.apd1_string.replace('&', '|')
         self.form = "G_[0, 1] ({})".format(self.apd1_string)
         self.signal1 = logic.SysSignal(
             logic.STLPred(1, -1, 5.0, 10.0, isnode=False, uderivs=1, region_dim=1),
@@ -49,7 +50,6 @@ class test_logic(unittest.TestCase):
             logic.STLPred(1, -1, 5.0, 10.0, False, uderivs=0, region_dim=2),
             mesh_=self.mesh)
 
-
     def test_apc_to_apd(self):
         apd = logic._ap_cont_to_disc(self.apc1, self.xpart)
         els = [0,1,2,3]
@@ -75,6 +75,8 @@ class test_logic(unittest.TestCase):
 
     def test_apd_string(self):
         self.assertEqual(str(self.apd1), self.apd1_string)
+        self.apd1.quantifier = logic.Quantifier.exists
+        self.assertEqual(str(self.apd1), self.apd1_string_exists)
 
     def test_expr_parser(self):
         fdt_mult = 2
