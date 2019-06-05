@@ -9,6 +9,10 @@ from matplotlib.collections import LineCollection
 from matplotlib.widgets import Slider
 from mpl_toolkits import mplot3d as p3
 
+import matplotlib.style
+import matplotlib as mpl
+mpl.style.use('classic')
+
 
 logger = logging.getLogger(__name__)
 

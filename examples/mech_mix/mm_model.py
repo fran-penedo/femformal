@@ -19,10 +19,10 @@ du0 = lambda x: 0.0
 
 g = [0.0, None]
 
-dt = .005
+dt = .0025
 T = 0.5
 
 N_t = 200
-dt_t = 0.005
+dt_t = 0.0025
 f_nodal_t = np.zeros(N_t + 1)
 xpart_t = np.linspace(0, L, N_t + 1)

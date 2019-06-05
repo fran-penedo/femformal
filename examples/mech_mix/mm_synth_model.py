@@ -5,7 +5,7 @@ import numpy as np
 from femformal.core import system as sys
 from femformal.core.fem import mechlinfem as mechlinfem
 from examples.mech_mix.mm_model import *
-from examples.mech_mix.results import mm_mxd_f_t1_results as mdiff
+from examples.mech_mix.results import mm_mxd_f_t0025_results as mdiff
 
 
 d_par = 0.0

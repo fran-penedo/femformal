@@ -6,6 +6,10 @@ logger.addHandler(logging.NullHandler())
 mpl_logger = logging.getLogger('matplotlib')
 mpl_logger.setLevel(logging.WARNING)
 
+import matplotlib.style
+import matplotlib as mpl
+mpl.style.use('classic')
+
 import sys
 import os
 
