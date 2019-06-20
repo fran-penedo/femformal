@@ -334,13 +334,21 @@ class ContModel(object):
         return self.model[t][i]
 
 
-def csystem_robustness(spec, system, d0):
+def csystem_robustness(spec, system, d0, tree=False):
     # scale_time(spec, dt)
     h = max(0, spec.horizon()) + 1
     T = system.dt * (h - 1)
-    model = ContModel(sys.integrate(system, d0, T, system.dt))
+    res = sys.integrate(system, d0, T, system.dt)
+    try:
+        res = res[0]
+    except:
+        pass
+    model = ContModel(res)
 
-    return stl.robustness(spec, model)
+    if tree:
+        return stl.robustness_tree(spec, model)
+    else:
+        return stl.robustness(spec, model)
 
 
 # MILP simulation model
@@ -404,24 +412,24 @@ class SysSignal(stl.Signal):
 
         if self.xpart is not None:
             if self.apdisc.isnode:
-                self.labels = [lambda t: label("d", self.apdisc.index, t)]
+                labels = [lambda t: label("d", self.apdisc.index, t)]
                 self.elem_len = 0
             else:
-                self.labels = [
+                labels = [
                     (lambda t, i=i: label("d", self.apdisc.index + i, t))
                     for i in range(2)]
                 self.elem_len = (xpart[self.apdisc.index + 1] -
                                  xpart[self.apdisc.index])
-            self.f = _build_f(self.apdisc, self.elem_len)
+            f = _build_f(self.apdisc, self.elem_len)
         else:
             #FIXME dofs?
             if self.apdisc.deriv < 0:
-                self.labels = [
+                labels = [
                     (lambda t, i=i: label("d", self.apdisc.u_comp + 2 * i, t))
                     for i in mesh_.elem_nodes(
                         self.apdisc.index, self.apdisc.region_dim)]
             else:
-                self.labels = [
+                labels = [
                     (lambda t, i=i, j=j: label("d", j + 2 * i, t))
                     for i in mesh_.elem_nodes(
                         self.apdisc.index, self.apdisc.region_dim)
@@ -430,12 +438,12 @@ class SysSignal(stl.Signal):
 
             self.elem = mesh_.build_elem(
                 mesh_.elem_coords(self.apdisc.index, self.apdisc.region_dim))
-            self.f = _build_f_elem(self.apdisc, self.elem)
+            f = _build_f_elem(self.apdisc, self.elem)
 
         if bounds is None:
-            self.bounds = [-1000, 1000]
-        else:
-            self.bounds = bounds
+            bounds = [-1000, 1000]
+
+        super(SysSignal, self).__init__(labels, f, bounds)
 
     def perturb(self, eps):
         """Perturbs this signal

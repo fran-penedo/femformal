@@ -15,19 +15,19 @@ def _build_and_solve(*args, **kwargs):
         m.write("out.ilp")
     return m
 
-def verify_singleton(system, d0, spec, fdt_mult=1, **kwargs):
+def verify_singleton(system, d0, spec, fdt_mult=1, start_robustness_tree=None, **kwargs):
     model_encode_f = lambda m, hd: sys_milp.add_sys_constr_x0(m, "d", system, d0, fdt_mult * hd, None)
 
-    m = _build_and_solve(spec, model_encode_f, 1.0, **kwargs)
+    m = _build_and_solve(spec, model_encode_f, 1.0, start_robustness_tree, **kwargs)
     return m.getVarByName("spec").getAttr("x")
 
-def verify_set(system, pset, f, spec, fdt_mult=1, **kwargs):
+def verify_set(system, pset, f, spec, fdt_mult=1, start_robustness_tree=None, **kwargs):
     model_encode_f = lambda m, hd: sys_milp.add_sys_constr_x0_set(m, "d", system, pset, f, fdt_mult * hd)
 
-    m = _build_and_solve(spec, model_encode_f, 1.0, **kwargs)
+    m = _build_and_solve(spec, model_encode_f, 1.0, start_robustness_tree, **kwargs)
     return m.getVarByName("spec").getAttr("x")
 
-def synthesize(system, pset, f, spec, fdt_mult=1, return_traj=False, T=None, **kwargs):
+def synthesize(system, pset, f, spec, fdt_mult=1, return_traj=False, T=None, start_robustness_tree=None, **kwargs):
     if spec is None:
         model_encode_f = lambda m, hd: sys_milp.add_sys_constr_x0_set(
             m, "d", system, pset, f, T + 1)
@@ -35,7 +35,7 @@ def synthesize(system, pset, f, spec, fdt_mult=1, return_traj=False, T=None, **k
         model_encode_f = lambda m, hd: sys_milp.add_sys_constr_x0_set(
             m, "d", system, pset, f, fdt_mult * hd)
 
-    m = _build_and_solve(spec, model_encode_f, -1.0, **kwargs)
+    m = _build_and_solve(spec, model_encode_f, -1.0, start_robustness_tree, **kwargs)
     if m.status == milp.GRB.status.INFEASIBLE:
         return None, None
     if isinstance(f[-1].ys[0], list):

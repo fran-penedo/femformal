@@ -37,7 +37,8 @@ def run_milp(m, args):
     else:
         container = m
     res = verify_singleton(
-        container.dsystem, container.d0, container.spec, container.fdt_mult, **_get_gurobi_args(args))
+        container.dsystem, container.d0, container.spec, container.fdt_mult,
+        start_robustness_tree=getattr(container, 'rob_tree', None), **_get_gurobi_args(args))
     finish = timer()
     print 'robustness = {}'.format(res)
     print 'time = {}'.format(finish - start)
@@ -45,7 +46,8 @@ def run_milp(m, args):
 def run_milp_set(m, args):
     cs = m.cs
     start = timer()
-    res = verify_set(cs.dsystem, cs.pset, cs.f, cs.spec, cs.fdt_mult, **_get_gurobi_args(args))
+    res = verify_set(cs.dsystem, cs.pset, cs.f, cs.spec, cs.fdt_mult,
+                     start_robustness_tree=getattr(cs, 'rob_tree', None), **_get_gurobi_args(args))
     finish = timer()
     print('robustness = {}'.format(res))
     print('time = {}'.format(finish - start))
@@ -54,6 +56,8 @@ def run_verify(m, args):
     cs = m.cs
     if 'input_file' in args:
         inputm = load_module(args.input_file)
+        # inputs = inputm.inputs
+        # m.pwlf.ys = inputs
         draw_opts = draw.DrawOpts(getattr(inputm, 'draw_opts', None))
         def f_nodal_control(t):
             f = np.zeros(m.N + 1)
@@ -66,7 +70,9 @@ def run_verify(m, args):
 def run_milp_synth(m, args):
     cs = m.cs
     start = timer()
-    res, synths = synthesize(cs.dsystem, cs.pset, cs.f, cs.spec, cs.fdt_mult, **_get_gurobi_args(args))
+    res, synths = synthesize(cs.dsystem, cs.pset, cs.f, cs.spec, cs.fdt_mult,
+                             start_robustness_tree=getattr(cs, 'rob_tree', None),
+                             **_get_gurobi_args(args))
     finish = timer()
     print 'robustness = {}'.format(res)
     print 'inputs = {}'.format(synths)
@@ -452,6 +458,11 @@ def _logging_setup(args):
         },
         'loggers': {
             'femformal': {
+                'handlers': ['console'],
+                'level': args.log_level,
+                'propagate': True
+            },
+            'stlmilp': {
                 'handlers': ['console'],
                 'level': args.log_level,
                 'propagate': True

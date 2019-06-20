@@ -17,3 +17,13 @@ bounds = [-100, 100]
 cs = fem.build_cs(sosys, [d0, v0], g, cregions, cspec, discretize_system=False,
                   pset=[dset, vset, fset], f=[fd, fv, pwlf], fdt_mult=fdt_mult,
                   bounds=bounds, error_bounds=error_bounds)
+
+inputs = [0.0, 1987.9180545925, 2000.0, -2990.9140641370377, 3301.80750340456, 3879.863483563019]
+pwlf.ys = inputs
+def f_nodal_control(t):
+    f = np.zeros(N + 1)
+    f[-1] = pwlf(t, x=pwlf.x)
+    return f
+csys = sys.make_control_system(cs.system, f_nodal_control)
+cs.rob_tree = logic.csystem_robustness(cs.spec, csys, cs.d0, tree=True)
+pwlf.ys = None
