@@ -850,8 +850,8 @@ def newm_integrate(sosys, d0, v0, T, dt=.1, beta=0, gamma=.5):
         the first row
 
     """
-    logger.debug("Integrating with newmark, parameters beta = {}, gamma = {}"
-                 "".format(beta, gamma))
+    # logger.debug("Integrating with newmark, parameters beta = {}, gamma = {}"
+    #              "".format(beta, gamma))
     M, K, F, n_e = _ns_sys_matrices(sosys)
 
     try:
