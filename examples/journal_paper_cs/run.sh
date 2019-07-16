@@ -5,6 +5,7 @@ DRAW_INPUTS_CMD="python run_benchmark.py --log-level INFO draw -i %s inputs %s"
 
 CS_DIR="./examples/"
 CS_FILES_1D="heat_mix/hm_synth_simple2.py"
+# CS_FILES_1D=""
 CS_FILES_2D=""
 
 run_cs () {
@@ -12,7 +13,7 @@ run_cs () {
     base=${1##*/}
     dir=${1%/$base}
     res_file=$dir/results/${base%.py}_results.py
-    echo "#$(date)" >> $res_file
+    echo "#$(date) $(version)" >> $res_file
     echo "#$run" >> $res_file
     echo "Running milp_synth:" > /dev/tty
     echo "$run" > /dev/tty
@@ -32,10 +33,28 @@ run_nd () {
     eval $run
 }
 
-for f in $CS_FILES_1D; do
-    run_nd $CS_DIR$f $DRAW1D_CMD
-done
+version () {
+    v=$(git describe --tags --long --dirty --always)
+    if [[ $? ]]; then
+        echo $v
+    else
+        echo $(grep version setup.py | sed -r "s/.*'([0-9.]+)'.*/\1/")
+    fi
+}
 
-for f in $CS_FILES_2D; do
-    run_nd $CS_DIR$f $DRAW2D_CMD
-done
+diff=$(git diff --shortstat | tail -n1)
+ans="y"
+if [[ $? && $diff != "" ]]; then
+    echo -n "There are uncommitted changes. Do you want to run anyway? [Y/n]: "
+    read ans
+fi
+
+if [[ $ans =~ ^[Yy] ]]; then
+    for f in $CS_FILES_1D; do
+        run_nd $CS_DIR$f $DRAW1D_CMD
+    done
+
+    for f in $CS_FILES_2D; do
+        run_nd $CS_DIR$f $DRAW2D_CMD
+    done
+fi

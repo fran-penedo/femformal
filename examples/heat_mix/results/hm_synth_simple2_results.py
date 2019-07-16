@@ -18,10 +18,8 @@ inputs = [
     367498.3069276521,
 ]
 time = 603.032427788
-#Mon 15 Jul 2019 02:56:54 PM EDT
+#Tue 16 Jul 2019 12:00:50 PM EDT v0.1.1-0-g376ab69-dirty
 #python run_benchmark.py --log-level INFO --gthreads 10 --goutputflag 0 milp_synth ./examples/heat_mix/hm_synth_simple2.py
 robustness = 0.650027232559
 inputs = [205083.9369002197, 1000000.0, 1000000.0, 1000000.0, 796945.6791276368, 637439.5139662502, 567397.7082143915, 98980.53787708707, 0.0, 350110.0741086817, 0.0]
-time = 6.25817704201
-#Mon 15 Jul 2019 03:49:40 PM EDT
-#python run_benchmark.py --log-level INFO --gthreads 10 --goutputflag 0 milp_synth ./examples/heat_mix/hm_synth_simple2.py
+time = 117.347368956

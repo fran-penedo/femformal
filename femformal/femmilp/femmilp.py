@@ -89,7 +89,7 @@ def find_good_start_vector(system, pset, f, spec, objective):
         pwlf.ys = x
         return objective * logic.csystem_robustness(spec, csys, d0, tree=False)
 
-    res = differential_evolution(obj, bounds, maxiter=50, disp=True)
+    res = differential_evolution(obj, bounds, maxiter=50, disp=False)
     pwlf.ys = res.x
 
     tree = logic.csystem_robustness(spec, csys, d0, tree=True)
