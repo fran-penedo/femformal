@@ -1,5 +1,6 @@
-"""
-S-STL extension of STL. The module provides classes for
+"""S-STL extension of STL.
+
+The module provides classes for
 predicates in continuous time (:class:`APCont` and
 :class:`APCont2D`) and the individual STL predicates
 obtained after discretization (:class:`STLPred`). The discretization is
@@ -12,8 +13,7 @@ import itertools as it
 from bisect import bisect_left, bisect_right
 import logging
 
-import numpy as np
-from pyparsing import Word, Literal, MatchFirst, nums
+from pyparsing import Literal, MatchFirst
 from stlmilp import stl as stl
 from enum import Enum
 
@@ -25,7 +25,8 @@ logger = logging.getLogger(__name__)
 
 # S-STL data structures
 
-Quantifier = Enum('Quantifier', 'forall exists')
+Quantifier = Enum("Quantifier", "forall exists")
+
 
 class APCont(object):
     """1D S-STL predicate :math:`Q x \in A : \\frac{d^i u}{d x^i} \\sim p(x)`
@@ -45,7 +46,6 @@ class APCont(object):
         The order of the u derivative
     quantifier : :class:`femformal.core.logic.Quantifier`, optional
         The spatial quantifier `Q`
-
     """
 
     def __init__(self, A, r, p, dp=None, uderivs=0, quantifier=Quantifier.forall):
@@ -93,6 +93,7 @@ class APCont2D(APCont):
         Directional derivative (:math:`i` in the above equation)
 
     """
+
     def __init__(self, u_comp, A, r, p, dp, deriv=-1):
         APCont.__init__(self, A, r, p, dp, uderivs=(0 if deriv < 0 else 1))
         self.u_comp = u_comp
@@ -100,6 +101,7 @@ class APCont2D(APCont):
 
 
 # S-STL to STL
+
 
 class _APDisc(object):
     # Intermediate structure between S-STL predicates and STL discretization
@@ -117,8 +119,9 @@ class _APDisc(object):
 
     def __str__(self):
         if len(self.stlpred_list) > 1:
-            return "({})".format(self._quant_str().join(
-                [str(pred) for pred in self.stlpred_list]))
+            return "({})".format(
+                self._quant_str().join([str(pred) for pred in self.stlpred_list])
+            )
         else:
             return str(self.stlpred_list[0])
 
@@ -166,8 +169,20 @@ class STLPred(object):
         Directional derivative
 
     """
-    def __init__(self, index, r, p, dp, isnode = True, uderivs = 0, u_comp = 0,
-                 region_dim = 0, query_point = 0, deriv = -1):
+
+    def __init__(
+        self,
+        index,
+        r,
+        p,
+        dp,
+        isnode=True,
+        uderivs=0,
+        u_comp=0,
+        region_dim=0,
+        query_point=0,
+        deriv=-1,
+    ):
         self.index = index
         self.r = r
         self.p = p
@@ -180,18 +195,20 @@ class STLPred(object):
         self.deriv = deriv
 
     def __str__(self):
-        return ("({region_dim} {u_comp} {uderivs} "
-                "{index} {query} {op} {p} {dp} {deriv})".format(
-            region_dim=self.region_dim,
-            u_comp=self.u_comp,
-            uderivs=self.uderivs,
-            index=self.index,
-            op="<" if self.r == 1 else ">",
-            p=self.p,
-            dp=self.dp,
-            query=self.query_point,
-            deriv=self.deriv
-        ))
+        return (
+            "({region_dim} {u_comp} {uderivs} "
+            "{index} {query} {op} {p} {dp} {deriv})".format(
+                region_dim=self.region_dim,
+                u_comp=self.u_comp,
+                uderivs=self.uderivs,
+                index=self.index,
+                op="<" if self.r == 1 else ">",
+                p=self.p,
+                dp=self.dp,
+                query=self.query_point,
+                deriv=self.deriv,
+            )
+        )
 
 
 def _subst_spec_labels_disc(spec, regions):
@@ -200,6 +217,7 @@ def _subst_spec_labels_disc(spec, regions):
         replaced = str(v)
         res = res.replace(k, replaced)
     return res
+
 
 def _ap_cont_to_disc(apcont, xpart):
     # xpart : [x_i] (list)
@@ -210,26 +228,43 @@ def _ap_cont_to_disc(apcont, xpart):
         if apcont.uderivs > 0:
             raise Exception("Derivatives at nodes are not well defined")
         i = min(max(bisect_left(xpart, apcont.A[0]), 0), N1 - 1)
-        stlpred_list = [STLPred(
-            i, r, apcont.p(xpart[i]), apcont.dp(xpart[i]), isnode=True,
-            uderivs=apcont.uderivs, region_dim=0)]
+        stlpred_list = [
+            STLPred(
+                i,
+                r,
+                apcont.p(xpart[i]),
+                apcont.dp(xpart[i]),
+                isnode=True,
+                uderivs=apcont.uderivs,
+                region_dim=0,
+            )
+        ]
     else:
         if apcont.uderivs > 1:
             raise Exception(
-                ("Second and higher order derivatives are 0 for linear "
-                "interpolation: uderivs = {}").format(apcont.uderivs))
+                (
+                    "Second and higher order derivatives are 0 for linear "
+                    "interpolation: uderivs = {}"
+                ).format(apcont.uderivs)
+            )
 
         i_min = max(bisect_left(xpart, apcont.A[0]), 0)
         i_max = min(bisect_left(xpart, apcont.A[1]), N1 - 1)
         stlpred_list = [
             STLPred(
-                i, r,
-                apcont.p((xpart[i] + xpart[i+1]) / 2.0),
-                apcont.dp((xpart[i] + xpart[i+1]) / 2.0),
-                isnode=False, uderivs=apcont.uderivs, region_dim=1,
-                deriv=apcont.deriv
-            ) for i in range(i_min, i_max)]
+                i,
+                r,
+                apcont.p((xpart[i] + xpart[i + 1]) / 2.0),
+                apcont.dp((xpart[i] + xpart[i + 1]) / 2.0),
+                isnode=False,
+                uderivs=apcont.uderivs,
+                region_dim=1,
+                deriv=apcont.deriv,
+            )
+            for i in range(i_min, i_max)
+        ]
     return _APDisc(stlpred_list, apcont.quantifier)
+
 
 def _ap_cont2d_to_disc(apcont, mesh_):
     region = apcont.A
@@ -239,14 +274,23 @@ def _ap_cont2d_to_disc(apcont, mesh_):
     elems = [(e, build_elem(elem_set[e])) for e in elem_set.elems]
     stlpred_list = [
         STLPred(
-            e, apcont.r,
-            apcont.p(*coords), apcont.dp(*coords),
-            isnode=elem_set.dimension == 0, uderivs=apcont.uderivs,
-            u_comp=apcont.u_comp, region_dim=elem_set.dimension, query_point=i,
-            deriv=apcont.deriv
-        ) for e, elem in elems for i, (coords, h) in enumerate(elem.covering())]
+            e,
+            apcont.r,
+            apcont.p(*coords),
+            apcont.dp(*coords),
+            isnode=elem_set.dimension == 0,
+            uderivs=apcont.uderivs,
+            u_comp=apcont.u_comp,
+            region_dim=elem_set.dimension,
+            query_point=i,
+            deriv=apcont.deriv,
+        )
+        for e, elem in elems
+        for i, (coords, h) in enumerate(elem.covering())
+    ]
 
     return _APDisc(stlpred_list)
+
 
 def sstl_to_stl(spec, regions, xpart=None, mesh_=None):
     """Transforms an S-STL spec into an STL spec
@@ -282,6 +326,7 @@ def sstl_to_stl(spec, regions, xpart=None, mesh_=None):
 
 # STL transformations
 
+
 def perturb(formula, eps):
     """Perturbs the predicates of a formula
 
@@ -298,6 +343,7 @@ def perturb(formula, eps):
 
     """
     return stl.perturb(formula, eps)
+
 
 def scale_time(formula, dt):
     """Transforms a formula in continuous time to discrete time
@@ -323,6 +369,7 @@ def scale_time(formula, dt):
 
 # Direct simulation model
 
+
 class ContModel(object):
     def __init__(self, model):
         self.model = model
@@ -340,9 +387,9 @@ def csystem_robustness(spec, system, d0, tree=False):
     T = system.dt * (h - 1)
     res = sys.integrate(system, d0, T, system.dt)
     try:
-        res = res[0]
+        _ = res.shape
     except:
-        pass
+        res = res[0]
     model = ContModel(res)
 
     if tree:
@@ -353,15 +400,17 @@ def csystem_robustness(spec, system, d0, tree=False):
 
 # MILP simulation model
 
+
 def _build_f(ap, elem_len):
     p, op, isnode, uderivs = ap.p, ap.r, ap.isnode, ap.uderivs
     if isnode:
         return lambda vs: -(vs[0] - p) * op
     else:
         if uderivs == 0:
-            return lambda vs: -(.5 * vs[0] + .5 * vs[1] - p) * op
+            return lambda vs: -(0.5 * vs[0] + 0.5 * vs[1] - p) * op
         elif uderivs == 1:
             return lambda vs: -((vs[1] - vs[0]) / elem_len - p) * op
+
 
 def _build_f_elem(ap, elem):
     p, op, uderivs = ap.p, ap.r, ap.uderivs
@@ -370,8 +419,9 @@ def _build_f_elem(ap, elem):
     except:
         pass
     if uderivs == 0:
-        return lambda vs: - op * (
-            elem.interpolate_phys(vs, elem.covering()[ap.query_point][0]) - p)
+        return lambda vs: -op * (
+            elem.interpolate_phys(vs, elem.covering()[ap.query_point][0]) - p
+        )
     else:
         # return lambda vs: - op * (
         #     elem.interpolate_derivatives(
@@ -379,10 +429,11 @@ def _build_f_elem(ap, elem):
         #         elem.covering()[ap.query_point][0])[ap.u_comp][ap.deriv] - p)
 
         component = ap.u_comp if ap.u_comp == ap.deriv else 2
-        return lambda vs: - op * (
-            elem.interpolate_strain(
-                vs,
-                elem.covering()[ap.query_point][0])[component] - p)
+        return lambda vs: -op * (
+            elem.interpolate_strain(vs, elem.covering()[ap.query_point][0])[component]
+            - p
+        )
+
 
 class SysSignal(stl.Signal):
     """Secondary signal from a FEM system
@@ -404,6 +455,7 @@ class SysSignal(stl.Signal):
         [min, max] bounds for the secondary signal. Default is [-1000, 1000]
 
     """
+
     def __init__(self, apdisc, xpart=None, fdt_mult=1, bounds=None, mesh_=None):
         self.apdisc = apdisc
         self.fdt_mult = fdt_mult
@@ -417,27 +469,27 @@ class SysSignal(stl.Signal):
             else:
                 labels = [
                     (lambda t, i=i: label("d", self.apdisc.index + i, t))
-                    for i in range(2)]
-                self.elem_len = (xpart[self.apdisc.index + 1] -
-                                 xpart[self.apdisc.index])
+                    for i in range(2)
+                ]
+                self.elem_len = xpart[self.apdisc.index + 1] - xpart[self.apdisc.index]
             f = _build_f(self.apdisc, self.elem_len)
         else:
-            #FIXME dofs?
+            # FIXME dofs?
             if self.apdisc.deriv < 0:
                 labels = [
                     (lambda t, i=i: label("d", self.apdisc.u_comp + 2 * i, t))
-                    for i in mesh_.elem_nodes(
-                        self.apdisc.index, self.apdisc.region_dim)]
+                    for i in mesh_.elem_nodes(self.apdisc.index, self.apdisc.region_dim)
+                ]
             else:
                 labels = [
                     (lambda t, i=i, j=j: label("d", j + 2 * i, t))
-                    for i in mesh_.elem_nodes(
-                        self.apdisc.index, self.apdisc.region_dim)
+                    for i in mesh_.elem_nodes(self.apdisc.index, self.apdisc.region_dim)
                     for j in range(2)
                 ]
 
             self.elem = mesh_.build_elem(
-                mesh_.elem_coords(self.apdisc.index, self.apdisc.region_dim))
+                mesh_.elem_coords(self.apdisc.index, self.apdisc.region_dim)
+            )
             f = _build_f_elem(self.apdisc, self.elem)
 
         if bounds is None:
@@ -478,6 +530,7 @@ class SysSignal(stl.Signal):
 
 # STL parser with S-STL discretized predicates
 
+
 def _expr_parser(xpart=None, fdt_mult=1, bounds=None, mesh_=None):
     # Must parse the result of STLPred.__str__
     num = stl.num_parser()
@@ -487,7 +540,10 @@ def _expr_parser(xpart=None, fdt_mult=1, bounds=None, mesh_=None):
     T_GR = Literal(">")
 
     relation = (T_LE | T_GR).setParseAction(lambda t: 1 if t[0] == "<" else -1)
-    expr = integer + integer + integer + integer + integer + relation + num + num + integer
+    expr = (
+        integer + integer + integer + integer + integer + relation + num + num + integer
+    )
+
     def action(t):
         try:
             signal = SysSignal(
@@ -501,12 +557,12 @@ def _expr_parser(xpart=None, fdt_mult=1, bounds=None, mesh_=None):
                     u_comp=t[1],
                     region_dim=t[0],
                     query_point=t[4],
-                    deriv=t[8]
+                    deriv=t[8],
                 ),
                 fdt_mult=fdt_mult,
                 bounds=bounds,
                 mesh_=mesh_,
-                xpart=xpart
+                xpart=xpart,
             )
         except Exception as e:
             logger.exception(e)
@@ -514,10 +570,10 @@ def _expr_parser(xpart=None, fdt_mult=1, bounds=None, mesh_=None):
 
         return signal
 
-
     expr.setParseAction(action)
 
     return expr
+
 
 def stl_parser(xpart=None, fdt_mult=1, bounds=None, mesh_=None):
     """Builds a parser for STL formulas with :class:`STLPred` predicates
@@ -549,11 +605,13 @@ def stl_parser(xpart=None, fdt_mult=1, bounds=None, mesh_=None):
 
     """
     stl_parser = MatchFirst(
-        stl.stl_parser(_expr_parser(xpart, fdt_mult, bounds, mesh_), True))
+        stl.stl_parser(_expr_parser(xpart, fdt_mult, bounds, mesh_), True)
+    )
     return stl_parser
 
 
 # TS approach functions
+
 
 def project_apdisc(apdisc, indices, tpart):
     state_indices = []
@@ -568,21 +626,24 @@ def project_apdisc(apdisc, indices, tpart):
 
     return list(it.product(*state_indices))
 
+
 def subst_spec_labels(spec, regions):
     res = spec
     for k, v in regions.items():
         if any(isinstance(el, list) or isinstance(el, tuple) for el in v):
-            replaced = "(" + " | ".join(["(state = {})".format(state_label(s))
-                                          for s in v]) + ")"
+            replaced = (
+                "("
+                + " | ".join(["(state = {})".format(state_label(s)) for s in v])
+                + ")"
+            )
         else:
             replaced = "(state = {})".format(state_label(v))
         res = res.replace(k, replaced)
     return res
+
 
 def project_apdict(apdict, indices, tpart):
     ret = {}
     for key, value in apdict.items():
         ret[key] = project_apdisc(value, indices, tpart)
     return ret
-
-

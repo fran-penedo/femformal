@@ -1,5 +1,5 @@
-"""
-ODE systems obtained from FEM discretization of PDEs and associated functions.
+"""ODE systems obtained from FEM discretization of PDEs and associated functions.
+
 """
 from __future__ import division, absolute_import, print_function
 
@@ -18,6 +18,7 @@ from . import draw_util as draw
 
 logger = logging.getLogger(__name__)
 
+
 class FOSystem(object):
     """First order system: M dx + Kx = F
 
@@ -34,6 +35,7 @@ class FOSystem(object):
         Time interval to be used in integration
 
     """
+
     def __init__(self, M, K, F, xpart=None, dt=1.0, mesh=None):
         self.M = M
         self.K = K
@@ -54,7 +56,7 @@ class FOSystem(object):
         A[np.ix_(n_e, n_e)] = np.linalg.solve(M, -K)
         b = np.zeros(self.n)
         b[n_e] = np.linalg.solve(M, F)
-        C = np.empty(shape=(0,0))
+        C = np.empty(shape=(0, 0))
 
         system = System(A, b, C, self.xpart, self.dt)
 
@@ -62,7 +64,8 @@ class FOSystem(object):
 
     @property
     def n(self):
-        """State space dimension"""
+        """State space dimension
+        """
         return len(self.M)
 
     def add_f_nodal(self, f_nodal):
@@ -82,8 +85,9 @@ class FOSystem(object):
         shallow copied, while system matrices are deep copied
 
         """
-        return FOSystem(self.M.copy(), self.K.copy(), self.F.copy(),
-                        self.xpart, self.dt, self.mesh)
+        return FOSystem(
+            self.M.copy(), self.K.copy(), self.F.copy(), self.xpart, self.dt, self.mesh
+        )
 
     def __str__(self):
         return "M:\n{0}\nK:\n{1}\nF:\n{2}".format(self.M, self.K, self.F)
@@ -105,6 +109,7 @@ class SOSystem(object):
         Time interval to be used in integration
 
     """
+
     def __init__(self, M, K, F, xpart=None, dt=1.0, mesh=None):
         self.M = M
         self._K = K
@@ -119,12 +124,13 @@ class SOSystem(object):
         self.dt = dt
 
     def to_fosystem(self):
-        """Transforms the SO system into a FO system by state augmentation"""
+        """Transforms the SO system into a FO system by state augmentation
+        """
         n = self.n
         zeros = np.zeros((n, n))
         ident = np.identity(n)
-        Maug = np.asarray(np.bmat([[ident, zeros],[zeros, self.M]]))
-        Kaug = np.asarray(np.bmat([[zeros, -ident],[self.K, zeros]]))
+        Maug = np.asarray(np.bmat([[ident, zeros], [zeros, self.M]]))
+        Kaug = np.asarray(np.bmat([[zeros, -ident], [self.K, zeros]]))
         Faug = np.hstack([np.zeros(n), self.F])
 
         system = FOSystem(Maug, Kaug, Faug, self.xpart, self.dt)
@@ -132,12 +138,14 @@ class SOSystem(object):
 
     @property
     def n(self):
-        """State space dimension"""
+        """State space dimension
+        """
         return self.M.shape[0]
 
     @property
     def K(self):
-        """K system matrix"""
+        """K system matrix
+        """
         return self._K
 
     def add_f_nodal(self, f_nodal):
@@ -157,8 +165,9 @@ class SOSystem(object):
         shallow copied, while system matrices are deep copied
 
         """
-        return SOSystem(self.M.copy(), self.K.copy(), self.F.copy(),
-                        self.xpart, self.dt, self.mesh)
+        return SOSystem(
+            self.M.copy(), self.K.copy(), self.F.copy(), self.xpart, self.dt, self.mesh
+        )
 
     def __str__(self):
         return "M:\n{0}\nK:\n{1}\nF:\n{2}".format(self.M, self.K, self.F)
@@ -182,6 +191,7 @@ class ControlSOSystem(SOSystem):
         Time interval to be used in integration
 
     """
+
     def __init__(self, M, K, F, f_nodal, xpart=None, dt=1.0, mesh=None):
         SOSystem.__init__(self, M, K, F, xpart=xpart, dt=dt, mesh=mesh)
         self.f_nodal = f_nodal
@@ -211,7 +221,8 @@ class ControlSOSystem(SOSystem):
 
         """
         csosys = ControlSOSystem(
-            sosys.M, sosys.K, sosys.F, f_nodal, sosys.xpart, sosys.dt, sosys.mesh)
+            sosys.M, sosys.K, sosys.F, f_nodal, sosys.xpart, sosys.dt, sosys.mesh
+        )
         return csosys
 
     def copy(self):
@@ -222,7 +233,8 @@ class ControlSOSystem(SOSystem):
 
         """
         return ControlSOSystem.from_sosys(
-            super(ControlSOSystem, self).copy(), self.f_nodal)
+            super(ControlSOSystem, self).copy(), self.f_nodal
+        )
 
 
 class ControlFOSystem(FOSystem):
@@ -243,6 +255,7 @@ class ControlFOSystem(FOSystem):
         Time interval to be used in integration
 
     """
+
     def __init__(self, M, K, F, f_nodal, xpart=None, dt=1.0, mesh=None):
         FOSystem.__init__(self, M, K, F, xpart=xpart, dt=dt, mesh=mesh)
         self.f_nodal = f_nodal
@@ -272,7 +285,8 @@ class ControlFOSystem(FOSystem):
 
         """
         csosys = ControlFOSystem(
-            fosys.M, fosys.K, fosys.F, f_nodal, fosys.xpart, fosys.dt, fosys.mesh)
+            fosys.M, fosys.K, fosys.F, f_nodal, fosys.xpart, fosys.dt, fosys.mesh
+        )
         return csosys
 
     def copy(self):
@@ -283,7 +297,8 @@ class ControlFOSystem(FOSystem):
 
         """
         return ControlFOSystem.from_fosys(
-            super(ControlFOSystem, self).copy(), self.f_nodal)
+            super(ControlFOSystem, self).copy(), self.f_nodal
+        )
 
 
 def make_control_system(sys, f_nodal):
@@ -334,6 +349,7 @@ class HybridParameter(object):
             invs = [inv(self.p) for inv in self._invariants]
         except TypeError:
             return self._invariants
+
         def _fix_inv(inv):
             (a, b) = inv
             if len(a.shape) == 1:
@@ -344,14 +360,15 @@ class HybridParameter(object):
 
         return [_fix_inv(inv) for inv in invs]
 
-
     @invariants.setter
     def invariants(self, value):
         self._invariants = value
 
     def invariant_representatives(self):
-        return [la.lstsq(inv[0], inv[1] - np.abs(inv[1]) * 1e-3)[0]
-                for inv in self.invariants]
+        return [
+            la.lstsq(inv[0], inv[1] - np.abs(inv[1]) * 1e-3)[0]
+            for inv in self.invariants
+        ]
 
     def _get_value(self, u):
         for (A, b), v in zip(self.invariants, self.values):
@@ -364,7 +381,18 @@ class HybridParameter(object):
 
 
 class HybridSOSystem(SOSystem):
-    def __init__(self, M, K, F, xpart=None, dt=1.0, mesh=None, bigN_deltas=1.0, bigN_int_force=1.0, bigN_acc=1.0):
+    def __init__(
+        self,
+        M,
+        K,
+        F,
+        xpart=None,
+        dt=1.0,
+        mesh=None,
+        bigN_deltas=1.0,
+        bigN_int_force=1.0,
+        bigN_acc=1.0,
+    ):
         SOSystem.__init__(self, M, K, F, xpart, dt, mesh)
         self.bigN_deltas = bigN_deltas
         self.bigN_int_force = bigN_int_force
@@ -375,13 +403,13 @@ class HybridSOSystem(SOSystem):
         return _MatrixFunction(self.K_global)
 
     def K_global(self, u):
-        k_els = [self._K[i](u[i:i+2]) for i in range(len(self._K))]
+        k_els = [self._K[i](u[i : i + 2]) for i in range(len(self._K))]
         return self.K_build_global(k_els)
 
     def K_build_global(self, k_els):
         K = np.zeros(self.M.shape)
         for i in range(len(k_els)):
-            K[i:i+2,i:i+2] = K[i:i+2,i:i+2] + k_els[i]
+            K[i : i + 2, i : i + 2] = K[i : i + 2, i : i + 2] + k_els[i]
         return K
 
     def K_els(self):
@@ -395,12 +423,14 @@ class ControlHybridSOSystem(HybridSOSystem, ControlSOSystem):
     @staticmethod
     def from_hysosys(sosys, f_nodal):
         csosys = ControlHybridSOSystem(
-            sosys.M, sosys.K, sosys.F, f_nodal, sosys.xpart, sosys.dt)
+            sosys.M, sosys.K, sosys.F, f_nodal, sosys.xpart, sosys.dt
+        )
         return csosys
 
     def copy(self):
-        return HybridControlSOSystem.from_hysosys(
-            super(HybridControlSOSystem, self).copy(), self.f_nodal)
+        return ControlHybridSOSystem.from_hysosys(
+            super(ControlHybridSOSystem, self).copy(), self.f_nodal
+        )
 
 
 class PWLFunction(object):
@@ -421,6 +451,7 @@ class PWLFunction(object):
         set, when evaluating the spatial point should be set to ``None``
 
     """
+
     def __init__(self, ts, ys=None, ybounds=None, x=None):
         self.ts = np.array(ts)
         if ys is not None:
@@ -458,8 +489,7 @@ class PWLFunction(object):
             ybounds = np.repeat(ybounds[None], len(self.ts), 0)
 
         matrix = []
-        left = np.hstack([np.identity(len(self.ts)),
-                          -np.identity(len(self.ts))])
+        left = np.hstack([np.identity(len(self.ts)), -np.identity(len(self.ts))])
         right = np.r_[ybounds[:, 1], -ybounds[:, 0]]
         matrix = np.vstack([left, right]).T
 
@@ -506,8 +536,9 @@ class PWLFunction(object):
             ret = [y[0] for y in ys]
         else:
             i = bisect_right(ts, t) - 1
-            ret = [y[i] + (y[i+1] - y[i]) * (t - ts[i]) / (ts[i+1] - ts[i])
-                    for y in ys]
+            ret = [
+                y[i] + (y[i + 1] - y[i]) * (t - ts[i]) / (ts[i + 1] - ts[i]) for y in ys
+            ]
 
         if len(self.ybounds.shape) == 1:
             return ret[0]
@@ -517,12 +548,13 @@ class PWLFunction(object):
 
 # Abstraction based approach utilities
 
+
 class System(object):
-    """dx = Ax + b + Cw system. Currently deprecated"""
+    """dx = Ax + b + Cw system. Currently deprecated
+    """
 
     def __init__(self, A, b, C=None, xpart=None, dt=1.0):
-        """
-        Creates the system $\dot{x} = A x + C w + b$
+        """Creates the system $\dot{x} = A x + C w + b$
 
         Args:
             A: System matrix A
@@ -534,7 +566,7 @@ class System(object):
         if C is not None:
             self.C = np.array(C)
         else:
-            self.C = np.empty(shape=(0,0))
+            self.C = np.empty(shape=(0, 0))
         self.xpart = xpart
         self.dt = dt
 
@@ -547,7 +579,7 @@ class System(object):
         if len(j) > 0:
             C = self.A[np.ix_(i, j)]
         else:
-            C = np.empty(shape=(0,0))
+            C = np.empty(shape=(0, 0))
 
         return System(A, b, C)
 
@@ -578,6 +610,7 @@ def is_region_invariant(system, region, dist_bounds):
 
     return True
 
+
 def facets(region):
     for i in range(len(region)):
         facet = region.copy()
@@ -587,19 +620,23 @@ def facets(region):
         facet[i][1] = facet[i][0]
         yield facet, -1, i
 
+
 def is_facet_separating(system, facet, normal, dim, dist_bounds):
-    return _is_facet_separating(system.A, system.b, system.C,
-                                facet, normal, dim, dist_bounds)
+    return _is_facet_separating(
+        system.A, system.b, system.C, facet, normal, dim, dist_bounds
+    )
+
 
 def _is_facet_separating(A, b, C, facet, normal, dim, dist_bounds):
     A_j = np.delete(A[dim], dim) * normal
     if len(C) > 0:
         A_j = np.hstack([A_j, normal * C[dim]])
-    b = (- b[dim] - A[dim, dim] * facet[dim][0]) * normal
+    b = (-b[dim] - A[dim, dim] * facet[dim][0]) * normal
     R = np.delete(facet, dim, 0)
     if len(C) > 0:
         R = np.vstack([R, dist_bounds])
     return rect_in_semispace(R, A_j, b)
+
 
 def rect_in_semispace(R, a, b):
     if np.all(np.isclose(a, 0)):
@@ -609,17 +646,21 @@ def rect_in_semispace(R, a, b):
         if res.status == 2:
             return False
         else:
-            return - res.fun <= b
+            return -res.fun <= b
+
 
 def cont_to_disc(system, dt=1.0):
     Adt = system.A * dt
     Atil = la.expm(Adt)
-    btil = Atil.dot(- la.solve(
-        system.A, (la.expm(-Adt) - np.identity(system.n)))).dot(system.b)
+    btil = Atil.dot(-la.solve(system.A, (la.expm(-Adt) - np.identity(system.n)))).dot(
+        system.b
+    )
     return System(Atil, btil)
+
 
 def cont_integrate(system, x0, t):
     return odeint(lambda x, t: (system.A.dot(x) + system.b.T).flatten(), x0, t)
+
 
 def disc_integrate(system, x0, t):
     xs = [x0]
@@ -631,6 +672,7 @@ def disc_integrate(system, x0, t):
 
 
 # Integration functions
+
 
 def _ns_sys_matrices(system):
     nz_bool = system.M != 0
@@ -649,12 +691,14 @@ def _ns_sys_matrices(system):
 
     return M, K, F, n_e
 
+
 def _factorize(M):
     try:
         if scipy.sparse.issparse(M):
             return spla.factorized(M)
         else:
             lu = la.lu_factor(M)
+
             def solve(b):
                 return la.lu_solve(lu, b)
 
@@ -663,7 +707,8 @@ def _factorize(M):
         logger.info("Integrating M = 0 system")
         return lambda x: np.zeros(len(x))
 
-def trapez_integrate(fosys, d0, T, dt=.1, alpha=0.5, log=True):
+
+def trapez_integrate(fosys, d0, T, dt=0.1, alpha=0.5, log=True):
     """Integrates a FO system using the trapezoidal rule
 
     Parameters
@@ -685,9 +730,6 @@ def trapez_integrate(fosys, d0, T, dt=.1, alpha=0.5, log=True):
         the first row
 
     """
-    if log:
-        logger.info(
-            "Integrating FO system with trapezoidal rule: alpha = {}".format(alpha))
     M, K, F, n_e = _ns_sys_matrices(fosys)
 
     try:
@@ -698,9 +740,10 @@ def trapez_integrate(fosys, d0, T, dt=.1, alpha=0.5, log=True):
     its = int(round(T / dt))
     d = np.array(d0)
     if d.shape != (fosys.n,):
-        raise ValueError("System and initial value shape do not agree: "
-                         "system dimension = {}, d shape = {}".format(
-                             fosys.n, d.shape))
+        raise ValueError(
+            "System and initial value shape do not agree: "
+            "system dimension = {}, d shape = {}".format(fosys.n, d.shape)
+        )
     v = np.zeros(d.shape[0])
     td = np.zeros(d.shape[0])
     try:
@@ -721,7 +764,7 @@ def trapez_integrate(fosys, d0, T, dt=.1, alpha=0.5, log=True):
     vs = [v]
     for i in range(its):
         try:
-            f_nodal_c = f_nodal((i+1) * dt)[n_e]
+            f_nodal_c = f_nodal((i + 1) * dt)[n_e]
         except TypeError:
             f_nodal_c = f_nodal
         try:
@@ -740,7 +783,8 @@ def trapez_integrate(fosys, d0, T, dt=.1, alpha=0.5, log=True):
         vs.append(v)
     return np.array(ds)
 
-def central_diff_integrate(sosys, d0, v0, T, dt=.1):
+
+def central_diff_integrate(sosys, d0, v0, T, dt=0.1):
     """Integrates a SO system using the central difference rule
 
     Parameters
@@ -776,9 +820,12 @@ def central_diff_integrate(sosys, d0, v0, T, dt=.1):
     d = np.array(d0)
     v = np.array(v0)
     if d.shape != v.shape or d.shape != (sosys.n,):
-        raise ValueError("System and initial value shapes do not agree: "
-                         "system dimension = {}, d shape = {}, v shape = {}".format(
-                             sosys.n, d.shape, v.shape))
+        raise ValueError(
+            "System and initial value shapes do not agree: "
+            "system dimension = {}, d shape = {}, v shape = {}".format(
+                sosys.n, d.shape, v.shape
+            )
+        )
     a = np.zeros(d.shape[0])
     try:
         solve_m = _factorize(M)
@@ -797,11 +844,11 @@ def central_diff_integrate(sosys, d0, v0, T, dt=.1):
     ds = [d]
     vs = [v]
     for i in range(its):
-        tv = v + .5 * dt * a
+        tv = v + 0.5 * dt * a
         # tv[0] = tv[-1] = 0.0
         d = d + dt * tv
         try:
-            f_nodal_c = f_nodal((i+1) * dt)[n_e]
+            f_nodal_c = f_nodal((i + 1) * dt)[n_e]
         except TypeError:
             f_nodal_c = f_nodal
         try:
@@ -809,12 +856,13 @@ def central_diff_integrate(sosys, d0, v0, T, dt=.1):
         except TypeError:
             K_cur = K
         a[n_e] = solve_m(F + f_nodal_c - K_cur.dot(d[n_e]))
-        v = tv + .5 * dt * a
+        v = tv + 0.5 * dt * a
         ds.append(d)
         vs.append(v)
     return np.array(ds), np.array(vs)
 
-def newm_integrate(sosys, d0, v0, T, dt=.1, beta=0, gamma=.5):
+
+def newm_integrate(sosys, d0, v0, T, dt=0.1, beta=0, gamma=0.5):
     """Integrates a SO system using the newmark algorithm
 
     Only `gamma` == 0.5 has second order accuracy. Commonly used values for `beta`
@@ -863,9 +911,12 @@ def newm_integrate(sosys, d0, v0, T, dt=.1, beta=0, gamma=.5):
     d = np.array(d0)
     v = np.array(v0)
     if d.shape != v.shape or d.shape != (sosys.n,):
-        raise ValueError("System and initial value shapes do not agree: "
-                         "system dimension = {}, d shape = {}, v shape = {}".format(
-                             sosys.n, d.shape, v.shape))
+        raise ValueError(
+            "System and initial value shapes do not agree: "
+            "system dimension = {}, d shape = {}, v shape = {}".format(
+                sosys.n, d.shape, v.shape
+            )
+        )
     a = np.zeros(d.shape[0])
     try:
         K_cur = K(d)
@@ -887,7 +938,7 @@ def newm_integrate(sosys, d0, v0, T, dt=.1, beta=0, gamma=.5):
         td = d + dt * v + 0.5 * dt * dt * (1 - 2 * beta) * a
         tv = v + (1 - gamma) * dt * a
         try:
-            f_nodal_c = f_nodal((i+1) * dt)[n_e]
+            f_nodal_c = f_nodal((i + 1) * dt)[n_e]
         except TypeError:
             f_nodal_c = f_nodal
         a[n_e] = solve_m(F + f_nodal_c - K_cur.dot(td[n_e]))
@@ -900,6 +951,7 @@ def newm_integrate(sosys, d0, v0, T, dt=.1, beta=0, gamma=.5):
             solve_m = _factorize(M + beta * dt * dt * K_cur)
     return np.array(ds), np.array(vs)
 
+
 def integrate(sys, d0, T, dt):
     if isinstance(sys, SOSystem):
         res = newm_integrate(sys, d0[0], d0[1], T, dt, beta=0.25)
@@ -910,7 +962,9 @@ def integrate(sys, d0, T, dt):
 
     return res
 
+
 # Functions computing differences between systems and time-space differences
+
 
 def _linterx(d, xpart):
     def u(x):
@@ -920,14 +974,18 @@ def _linterx(d, xpart):
         if i > len(xpart) - 1:
             return d[:, -1]
         else:
-            return (d[:, i-1] * (xpart[i] - x) + d[:, i] * (x - xpart[i-1])) / \
-                    (xpart[i] - xpart[i-1])
+            return (d[:, i - 1] * (xpart[i] - x) + d[:, i] * (x - xpart[i - 1])) / (
+                xpart[i] - xpart[i - 1]
+            )
+
     return u
+
 
 def _pwcx(d, xpart):
     def u(x):
         i = bisect_left(xpart, x) - 1
         return d[:, i]
+
     return u
 
 
@@ -962,19 +1020,24 @@ def diff(x, y, dtx, dty, xpart, ypart, xl, xr, pwc=False):
         dtx, dty = dty, dtx
         xpart, ypart = ypart, xpart
 
-    yy = y[::int(round(dtx / dty))]
+    yy = y[:: int(round(dtx / dty))]
     yl = bisect_left(ypart, xl)
     yr = bisect_right(ypart, xr)
     if pwc:
         xinter = _pwcx(x, xpart)
         yinter = _pwcx(yy, ypart)
-        d = np.array([xinter(z) - yinter(z) for z in
-                      (ypart[yl + 1:yr] + ypart[yl:yr - 1]) / 2.0]).T
+        d = np.array(
+            [
+                xinter(z) - yinter(z)
+                for z in (ypart[yl + 1 : yr] + ypart[yl : yr - 1]) / 2.0
+            ]
+        ).T
     else:
         xinter = _linterx(x, xpart)
         yinter = _linterx(yy, ypart)
         d = np.array([xinter(z) - yinter(z) for z in ypart[yl:yr]]).T
     return d
+
 
 def diff2d(x, y, dtx, dty, xmesh, ymesh, xl, xr):
     """Computes the difference between two trajectories of a 2D PDE FEM system
@@ -1003,7 +1066,7 @@ def diff2d(x, y, dtx, dty, xmesh, ymesh, xl, xr):
         dtx, dty = dty, dtx
         xmesh, ymesh = ymesh, xmesh
 
-    yy = y[::int(round(dtx / dty))]
+    yy = y[:: int(round(dtx / dty))]
     xinter = xmesh.interpolate(x)
     yinter = ymesh.interpolate(yy)
     nodes = ymesh.find_nodes_between(xl, xr)
@@ -1039,11 +1102,12 @@ def sys_diff(xsys, ysys, x0, y0, tlims, xlims, xderiv=False, plot=False):
     t0, T = tlims
     xl, xr = xlims
     x = trapez_integrate(xsys, x0, T, dtx, alpha=0.5)
-    x = x[int(t0/dtx):]
+    x = x[int(t0 / dtx) :]
     y = trapez_integrate(ysys, y0, T, dty, alpha=0.5)
-    y = y[int(t0/dty):]
+    y = y[int(t0 / dty) :]
     absdif = np.abs(diff(x, y, dtx, dty, xpart, ypart, xl, xr))
     return absdif.T
+
 
 def sosys_diff(xsys, ysys, x0, y0, tlims, xlims, xderiv=False, plot=False):
     """Computes the absolute diff between the trajectories of two SO systems
@@ -1072,21 +1136,30 @@ def sosys_diff(xsys, ysys, x0, y0, tlims, xlims, xderiv=False, plot=False):
     t0, T = tlims
     x = newm_integrate(xsys, x0[0], x0[1], T, dtx, beta=0.25)[0]
     y = newm_integrate(ysys, y0[0], y0[1], T, dty, beta=0.25)[0]
-    x = x[int(round(t0/dtx)):]
-    y = y[int(round(t0/dty)):]
+    x = x[int(round(t0 / dtx)) :]
+    y = y[int(round(t0 / dty)) :]
     # draw.draw_pde_trajectory(x, xpart, np.linspace(0, T, (int(round(T / dtx)))), animate=False)
     if xsys.xpart is not None:
-        return _sosys_diff_1d(x, y, dtx, dty, xsys.xpart, ysys.xpart, xlims, xderiv, plot)
+        return _sosys_diff_1d(
+            x, y, dtx, dty, xsys.xpart, ysys.xpart, xlims, xderiv, plot
+        )
     else:
         err = diff2d(x, y, dtx, dty, xsys.mesh, ysys.mesh, xlims[0], xlims[1])
         if xderiv:
-            return np.array([
-                    [ysys.mesh.elements[elem].max_partial_derivs(
-                        err_t[ysys.mesh.elem_nodes(elem, 2)])
-                     for elem in range(ysys.mesh.nelems)]
-                for err_t in err.transpose([2,0,1])]).transpose([1,2,3,0])
+            return np.array(
+                [
+                    [
+                        ysys.mesh.elements[elem].max_partial_derivs(
+                            err_t[ysys.mesh.elem_nodes(elem, 2)]
+                        )
+                        for elem in range(ysys.mesh.nelems)
+                    ]
+                    for err_t in err.transpose([2, 0, 1])
+                ]
+            ).transpose([1, 2, 3, 0])
         else:
             return np.abs(err)
+
 
 def _sosys_diff_1d(x, y, dtx, dty, xpart, ypart, xlims, xderiv, plot):
     # plot=True
@@ -1098,8 +1171,9 @@ def _sosys_diff_1d(x, y, dtx, dty, xpart, ypart, xlims, xderiv, plot):
         pwc = False
 
     if any(isinstance(xlim, list) for xlim in xlims):
-        absdif = [diff(x, y, dtx, dty, xpart, ypart, xlim[0], xlim[1], pwc)
-               for xlim in xlims]
+        absdif = [
+            diff(x, y, dtx, dty, xpart, ypart, xlim[0], xlim[1], pwc) for xlim in xlims
+        ]
     else:
         xl, xr = xlims
         absdif = np.abs(diff(x, y, dtx, dty, xpart, ypart, xl, xr, pwc))
@@ -1121,6 +1195,7 @@ def _sosys_diff_1d(x, y, dtx, dty, xpart, ypart, xlims, xderiv, plot):
         #     draw.draw_pde_trajectory(dif, ypart[yl:yr], ttx, hold=True)
         # draw.plt.show()
     return absdif.T
+
 
 def sys_max_diff(xsys, ysys, x0, y0, tlims, xlims, xderiv=False, pw=False, plot=False):
     """Computes maximum absolute diff between two systems
@@ -1161,6 +1236,7 @@ def sys_max_diff(xsys, ysys, x0, y0, tlims, xlims, xderiv=False, pw=False, plot=
     else:
         return np.max(absdif, axis=-1 if pw else None)
 
+
 def sys_max_xdiff(sys, x0, t0, T):
     """Maximum absolute spatial derivative of an FO system at each element
 
@@ -1179,12 +1255,13 @@ def sys_max_xdiff(sys, x0, t0, T):
     """
     dt = sys.dt
     x = trapez_integrate(sys, x0, T, dt, alpha=0.5)
-    x = x[int(round(t0/dt)):]
+    x = x[int(round(t0 / dt)) :]
 
     dx = np.abs(np.diff(x))
     mdx = np.max(dx, axis=0)
 
     return mdx
+
 
 def sys_max_tdiff(sys, x0, t0, T):
     """Maximum time spatial derivative of an FO system at each node
@@ -1204,12 +1281,13 @@ def sys_max_tdiff(sys, x0, t0, T):
     """
     dt = sys.dt
     x = trapez_integrate(sys, x0, T, dt, alpha=0.5)
-    x = x[int(round(t0/dt)):]
+    x = x[int(round(t0 / dt)) :]
 
     dtx = np.abs(np.diff(x, axis=0))
     mdtx = np.max(dtx, axis=0)
 
     return mdtx
+
 
 def sosys_max_der_diff(sys, x0, tlims, xderiv=False, compute_derivative=False):
     """Maximum spatial and time spatial derivative of an SO system
@@ -1233,7 +1311,7 @@ def sosys_max_der_diff(sys, x0, tlims, xderiv=False, compute_derivative=False):
 
     """
     x, vx = newm_integrate(sys, x0[0], x0[1], tlims[1], sys.dt, beta=0.25)
-    x = x[int(round(tlims[0]/sys.dt)):]
+    x = x[int(round(tlims[0] / sys.dt)) :]
     # draw.draw_pde_trajectory(x, sys.xpart, np.linspace(0, tlims[1], (int(round(tlims[1] / sys.dt)))), animate=False)
     if sys.xpart is not None:
         if xderiv:
@@ -1255,7 +1333,10 @@ def sosys_max_der_diff(sys, x0, tlims, xderiv=False, compute_derivative=False):
                 dx = []
                 for e in range(sys.mesh.nelems):
                     partials = np.abs(
-                        np.array([interp(*coords) for coords in sys.mesh.elem_coords(e)]))
+                        np.array(
+                            [interp(*coords) for coords in sys.mesh.elem_coords(e)]
+                        )
+                    )
                     # logger.debug(partials)
                     dx.append(np.max(partials, axis=0))
                 dxs.append(dx)
@@ -1264,9 +1345,13 @@ def sosys_max_der_diff(sys, x0, tlims, xderiv=False, compute_derivative=False):
             mdx = None
             for d in x:
                 mpartials = np.array(
-                    [sys.mesh.elements[e].max_partial_derivs(
-                        sys.mesh.get_elem_values(d, e, 2))
-                     for e in range(sys.mesh.nelems)])
+                    [
+                        sys.mesh.elements[e].max_partial_derivs(
+                            sys.mesh.get_elem_values(d, e, 2)
+                        )
+                        for e in range(sys.mesh.nelems)
+                    ]
+                )
                 if mdx is None:
                     mdx = mpartials
                 else:
@@ -1281,45 +1366,65 @@ def sosys_max_der_diff(sys, x0, tlims, xderiv=False, compute_derivative=False):
     return mdx, mdtx
 
 
-def draw_system_disc(sys, x0, T, t0=0,
-                     prefix=None, animate=True, allonly=False, hold=False,
-                     ylabel='Temperature', xlabel='x'):
+def draw_system_disc(
+    sys,
+    x0,
+    T,
+    t0=0,
+    prefix=None,
+    animate=True,
+    allonly=False,
+    hold=False,
+    ylabel="Temperature",
+    xlabel="x",
+):
     dt = sys.dt
     xpart = sys.xpart
 
-    tx = np.linspace(t0, T, int(round((T - t0)/dt)))
-    x = disc_integrate(sys, x0[1:-1], int(round(T/dt)))
+    tx = np.linspace(t0, T, int(round((T - t0) / dt)))
+    x = disc_integrate(sys, x0[1:-1], int(round(T / dt)))
     x = np.c_[x0[0] * np.ones(x.shape[0]), x, x0[-1] * np.ones(x.shape[0])]
-    x = x[int(round(t0/dt)):]
-    draw.draw_pde_trajectory(x, xpart, tx, prefix=prefix,
-                             animate=animate, hold=hold, allonly=allonly, ylabel=ylabel,
-                             xlabel=xlabel)
+    x = x[int(round(t0 / dt)) :]
+    draw.draw_pde_trajectory(
+        x,
+        xpart,
+        tx,
+        prefix=prefix,
+        animate=animate,
+        hold=hold,
+        allonly=allonly,
+        ylabel=ylabel,
+        xlabel=xlabel,
+    )
+
 
 def _draw_system_cont(sys, x0, T, t0=0, hold=False, **kargs):
     dt = sys.dt
     xpart = sys.xpart
 
-    tx = np.linspace(t0, T, int(round((T - t0)/dt)))
+    tx = np.linspace(t0, T, int(round((T - t0) / dt)))
     x = trapez_integrate(sys, x0, T, dt)
     # import femformal.femmilp.femmilp as femmilp
     # x = femmilp.simulate_trajectory(sys, x0, int(round((T - t0)/dt)))
     # x = np.c_[x0[0] * np.ones(x.shape[0]), x, x0[-1] * np.ones(x.shape[0])]
-    x = x[int(round(t0/dt)):]
-    tx = tx[int(round(t0/dt)):]
+    x = x[int(round(t0 / dt)) :]
+    tx = tx[int(round(t0 / dt)) :]
     draw.draw_pde_trajectory(x, xpart, tx, hold=hold, **kargs)
     if hold:
         return draw.pop_holds()
+
 
 def _draw_sosys(sosys, d0, v0, g, T, t0=0, hold=False, **kargs):
     dt = sosys.dt
     xpart = sosys.xpart
 
-    tx = np.linspace(t0, T, int(round((T - t0)/dt)))
-    d, v = newm_integrate(sosys, d0, v0, T, dt, beta=.25)
-    d = d[int(round(t0/dt)):]
+    tx = np.linspace(t0, T, int(round((T - t0) / dt)))
+    d, v = newm_integrate(sosys, d0, v0, T, dt, beta=0.25)
+    d = d[int(round(t0 / dt)) :]
     draw.draw_pde_trajectory(d, xpart, tx, hold=hold, **kargs)
     if hold:
         return draw.pop_holds()
+
 
 def draw_system(sys, d0, g, T, t0=0, **kargs):
     """Draws the trajectory of a FEM system from a 1D PDE
@@ -1356,7 +1461,9 @@ def draw_system(sys, d0, g, T, t0=0, **kargs):
     else:
         raise NotImplementedError(
             "Not implemented for this class of system: {}".format(
-                sys.__class__.__name__))
+                sys.__class__.__name__
+            )
+        )
 
 
 def draw_system_2d(sys, d0, g, T, t0=0, **kwargs):
@@ -1389,11 +1496,13 @@ def draw_system_2d(sys, d0, g, T, t0=0, **kwargs):
     """
     dt = sys.dt
     ts = np.linspace(t0, T, int(round((T - t0) / dt)))
-    d, v = newm_integrate(sys, d0[0], d0[1], T, dt, beta=.25)
+    d, v = newm_integrate(sys, d0[0], d0[1], T, dt, beta=0.25)
     # d = d[int(round(t0/dt)):]
     draw.draw_2d_pde_trajectory(
-        d, sys.mesh.nodes_coords, sys.mesh.elems_nodes, ts, **kwargs)
+        d, sys.mesh.nodes_coords, sys.mesh.elems_nodes, ts, **kwargs
+    )
     return draw.pop_holds()
+
 
 def draw_system_deriv_2d(sys, d0, g, T, comp, t0=0, **kwargs):
     """Draws the trajectory of a FEM system from a 2D PDE
@@ -1427,15 +1536,17 @@ def draw_system_deriv_2d(sys, d0, g, T, comp, t0=0, **kwargs):
     """
     dt = sys.dt
     ts = np.linspace(t0, T, int(round((T - t0) / dt)) + 1)
-    d, v = newm_integrate(sys, d0[0], d0[1], T, dt, beta=.25)
-    if 'system_t' in kwargs:
-        sys_t = kwargs['system_t']
-        d0_t = kwargs['d0_t']
-        d_t, v_t = newm_integrate(sys_t, d0_t[0], d0_t[1], T, sys_t.dt, beta=.25)
+    d, v = newm_integrate(sys, d0[0], d0[1], T, dt, beta=0.25)
+    if "system_t" in kwargs:
+        sys_t = kwargs["system_t"]
+        d0_t = kwargs["d0_t"]
+        d_t, v_t = newm_integrate(sys_t, d0_t[0], d0_t[1], T, sys_t.dt, beta=0.25)
         ts = np.linspace(t0, T, int(round((T - t0) / sys_t.dt)) + 1)
     draw.draw_derivative_2d(
-        d, sys.mesh, ts, comp, ds_t=d_t, mesh_t=sys_t.mesh, **kwargs)
+        d, sys.mesh, ts, comp, ds_t=d_t, mesh_t=sys_t.mesh, **kwargs
+    )
     return draw.pop_holds()
+
 
 def draw_displacement_plot(sys, d0, g, T, t0=0, **kwargs):
     """Draws the trajectory of a FEM system from a 2D PDE
@@ -1467,31 +1578,33 @@ def draw_displacement_plot(sys, d0, g, T, t0=0, **kwargs):
     """
     dt = sys.dt
     ts = np.linspace(t0, T, int(round((T - t0) / dt)) + 1)
-    d, v = newm_integrate(sys, d0[0], d0[1], T, dt, beta=.25)
-    if 'system_t' in kwargs:
-        sys_t = kwargs['system_t']
-        d0_t = kwargs['d0_t']
-        d_t, v_t = newm_integrate(sys_t, d0_t[0], d0_t[1], T, sys_t.dt, beta=.25)
+    d, v = newm_integrate(sys, d0[0], d0[1], T, dt, beta=0.25)
+    if "system_t" in kwargs:
+        sys_t = kwargs["system_t"]
+        d0_t = kwargs["d0_t"]
+        d_t, v_t = newm_integrate(sys_t, d0_t[0], d0_t[1], T, sys_t.dt, beta=0.25)
         ts = np.linspace(t0, T, int(round((T - t0) / sys_t.dt)) + 1)
     # d, v = central_diff_integrate(sys, d0[0], d0[1], T, dt)
     # d = d[int(round(t0/dt)):]
     draw.draw_displacement_2d(d, sys.mesh, ts, ds_t=d_t, mesh_t=sys_t.mesh, **kwargs)
     return draw.pop_holds()
 
+
 def draw_displacement_snapshots(sys, d0, g, ts, **kwargs):
     t0, T = 0, max(ts)
-    tx = np.linspace(t0, T, int(round((T - t0)/sys.dt)) + 1)
-    d, v = newm_integrate(sys, d0[0], d0[0], T, sys.dt, beta=.25)
-    if 'system_t' in kwargs:
-        sys_t = kwargs['system_t']
-        d0_t = kwargs['d0_t']
-        d_t, v_t = newm_integrate(sys_t, d0_t[0], d0_t[1], T, sys_t.dt, beta=.25)
+    tx = np.linspace(t0, T, int(round((T - t0) / sys.dt)) + 1)
+    d, v = newm_integrate(sys, d0[0], d0[0], T, sys.dt, beta=0.25)
+    if "system_t" in kwargs:
+        sys_t = kwargs["system_t"]
+        d0_t = kwargs["d0_t"]
+        d_t, v_t = newm_integrate(sys_t, d0_t[0], d0_t[1], T, sys_t.dt, beta=0.25)
         tx = np.linspace(t0, T, int(round((T - t0) / sys_t.dt)) + 1)
-    return draw.draw_displacement_2d_snapshot(d, sys.mesh, tx, ts, ds_t=d_t,
-                                              mesh_t=sys_t.mesh, **kwargs)
+    return draw.draw_displacement_2d_snapshot(
+        d, sys.mesh, tx, ts, ds_t=d_t, mesh_t=sys_t.mesh, **kwargs
+    )
 
 
-def draw_pwlf(pwlf, ylabel='Force $u_L$', xlabel='Time t', axes=None):
+def draw_pwlf(pwlf, ylabel="Force $u_L$", xlabel="Time t", axes=None):
     """Draws a piecewise linear function
 
     Parameters
@@ -1509,34 +1622,46 @@ def draw_pwlf(pwlf, ylabel='Force $u_L$', xlabel='Time t', axes=None):
     """
     return draw.draw_linear(pwlf.ys, pwlf.ts, ylabel, xlabel, axes=axes)
 
+
 def _draw_sosys_snapshots(sosys, d0, v0, g, ts, hold=False, **kargs):
     dt = sosys.dt
     xpart = sosys.xpart
 
     t0, T = 0, max(ts)
-    tx = np.linspace(t0, T, int(round((T - t0)/dt)))
-    d, v = newm_integrate(sosys, d0, v0, T, dt, beta=.25)
+    tx = np.linspace(t0, T, int(round((T - t0) / dt)))
+    d, v = newm_integrate(sosys, d0, v0, T, dt, beta=0.25)
     for t in ts:
-        index = bisect_right(tx, t) -1
+        index = bisect_right(tx, t) - 1
         draw.draw_pde_snapshot(
-            xpart, d[index], np.true_divide(np.diff(d[index]), np.diff(xpart)),
-            t, hold=hold, **kargs)
+            xpart,
+            d[index],
+            np.true_divide(np.diff(d[index]), np.diff(xpart)),
+            t,
+            hold=hold,
+            **kargs
+        )
 
     if hold:
         return draw.pop_holds()
+
 
 def _draw_fosys_snapshots(fosys, d0, g, ts, hold=False, **kargs):
     dt = fosys.dt
     xpart = fosys.xpart
 
     t0, T = 0, max(ts)
-    tx = np.linspace(t0, T, int(round((T - t0)/dt)))
+    tx = np.linspace(t0, T, int(round((T - t0) / dt)))
     d = trapez_integrate(fosys, d0, T, dt)
     for t in ts:
-        index = bisect_right(tx, t) -1
+        index = bisect_right(tx, t) - 1
         draw.draw_pde_snapshot(
-            xpart, d[index], np.true_divide(np.diff(d[index]), np.diff(xpart)),
-            t, hold=hold, **kargs)
+            xpart,
+            d[index],
+            np.true_divide(np.diff(d[index]), np.diff(xpart)),
+            t,
+            hold=hold,
+            **kargs
+        )
 
     if hold:
         return draw.pop_holds()
@@ -1572,4 +1697,6 @@ def draw_system_snapshots(sys, d0, g, ts, **kargs):
     else:
         raise NotImplementedError(
             "Not implemented for this class of system: {}".format(
-                sys.__class__.__name__))
+                sys.__class__.__name__
+            )
+        )
