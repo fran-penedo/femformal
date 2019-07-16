@@ -652,9 +652,15 @@ def _logging_setup(args):
                     "level": args.log_level,
                     "propagate": True,
                 },
+                "py.warnings": {
+                    "handlers": ["console"],
+                    "level": args.log_level,
+                    "propagate": True,
+                },
             },
         }
     )
+    logging.captureWarnings(True)
 
 
 def main():
