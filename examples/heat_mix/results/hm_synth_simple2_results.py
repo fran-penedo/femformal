@@ -23,3 +23,10 @@ time = 603.032427788
 robustness = 0.650027232559
 inputs = [205083.9369002197, 1000000.0, 1000000.0, 1000000.0, 796945.6791276368, 637439.5139662502, 567397.7082143915, 98980.53787708707, 0.0, 350110.0741086817, 0.0]
 time = 117.347368956
+#Thu 18 Jul 2019 10:29:28 AM EDT v0.1.1-2-g3486ae5-dirty Intel(R) Core(TM) i5-4690K CPU @ 3.50GHz 16759MB RAM
+#python run_benchmark.py --log-level INFO --gthreads 4 --goutputflag 0 milp_synth ./examples/heat_mix/hm_synth_simple2.py
+#Thu 18 Jul 2019 10:31:24 AM EDT v0.1.1-2-g3486ae5-dirty Intel(R) Core(TM) i5-4690K CPU @ 3.50GHz 16759MB RAM
+#python run_benchmark.py --log-level INFO --gthreads 4 --goutputflag 0 milp_synth ./examples/heat_mix/hm_synth_simple2.py
+robustness = 0.650027232559
+inputs = [205083.9369002197, 1000000.0, 1000000.0, 1000000.0, 796945.6791276368, 637439.5139662502, 567397.7082143915, 98980.53787708707, 0.0, 350110.0741086817, 0.0]
+time = 94.7268300056

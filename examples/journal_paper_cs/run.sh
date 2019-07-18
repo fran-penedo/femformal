@@ -1,24 +1,38 @@
-RUN_CMD="python run_benchmark.py --log-level INFO --gthreads 10 --goutputflag 0 milp_synth %s"
+if [ -n "$ZSH_VERSION" ]; then
+    setopt KSH_ARRAYS
+elif [ -n "$BASH_VERSION" ]; then
+    echo "Zsh is preferred, this script may or may not work correctly in bash"
+else
+    echo "Unsupported shell. Please use zsh. Running script in untested environment"
+fi
+
+RUN_CMD="python run_benchmark.py --log-level INFO --gthreads 4 --goutputflag 0 milp_synth %s"
 DRAW1D_CMD="python run_benchmark.py --log-level INFO draw -i %s snapshots %s"
 DRAW2D_CMD="python run_benchmark.py --log-level INFO draw -i %s snapshots_disp %s"
 DRAW_INPUTS_CMD="python run_benchmark.py --log-level INFO draw -i %s inputs %s"
 
 CS_DIR="./examples/"
-CS_FILES_1D="heat_mix/hm_synth_simple2.py"
-# CS_FILES_1D=""
-CS_FILES_2D=""
+CS_FILES_1D=("heat_mix/hm_synth_simple2.py" "mech_mix/mm_complex_synth.py" "mech_mix/mm_exists_synth.py" "mech_mix/mm_yield2_synth.py")
+CS_FILES_1D=""
+CS_FILES_2D=("column2d/c2d_synth_buckling.py")
 
 run_cs () {
     printf -v run -- $RUN_CMD $1
     base=${1##*/}
     dir=${1%/$base}
     res_file=$dir/results/${base%.py}_results.py
-    echo "#$(date) $(version)" >> $res_file
+    echo "#$(date) $(version) $(hardware)" >> $res_file
     echo "#$run" >> $res_file
     echo "Running milp_synth:" > /dev/tty
     echo "$run" > /dev/tty
-    eval $run >> $res_file
+    eval $run | sed -r -n '/\s*\S+ = .*/p' >> $res_file
     echo $res_file
+}
+
+hardware () {
+    cpu=$(lscpu | grep 'Model name' | awk '{ print $2 }' FS='  +')
+    mem="$(free -m --si | grep 'Mem' | awk '{ print $2 }')MB RAM"
+    echo "$cpu $mem"
 }
 
 run_nd () {

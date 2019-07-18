@@ -8,13 +8,13 @@ from stlmilp import milp_util as milp, stl_milp_encode as stl_milp
 from femformal.core import logic, system_milp_encode as sys_milp, system as sys
 
 
-logger = logging.getLogger(__name__)
+LOGGER = logging.getLogger(__name__)
 
 
 def _build_and_solve(*args, **kwargs):
     m = stl_milp.build_and_solve(*args, **kwargs)
     if m.status == stl_milp.GRB.status.INFEASIBLE:
-        logger.warning("MILP infeasible, logging IIS")
+        LOGGER.warning("MILP infeasible, logging IIS")
         m.computeIIS()
         m.write("out.ilp")
     return m
@@ -49,6 +49,7 @@ def _initial_values(system, pset, ff):
         if system.xpart is not None:
             d0.append([f(system.xpart[i], par) for i in range(len(system.xpart))])
         else:
+            # FIXME milp encode is missing g from mech2d.state? take a look at this
             raise NotImplementedError()
     if len(d0) == 1:
         d0 = d0[0]
@@ -65,23 +66,22 @@ def _initial_values(system, pset, ff):
 
 
 def find_good_start_vector(system, pset, f, spec, objective):
-    logger.info("Attempting to find a good starting vector")
     try:
         d0, bounds, pwlf = _initial_values(system, pset, f)
     except NotImplementedError:
-        logger.warning("Initial values not supported for start vector search")
+        LOGGER.warning("Initial values not supported for start vector search")
         return None
 
     if system.xpart is not None:
         N = len(system.xpart) - 1
-    else:
-        # Won't get to this, FIXME when it does
-        N = system.mesh.nnodes - 1
 
-    def f_nodal_control(t):
-        f = np.zeros(N + 1)
-        f[-1] = pwlf(t, x=pwlf.x)
-        return f
+        def f_nodal_control(t):
+            f = np.zeros(N + 1)
+            f[-1] = pwlf(t, x=pwlf.x)
+            return f
+
+    else:
+        f_nodal_control = pwlf.traction_force
 
     csys = sys.make_control_system(system, f_nodal_control)
 
@@ -117,9 +117,12 @@ def synthesize(
             m, "d", system, pset, f, fdt_mult * hd
         )
         if start_robustness_tree is None:
+            LOGGER.info("Attempting to find a good starting vector")
             start_robustness_tree = find_good_start_vector(system, pset, f, spec, -1)
 
+    LOGGER.info("Building and solving model")
     m = _build_and_solve(spec, model_encode_f, -1.0, start_robustness_tree, **kwargs)
+    LOGGER.info("Model solved")
     if m.status == milp.GRB.status.INFEASIBLE:
         return None, None
     if isinstance(f[-1].ys[0], list):

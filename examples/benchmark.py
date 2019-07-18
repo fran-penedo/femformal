@@ -2,6 +2,7 @@ from __future__ import division, absolute_import, print_function
 
 import argparse
 import imp
+import sys
 import traceback
 from timeit import default_timer as timer
 
@@ -617,7 +618,7 @@ def load_module(f):
     try:
         return imp.load_source("femformal_benchmark_module", f)
     except Exception:
-        print("Couldn't load module {}".format(f))
+        print("Couldn't load module {}".format(f), file=sys.stderr)
         traceback.print_exc()
         return None
 
