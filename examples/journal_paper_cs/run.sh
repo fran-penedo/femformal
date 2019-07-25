@@ -1,9 +1,13 @@
-if [ -n "$ZSH_VERSION" ]; then
+if [[ -n "$ZSH_VERSION" ]]; then
     setopt KSH_ARRAYS
-elif [ -n "$BASH_VERSION" ]; then
+elif [[ -n "$BASH_VERSION" ]]; then
     echo "Zsh is preferred, this script may or may not work correctly in bash"
 else
     echo "Unsupported shell. Please use zsh. Running script in untested environment"
+fi
+
+if [[ -z "$VIRTUAL_ENV" ]]; then
+    echo "WARNING: running script out of virtualenv"
 fi
 
 RUN_CMD="python run_benchmark.py --log-level INFO --gthreads 4 --goutputflag 0 milp_synth %s"
@@ -13,8 +17,9 @@ DRAW_INPUTS_CMD="python run_benchmark.py --log-level INFO draw -i %s inputs %s"
 
 CS_DIR="./examples/"
 CS_FILES_1D=("heat_mix/hm_synth_simple2.py" "mech_mix/mm_complex_synth.py" "mech_mix/mm_exists_synth.py" "mech_mix/mm_yield2_synth.py")
-CS_FILES_1D=""
+# CS_FILES_1D=""
 CS_FILES_2D=("column2d/c2d_synth_buckling.py")
+CS_FILES_2D=""
 
 run_cs () {
     printf -v run -- $RUN_CMD $1
