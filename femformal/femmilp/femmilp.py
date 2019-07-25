@@ -8,13 +8,13 @@ from stlmilp import milp_util as milp, stl_milp_encode as stl_milp
 from femformal.core import logic, system_milp_encode as sys_milp, system as sys
 
 
-LOGGER = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def _build_and_solve(*args, **kwargs):
     m = stl_milp.build_and_solve(*args, **kwargs)
     if m.status == stl_milp.GRB.status.INFEASIBLE:
-        LOGGER.warning("MILP infeasible, logging IIS")
+        logger.warning("MILP infeasible, logging IIS")
         m.computeIIS()
         m.write("out.ilp")
     return m
@@ -49,8 +49,14 @@ def _initial_values(system, pset, ff):
         if system.xpart is not None:
             d0.append([f(system.xpart[i], par) for i in range(len(system.xpart))])
         else:
-            # FIXME milp encode is missing g from mech2d.state? take a look at this
-            raise NotImplementedError()
+            d0.append(
+                [
+                    f(system.mesh.nodes_coords[i], par)
+                    for i in range(system.mesh.nnodes)
+                    for dof in range(2)
+                ]
+            )
+
     if len(d0) == 1:
         d0 = d0[0]
 
@@ -67,34 +73,45 @@ def _initial_values(system, pset, ff):
 
 def find_good_start_vector(system, pset, f, spec, objective):
     try:
-        d0, bounds, pwlf = _initial_values(system, pset, f)
+        d0, bounds, control = _initial_values(system, pset, f)
     except NotImplementedError:
-        LOGGER.warning("Initial values not supported for start vector search")
+        logger.warning("Initial values not supported for start vector search")
         return None
 
-    if system.xpart is not None:
-        N = len(system.xpart) - 1
-
-        def f_nodal_control(t):
-            f = np.zeros(N + 1)
-            f[-1] = pwlf(t, x=pwlf.x)
-            return f
-
-    else:
-        f_nodal_control = pwlf.traction_force
-
-    csys = sys.make_control_system(system, f_nodal_control)
+    csys = sys.make_csystem(system, control)
 
     def obj(x, *args):
-        pwlf.ys = x
+        control.ys = x
         return objective * logic.csystem_robustness(spec, csys, d0, tree=False)
 
     res = differential_evolution(obj, bounds, maxiter=50, disp=False)
-    pwlf.ys = res.x
+
+    control.ys = res.x
+
+    # control.ys = [
+    #     0.0,
+    #     31.82766536141028,
+    #     -50.56704562198145,
+    #     19.637252038483187,
+    #     100.0,
+    #     -100.0,
+    #     -100.0,
+    #     -100.0,
+    #     -100.0,
+    #     -100.0,
+    #     -100.0,
+    # ]
 
     tree = logic.csystem_robustness(spec, csys, d0, tree=True)
-    pwlf.ys = None
-    return tree
+    h = max(0, spec.horizon()) + 1
+    T = csys.dt * (h - 1)
+    system_init = sys.csystem_element_modes(csys, d0, T, csys.dt)
+    # logger.debug(res.x)
+    # logger.debug(tree.pprint())
+    # logger.debug(system_init)
+    control.ys = None
+
+    return tree, system_init
 
 
 def synthesize(
@@ -106,23 +123,33 @@ def synthesize(
     return_traj=False,
     T=None,
     start_robustness_tree=None,
+    start_system_modes=None,
     **kwargs
 ):
     if spec is None:
         model_encode_f = lambda m, hd: sys_milp.add_sys_constr_x0_set(
-            m, "d", system, pset, f, T + 1
+            m, "d", system, pset, f, T + 1, start_system_modes=start_system_modes
         )
     else:
-        model_encode_f = lambda m, hd: sys_milp.add_sys_constr_x0_set(
-            m, "d", system, pset, f, fdt_mult * hd
-        )
-        if start_robustness_tree is None:
-            LOGGER.info("Attempting to find a good starting vector")
-            start_robustness_tree = find_good_start_vector(system, pset, f, spec, -1)
+        if start_robustness_tree is None or start_system_modes is None:
+            logger.info("Attempting to find a good starting vector")
+            rob_tree, start_modes = find_good_start_vector(system, pset, f, spec, -1)
+            start_robustness_tree = start_robustness_tree or rob_tree
+            start_system_modes = start_system_modes or start_modes
 
-    LOGGER.info("Building and solving model")
+        model_encode_f = lambda m, hd: sys_milp.add_sys_constr_x0_set(
+            m,
+            "d",
+            system,
+            pset,
+            f,
+            fdt_mult * hd,
+            start_system_modes=start_system_modes,
+        )
+
+    logger.info("Building and solving model")
     m = _build_and_solve(spec, model_encode_f, -1.0, start_robustness_tree, **kwargs)
-    LOGGER.info("Model solved")
+    logger.info("Model solved")
     if m.status == milp.GRB.status.INFEASIBLE:
         return None, None
     if isinstance(f[-1].ys[0], list):

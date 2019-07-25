@@ -57,7 +57,7 @@ def add_sys_constr_x0(m, l, system, x0, N, xhist=None):
     return x
 
 
-def add_sys_constr_x0_set(m, l, system, pset, f, N):
+def add_sys_constr_x0_set(m, l, system, pset, f, N, start_system_modes=None):
     """Adds the parameterized system trajectory to a `gurobi` model
 
     See the documentation of each `add_x_constr_x0_set` for more details on
@@ -87,11 +87,17 @@ def add_sys_constr_x0_set(m, l, system, pset, f, N):
 
     """
     if isinstance(system, sys.System):
-        x = add_affsys_constr_x0_set(m, l, system, pset, f, N)
+        x = add_affsys_constr_x0_set(
+            m, l, system, pset, f, N, start_system_modes=start_system_modes
+        )
     elif isinstance(system, sys.FOSystem):
-        x = add_trapez_constr_x0_set(m, l, system, pset, f, N)
+        x = add_trapez_constr_x0_set(
+            m, l, system, pset, f, N, start_system_modes=start_system_modes
+        )
     elif isinstance(system, sys.SOSystem):
-        x = add_newmark_constr_x0_set(m, l, system, pset, f, N)
+        x = add_newmark_constr_x0_set(
+            m, l, system, pset, f, N, start_system_modes=start_system_modes
+        )
     else:
         raise Exception(
             "Not implemented for this class of system: {}".format(
@@ -111,7 +117,7 @@ def add_affsys_constr_x0(m, l, system, x0, N, xhist=None):
     return x
 
 
-def add_affsys_constr_x0_set(m, l, system, pset, f, N):
+def add_affsys_constr_x0_set(m, l, system, pset, f, N, start_system_modes=None):
     x = _add_affsys_constr(m, l, system, N, None)
     xpart = system.xpart
 
@@ -208,7 +214,7 @@ def _add_set_constraints(m, l, pset):
     return ps
 
 
-def add_trapez_constr_x0_set(m, l, system, pset, f, N):
+def add_trapez_constr_x0_set(m, l, system, pset, f, N, start_system_modes=None):
     """Adds the parameterized FO system trajectory to a `gurobi` model
 
     Parameters
@@ -401,7 +407,9 @@ def _add_trapez_constr(m, l, system, N, xhist=None):
     return x
 
 
-def add_newmark_constr_x0_set(m, l, system, pset, f, N, beta=0.25, gamma=0.5):
+def add_newmark_constr_x0_set(
+    m, l, system, pset, f, N, beta=0.25, gamma=0.5, start_system_modes=None
+):
     """Adds the parameterized SO system trajectory to a `gurobi` model
 
     Parameters
@@ -436,7 +444,9 @@ def add_newmark_constr_x0_set(m, l, system, pset, f, N, beta=0.25, gamma=0.5):
     femformal.core.system.newm_integrate
 
     """
-    x = _add_newmark_constr(m, l, system, N, None)
+    x = _add_newmark_constr(
+        m, l, system, N, None, start_system_modes=start_system_modes
+    )
 
     xpart = system.xpart
     mesh = system.mesh
@@ -510,6 +520,8 @@ def add_newmark_constr_x0_set(m, l, system, pset, f, N, beta=0.25, gamma=0.5):
         for i in range(mesh.nnodes):
             logger.debug("Adding IC and BC for node {}".format(i))
             for dof in range(2):
+                # FIXME Missing g boundary conditions. See mech2d.state. This will only
+                # work if they are compatible with initial conditions
                 m.addConstr(x[label(l, i * 2 + dof, 0)] == fd(mesh.nodes_coords[i], pd))
                 m.addConstr(
                     x[label("d" + l, i * 2 + dof, 0)] == fv(mesh.nodes_coords[i], pv)
@@ -566,7 +578,15 @@ def add_newmark_constr_x0(m, l, system, x0, N, xhist=None, beta=0.25, gamma=0.5)
 
 
 def _add_newmark_constr(
-    m, l, system, N, xhist=None, beta=0.25, gamma=0.5, use_lu_decomp=False
+    m,
+    l,
+    system,
+    N,
+    xhist=None,
+    beta=0.25,
+    gamma=0.5,
+    use_lu_decomp=False,
+    start_system_modes=None,
 ):
     if xhist is None:
         xhist = []
@@ -585,7 +605,11 @@ def _add_newmark_constr(
     )
 
     if hasattr(system, "K_global"):
-        deltas = _add_hybrid_K_deltas(m, system.K_els(), x, l, N, system.bigN_deltas)
+        if start_system_modes is not None:
+            logger.debug("Using starting system modes")
+        deltas = _add_hybrid_K_deltas(
+            m, system.K_els(), x, l, N, system.bigN_deltas, start_system_modes
+        )
         el_int_forces = [
             _elements_int_force(
                 m, l, system.K_els(), x, deltas, time, system.bigN_int_force
@@ -1007,7 +1031,7 @@ def _add_fosys_variables(m, l, nvars, horlen, histlen):
     return x
 
 
-def _add_hybrid_K_deltas(m, Ks, x, l, N, bigN):
+def _add_hybrid_K_deltas(m, Ks, x, l, N, bigN, start_system_modes):
     deltas = []
     for t in range(N):
         deltast = []
@@ -1020,6 +1044,14 @@ def _add_hybrid_K_deltas(m, Ks, x, l, N, bigN):
                 Ks[i].invariants[0][1],
                 bigN,
             )
+            if start_system_modes is not None:
+                # FIXME this only works for 2 invariants
+                delta.start = start_system_modes[t][i]
+                logger.debug(
+                    "K_{}_{}_delta = {}".format(t, i, start_system_modes[t][i])
+                )
+                # delta.UB = start_system_modes[t][i]
+                # delta.LB = start_system_modes[t][i]
             deltast.append(delta)
         deltas.append(deltast)
 

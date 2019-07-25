@@ -317,7 +317,34 @@ def make_control_system(sys, f_nodal):
     if isinstance(sys, FOSystem):
         return ControlFOSystem.from_fosys(sys, f_nodal)
     else:
-        return ControlSOSystem.from_sosys(sys, f_nodal)
+        if isinstance(sys, HybridSOSystem):
+            return ControlHybridSOSystem.from_hysosys(sys, f_nodal)
+        else:
+            return ControlSOSystem.from_sosys(sys, f_nodal)
+
+
+def make_csystem(sys, control):
+    if sys.xpart is not None:
+        N = len(sys.xpart) - 1
+        i, = np.where(
+            np.isclose(sys.xpart, control.x, atol=0.1 * (sys.xpart[1] - sys.xpart[0]))
+        )
+        try:
+            i = i[0]
+        except IndexError:
+            raise Exception(
+                "Partition not compatible with control application: no node at point of application"
+            )
+
+        def f_nodal_control(t):
+            f = np.zeros(N + 1)
+            f[i] = control(t, x=control.x)
+            return f
+
+    else:
+        f_nodal_control = control.f_nodal
+
+    return make_control_system(sys, f_nodal_control)
 
 
 class _MatrixFunction(object):
@@ -371,9 +398,12 @@ class HybridParameter(object):
         ]
 
     def _get_value(self, u):
-        for (A, b), v in zip(self.invariants, self.values):
+        return self.values[self.get_invariant_index(u)]
+
+    def get_invariant_index(self, u):
+        for i, (A, b) in enumerate(self.invariants):
             if np.all(A.dot(u) <= b):
-                return v
+                return i
         raise Exception("Input not covered in any invariant")
 
     def __call__(self, args):
@@ -406,6 +436,11 @@ class HybridSOSystem(SOSystem):
         k_els = [self._K[i](u[i : i + 2]) for i in range(len(self._K))]
         return self.K_build_global(k_els)
 
+    def element_modes(self, u):
+        return [
+            self._K[i].get_invariant_index(u[i : i + 2]) for i in range(len(self._K))
+        ]
+
     def K_build_global(self, k_els):
         K = np.zeros(self.M.shape)
         for i in range(len(k_els)):
@@ -423,7 +458,7 @@ class ControlHybridSOSystem(HybridSOSystem, ControlSOSystem):
     @staticmethod
     def from_hysosys(sosys, f_nodal):
         csosys = ControlHybridSOSystem(
-            sosys.M, sosys.K, sosys.F, f_nodal, sosys.xpart, sosys.dt
+            sosys.M, sosys._K, sosys.F, f_nodal, sosys.xpart, sosys.dt
         )
         return csosys
 
@@ -963,6 +998,16 @@ def integrate(sys, d0, T, dt):
     return res
 
 
+def csystem_element_modes(csys, d0, T, dt):
+    if not hasattr(csys, "K_global"):
+        return None
+    d = integrate(csys, d0, T, dt)
+    if isinstance(d, tuple):
+        d = d[0]
+    element_modes = [csys.element_modes(d_t) for d_t in d]
+    return element_modes
+
+
 # Functions computing differences between systems and time-space differences
 
 
@@ -1364,6 +1409,9 @@ def sosys_max_der_diff(sys, x0, tlims, xderiv=False, compute_derivative=False):
     # logger.debug("mdx = \n{}".format(mdx))
 
     return mdx, mdtx
+
+
+# Drawing functions
 
 
 def draw_system_disc(
