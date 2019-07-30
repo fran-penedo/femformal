@@ -13,7 +13,7 @@ if [[ -z "$VIRTUAL_ENV" ]]; then
 fi
 
 RUN_SCRIPT="./run.sh"
-OTHER_SCRIPTS=("./examples/heat_mix/hm_verif_batch.sh")
+OTHER_SCRIPTS=("./examples/heat_mix/hm_batch.sh")
 
 CS_DIR="./examples/"
 CS_FILES=("heat_mix/hm_synth_simple2.py" "mech_mix/mm_complex_synth.py" "mech_mix/mm_exists_synth.py" "mech_mix/mm_yield2_synth.py")

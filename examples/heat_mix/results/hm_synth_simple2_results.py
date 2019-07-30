@@ -35,3 +35,5 @@ time = 94.7268300056
 robustness = 0.650027232559
 inputs = [205083.9369002197, 1000000.0, 1000000.0, 1000000.0, 796945.6791276368, 637439.5139662502, 567397.7082143915, 98980.53787708707, 0.0, 350110.0741086817, 0.0]
 time = 117.851929188
+#Tue 30 Jul 2019 11:48:38 AM EDT v0.1.1-6-g8a5b9b5 Intel(R) Core(TM) i7-5930K CPU @ 3.50GHz 16641MB RAM
+#python run_benchmark.py --log-level INFO --gthreads 10 --goutputflag 0 milp_synth ./examples/heat_mix/hm_synth_simple2.py
