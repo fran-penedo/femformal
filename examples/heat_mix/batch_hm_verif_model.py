@@ -17,4 +17,4 @@ pwlf = sys.PWLFunction(np.linspace(0, T, round(T / input_dt) + 1), ys=inputs, x=
 fset = pwlf.pset()
 fosys = heatlinfem.heatlinfem_mix(xpart, rho, E, g, f_nodal, dt)
 
-error_bounds = [[None, None], [None, None], [None, None]]
+error_bounds = [[mdiff.eps, None], [mdiff.eta, None], [mdiff.nu, None]]
