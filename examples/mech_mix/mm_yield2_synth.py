@@ -27,5 +27,3 @@ cs = fem.build_cs(
     bounds=bounds,
     error_bounds=error_bounds,
 )
-
-args = {"nopresolve": True}

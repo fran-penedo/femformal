@@ -48,7 +48,7 @@ cleanup () {
     cp "$DIR/$MODEL" "$BATCH_MODEL"
 }
 
-verif () {
+synth () {
     for n in {10..100..10}; do
         find $DIR -maxdepth 1 -name "*.pyc" -delete
         sed -r "s/N = [0-9]+/N = $n/" < "$DIR/$MODEL" > "$BATCH_MODEL"
@@ -69,7 +69,7 @@ verif () {
     cleanup
 }
 
-synth () {
+verif () {
     for n in {10..100..10}; do
         find $DIR -maxdepth 1 -name "*.pyc" -delete
         sed -r "s/N = [0-9]+/N = $n/" < "$DIR/$MODEL" > "$BATCH_MODEL"
@@ -113,6 +113,6 @@ set_verif () {
     cleanup
 }
 
-verif
 synth
+verif
 set_verif
