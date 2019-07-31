@@ -31,3 +31,8 @@ time = 77.8449528217
 robustness = 8.87505140887e-06
 inputs = [0.0, 220.24701304275447, 99.78553957945462, -2631.7352880283256, 240.75436315572753, 5000.0]
 time = 87.569177866
+#Tue 30 Jul 2019 03:12:08 PM EDT v0.1.1-7-g7703fe3-dirty Intel(R) Core(TM) i7-5930K CPU @ 3.50GHz 16641MB RAM
+#python run_benchmark.py --log-level INFO --gthreads 10 --goutputflag 0 milp_synth ./examples/mech_mix/mm_yield2_synth.py
+robustness = 8.30657803388e-06
+inputs = [0.0, 268.53201718657783, 180.04868579970977, -2659.717154496559, 271.646800292256, 5000.0]
+time = 118.881700993

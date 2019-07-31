@@ -3,7 +3,7 @@ import numpy as np
 from femformal.core import system as sys
 from femformal.core.fem import heatlinfem as heatlinfem
 from examples.heat_mix.batch_hm_model import *
-from examples.heat_mix.results import hm_maxdiff_results_N100 as mdiff
+from examples.heat_mix.results import hm_maxdiff_results_N30 as mdiff
 
 d_par = 300.0
 dset = np.array([[1, d_par], [-1, -d_par]])

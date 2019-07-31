@@ -3,8 +3,8 @@ import numpy as np
 from femformal.core import system as sys
 from femformal.core.fem import heatlinfem as heatlinfem
 from examples.heat_mix.batch_hm_model import *
-from examples.heat_mix.results import hm_maxdiff_results_N100 as mdiff
-from examples.heat_mix.resutls.hm_synth_simple2_N30_results import inputs
+from examples.heat_mix.results import hm_maxdiff_results_N30 as mdiff
+from examples.heat_mix.results.hm_synth_simple2_N30_results import inputs
 
 d_par = 300.0
 dset = np.array([[1, d_par], [-1, -d_par]])
@@ -18,4 +18,4 @@ pwlf = sys.PWLFunction(np.linspace(0, T, round(T / input_dt) + 1), ys=inputs, x=
 fset = pwlf.pset()
 fosys = heatlinfem.heatlinfem_mix(xpart, rho, E, g, f_nodal, dt)
 
-error_bounds = [[mdiff.eps, None], [mdiff.eta, None], [mdiff.nu, None]]
+error_bounds = [[None, None], [None, None], [None, None]]

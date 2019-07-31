@@ -1,5 +1,4 @@
-"""
-Top level functions for building femformal models
+"""Top level functions for building femformal models
 """
 from __future__ import division, absolute_import, print_function
 
@@ -14,10 +13,29 @@ from femformal.core import system as sys, logic as logic
 # from .. import femmilp.system_milp as sysmilp
 logger = logging.getLogger(__name__)
 
-def build_cs(system, d0, g, cregions, cspec, fdt_mult=1, bounds=None,
-             pset=None, f=None, discretize_system=False, cstrue=None, error_bounds=None,
-             eps=None, eta=None, nu=None, eps_xderiv=None, nu_xderiv=None, T=1.0,
-             system_t=None, d0_t=None):
+
+def build_cs(
+    system,
+    d0,
+    g,
+    cregions,
+    cspec,
+    fdt_mult=1,
+    bounds=None,
+    pset=None,
+    f=None,
+    discretize_system=False,
+    cstrue=None,
+    error_bounds=None,
+    eps=None,
+    eta=None,
+    nu=None,
+    eps_xderiv=None,
+    nu_xderiv=None,
+    T=1.0,
+    system_t=None,
+    d0_t=None,
+):
     """Builds a FEM model
 
     Builds a :class:`CaseStudy` object with all the information of the model,
@@ -83,8 +101,8 @@ def build_cs(system, d0, g, cregions, cspec, fdt_mult=1, bounds=None,
                 spec = logic.stl_parser(xpart, fdt_mult, bounds).parseString(dspec)[0]
             else:
                 spec = logic.stl_parser(
-                        None, fdt_mult, bounds, system.mesh
-                    ).parseString(dspec)[0]
+                    None, fdt_mult, bounds, system.mesh
+                ).parseString(dspec)[0]
         except Exception as e:
             logger.exception("Error while parsing specification:\n{}\n".format(dspec))
             raise e
@@ -108,22 +126,24 @@ def build_cs(system, d0, g, cregions, cspec, fdt_mult=1, bounds=None,
         spec = None
         # regions = None
 
-    return CaseStudy(**{
-        'system': system,
-        'dsystem': dsystem,
-        'xpart': xpart,
-        'g': g,
-        'dt': dt,
-        'fdt_mult': fdt_mult,
-        'd0': d0,
-        'pset': pset,
-        'f': f,
-        # 'regions': regions,
-        'spec': spec,
-        'T': T,
-        'system_t': system_t,
-        'd0_t': d0_t,
-    })
+    return CaseStudy(
+        **{
+            "system": system,
+            "dsystem": dsystem,
+            "xpart": xpart,
+            "g": g,
+            "dt": dt,
+            "fdt_mult": fdt_mult,
+            "d0": d0,
+            "pset": pset,
+            "f": f,
+            # 'regions': regions,
+            "spec": spec,
+            "T": T,
+            "system_t": system_t,
+            "d0_t": d0_t,
+        }
+    )
 
 
 class Perturbation(object):
@@ -142,6 +162,7 @@ class Perturbation(object):
         :class:`femformal.core.fem.element.Element`
 
     """
+
     def __init__(self, xpart=None, mesh=None):
         self.xpart = xpart
         self.mesh = mesh
@@ -186,6 +207,7 @@ class EpsPerturbation(Perturbation):
         Arguments passed to :class:`Perturbation`
 
     """
+
     def __init__(self, eps, eps_xderiv, **kwargs):
         Perturbation.__init__(self, **kwargs)
         self.eps_list = np.array([eps, eps_xderiv])
@@ -197,16 +219,16 @@ class EpsPerturbation(Perturbation):
         ucomp = stlpred.u_comp
         region_dim = stlpred.region_dim
         eps = self.eps_list[uderivs]
-        if not hasattr(eps, 'shape'):
+        if not hasattr(eps, "shape"):
             return eps
         else:
             if len(eps.shape) == 1:
                 eps = eps[None].T
             if self.xpart is not None:
                 if isnode and i > 0 and i < len(eps):
-                    return max(eps[i-1][ucomp], eps[i][ucomp]).tolist()
+                    return max(eps[i - 1][ucomp], eps[i][ucomp]).tolist()
                 elif isnode and i == len(eps):
-                    return eps[i-1][ucomp].tolist()
+                    return eps[i - 1][ucomp].tolist()
                 else:
                     return eps[i][ucomp].tolist()
             else:
@@ -229,6 +251,7 @@ class EtaPerturbation(Perturbation):
         Arguments passed to :class:`Perturbation`
 
     """
+
     def __init__(self, eta, **kwargs):
         Perturbation.__init__(self, **kwargs)
         self.eta = eta
@@ -243,8 +266,9 @@ class EtaPerturbation(Perturbation):
             return 0.0
         else:
             if len(self.eta.shape) == 1:
-                ret = ((self.eta[i] / 2.0 if uderivs == 0 else 0.0)
-                        + dmu * (self.xpart[i+1] - self.xpart[i]) / 2.0)
+                ret = (self.eta[i] / 2.0 if uderivs == 0 else 0.0) + dmu * (
+                    self.xpart[i + 1] - self.xpart[i]
+                ) / 2.0
                 return ret.tolist()
             else:
                 elem = self.mesh.get_elem(i, region_dim)
@@ -255,7 +279,9 @@ class EtaPerturbation(Perturbation):
                     orientation = 0 if elem.ishorizontal() else 1
                     grad = self.eta[i, orientation, ucomp]
                 elif region_dim == 2:
-                    grad = np.linalg.norm(self.eta[i, ucomp]) * np.sqrt(self.eta.shape[-1])
+                    grad = np.linalg.norm(self.eta[i, ucomp]) * np.sqrt(
+                        self.eta.shape[-1]
+                    )
 
                 ret = h * (dmu + grad)
                 return ret.tolist()
@@ -279,13 +305,15 @@ class NuPerturbation(Perturbation):
         Arguments passed to :class:`Perturbation`
 
     """
+
     def __init__(self, nu, nu_xderiv, fdt_mult, **kwargs):
         Perturbation.__init__(self, **kwargs)
         self.nu_list = np.array([nu, nu_xderiv])
         self.fdt_mult = fdt_mult
         if self.mesh is not None:
             self.interpolations = [
-                self.mesh.interpolate(x) for x in self.nu_list if x is not None]
+                self.mesh.interpolate(x) for x in self.nu_list if x is not None
+            ]
 
     def _perturb(self, stlpred):
         i = stlpred.index
@@ -306,7 +334,7 @@ class NuPerturbation(Perturbation):
                 if region_dim == 0:
                     ret = fdt_mult * nu[i]
                 else:
-                    ret = fdt_mult * (nu[i] + nu[i+1]) / 2.0
+                    ret = fdt_mult * (nu[i] + nu[i + 1]) / 2.0
                 return ret.tolist()
 
 
@@ -318,6 +346,7 @@ class Sample(object):
     method for a single mesh.
 
     """
+
     @staticmethod
     def _sample(bounds, g, mesh):
         raise NotImplementedError()
@@ -353,24 +382,30 @@ class Sample(object):
 
 class LinSample(Sample):
     """Linear sampling method for first order systems"""
+
     @staticmethod
     def _sample(bounds, g, mesh):
         a = (np.random.rand() * 4 - 2) * abs(bounds[1] - bounds[0]) / mesh[-1]
         b = np.random.rand() * abs(bounds[1] - bounds[0])
-        x0 = [g[0]] + [min(max(a * x + b, bounds[0]), bounds[1])
-                    for x in mesh[1:-1]] + [g[1]]
+        x0 = (
+            [g[0]]
+            + [min(max(a * x + b, bounds[0]), bounds[1]) for x in mesh[1:-1]]
+            + [g[1]]
+        )
         return x0
 
 
 lin_sample = LinSample.sample
 """Linear sampling method for first order systems"""
 
+
 class SOLinSample(Sample):
     """Linear sampling method for second order systems"""
+
     @staticmethod
     def _sample(bounds, g, mesh):
         a = (np.random.rand()) * abs(bounds[1] - bounds[0]) / mesh[-1]
-        x0 = [a*x for x in mesh]
+        x0 = [a * x for x in mesh]
         vx0 = [0.0 for x in mesh]
         if g[0] is not None:
             x0[0] = g[0]
@@ -382,8 +417,10 @@ class SOLinSample(Sample):
 so_lin_sample = SOLinSample.sample
 """Linear sampling method for second order systems"""
 
+
 class IDSample(Sample):
     """Identity sampling method for second order systems"""
+
     @staticmethod
     def _sample(bounds, g, mesh):
         u0, v0 = bounds
@@ -395,8 +432,10 @@ class IDSample(Sample):
 id_sample = IDSample.sample
 """Identity sampling method for second order systems"""
 
+
 class IDSampleFO(Sample):
     """Identity sampling method for first order systems"""
+
     @staticmethod
     def _sample(bounds, g, mesh):
         u0 = bounds
@@ -408,8 +447,19 @@ id_sample_fo = IDSampleFO.sample
 """Identity sampling method for first order systems"""
 
 
-def max_diff(system, g, tlims, xlims, sys_true,
-             bounds, sample=None, pw=False, xderiv=False, n=50, log=True):
+def max_diff(
+    system,
+    g,
+    tlims,
+    xlims,
+    sys_true,
+    bounds,
+    sample=None,
+    pw=False,
+    xderiv=False,
+    n=50,
+    log=True,
+):
     """Estimates the max difference between the trajectories of two systems
 
     This function samples initial values and nodal forces for a number of
@@ -470,7 +520,9 @@ def max_diff(system, g, tlims, xlims, sys_true,
 
         if sample_f is not None:
             if system.mesh is None:
-                f_nodal_x, f_nodal_y = sample_f(bounds_f, g, system.xpart, sys_true.xpart)
+                f_nodal_x, f_nodal_y = sample_f(
+                    bounds_f, g, system.xpart, sys_true.xpart
+                )
             else:
                 f_nodal_x, f_nodal_y = sample_f(bounds_f, g, system, sys_true)
             sys_x, sys_y = system.copy(), sys_true.copy()
@@ -478,15 +530,18 @@ def max_diff(system, g, tlims, xlims, sys_true,
                 sys_x.add_f_nodal(f_nodal_x)
                 sys_y.add_f_nodal(f_nodal_y)
             except AttributeError:
-                raise Exception("Can't sample f_nodal for this kind of system:"
-                                "sysx: {}, sysy: {}".format(type(sys_x), type(sys_y)))
+                raise Exception(
+                    "Can't sample f_nodal for this kind of system:"
+                    "sysx: {}, sysy: {}".format(type(sys_x), type(sys_y))
+                )
         if system.mesh is None:
             x0, y0 = sample_ic(bounds_ic, g, sys_x.xpart, sys_y.xpart)
         else:
             x0, y0 = sample_ic(bounds_ic, g, sys_x, sys_y)
 
-        diff = sys.sys_max_diff(sys_x, sys_y, x0, y0, tlims, xlims, pw=pw,
-                              xderiv=xderiv, plot=False)
+        diff = sys.sys_max_diff(
+            sys_x, sys_y, x0, y0, tlims, xlims, pw=pw, xderiv=xderiv, plot=False
+        )
         if mdiff is None:
             mdiff = diff
         else:
@@ -497,30 +552,40 @@ def max_diff(system, g, tlims, xlims, sys_true,
         logger.debug("mdiff = {}".format(mdiffgrouped))
     return mdiffgrouped
 
+
 def _downsample_diffs(mdiff, system, sys_true, xderiv):
     if system.xpart is not None:
         if xderiv:
-            xpart = (system.xpart[1:] + system.xpart[:-1] ) / 2.0
-            xpart_true = (sys_true.xpart[1:] + sys_true.xpart[:-1] ) / 2.0
+            xpart = (system.xpart[1:] + system.xpart[:-1]) / 2.0
+            xpart_true = (sys_true.xpart[1:] + sys_true.xpart[:-1]) / 2.0
         else:
             xpart = system.xpart
             xpart_true = sys_true.xpart
         ratio = float(len(xpart_true)) / len(xpart)
         cover = int(np.ceil(ratio))
         mdiffgrouped = np.amax(
-            [mdiff[int(np.floor(i * ratio)):int(np.floor(i * ratio) + cover + 1)]
-            for i in range(len(xpart) - 1)], axis=1)
+            [
+                mdiff[int(np.floor(i * ratio)) : int(np.floor(i * ratio) + cover + 1)]
+                for i in range(len(xpart) - 1)
+            ],
+            axis=1,
+        )
     else:
         mdiffgrouped = np.zeros((system.mesh.nelems, mdiff.shape[-1]))
         for e in range(system.mesh.nelems):
             e_coords = system.mesh.elem_coords(e)
             covering = sys_true.mesh.find_elems_covering(e_coords[0], e_coords[2])
             nodes = set(
-                np.array([sys_true.mesh.elems_nodes[cov_elem]
-                          for cov_elem in covering.elems]).flatten().tolist())
+                np.array(
+                    [sys_true.mesh.elems_nodes[cov_elem] for cov_elem in covering.elems]
+                )
+                .flatten()
+                .tolist()
+            )
             mdiffgrouped[e] = np.max(mdiff.take(list(nodes), axis=0), axis=0)
 
     return mdiffgrouped
+
 
 def max_xdiff(system, g, tlims, bounds, sample=None, n=50, log=True):
     """Estimates the max directional difference in the trajectory of a system
@@ -582,6 +647,7 @@ def max_xdiff(system, g, tlims, bounds, sample=None, n=50, log=True):
         logger.debug("mdiff = {}".format(mdiff))
     return mdiff
 
+
 def max_tdiff(system, g, tlims, bounds, sample=None, n=50, log=True):
     """Estimates the max temporal difference in the trajectory of a system
 
@@ -642,8 +708,18 @@ def max_tdiff(system, g, tlims, bounds, sample=None, n=50, log=True):
         logger.debug("mdiff = {}".format(mdiff))
     return mdiff
 
-def max_der_diff(system, g, tlims, bounds, sample, xderiv=False, n=50, log=True,
-                 compute_derivative=False):
+
+def max_der_diff(
+    system,
+    g,
+    tlims,
+    bounds,
+    sample,
+    xderiv=False,
+    n=50,
+    log=True,
+    compute_derivative=False,
+):
     """Estimates the max spatial and temporal difference of a system
 
     This function samples initial values and nodal forces for a number of
@@ -714,8 +790,9 @@ def max_der_diff(system, g, tlims, bounds, sample, xderiv=False, n=50, log=True,
             x0 = sample_ic(bounds_ic, g, sys_x.xpart)
         else:
             x0 = sample_ic(bounds_ic, g, sys_x)
-        dx, dtx = sys.sosys_max_der_diff(sys_x, x0, tlims, xderiv=xderiv,
-                                         compute_derivative=compute_derivative)
+        dx, dtx = sys.sosys_max_der_diff(
+            sys_x, x0, tlims, xderiv=xderiv, compute_derivative=compute_derivative
+        )
         mdiff_x = np.max([mdiff_x, dx], axis=0)
         mdiff_t = np.max([mdiff_t, dtx], axis=0)
 
@@ -729,29 +806,39 @@ def _perturb_profile_eps(p, eps, xpart, direction):
     def pp(x):
         i = bisect_left(xpart, x) - 1
         return p(x) + direction * eps[i]
+
     return pp
+
 
 def _perturb_profile_eta(p, dp, eta, xpart, direction):
     if eta is None:
         return p
     else:
+
         def pp(x):
             i = bisect_left(xpart, x) - 1
             return p(x) + direction * (
-                eta[i] / 2.0 + dp(x) * (xpart[i + 1] - xpart[i]) / 2.0)
+                eta[i] / 2.0 + dp(x) * (xpart[i + 1] - xpart[i]) / 2.0
+            )
+
         return pp
+
 
 def _perturb_profile_nu(p, nu, xpart, fdt_mult, direction):
     def pp(x):
         i = bisect_left(xpart, x) - 1
         return p(x) + direction * (fdt_mult * (nu[i + 1] + nu[i]) / 2.0)
+
     return pp
+
 
 def _perturb_profile_eps_2d(p, eps, mesh, direction):
     def pp(*x):
         i = mesh.find_containing_elem(x)
         return p(*x) + direction * eps[i]
+
     return pp
+
 
 def _perturb_profile_eta_2d(p, dp, eta, mesh, direction, region_dim):
     def pp(*x):
@@ -759,14 +846,20 @@ def _perturb_profile_eta_2d(p, dp, eta, mesh, direction, region_dim):
         elem = mesh.get_elem(i)
         h = elem.chebyshev_radius()
         return p(*x) + direction * h * (
-            np.linalg.norm(eta[i]) * np.sqrt(eta.shape[-1]) + dp(*x))
+            np.linalg.norm(eta[i]) * np.sqrt(eta.shape[-1]) + dp(*x)
+        )
+
     return pp
+
 
 def _perturb_profile_nu_2d(p, nu, mesh, fdt_mult, direction):
     interp = mesh.interpolate(nu)
+
     def pp(*x):
         return (p(*x) + direction * fdt_mult * interp(*x))[0]
+
     return pp
+
 
 def perturb_profile(apc, eps, eta, nu, xpart, fdt_mult, mesh):
     """Perturbs a continuous predicate
@@ -806,12 +899,20 @@ def perturb_profile(apc, eps, eta, nu, xpart, fdt_mult, mesh):
         if np.isclose(apc.A[0], apc.A[1]):
             eta_p = eps_p
         else:
-            eta_p = _perturb_profile_eta(eps_p, apc.dp, eta[apc.uderivs], xpart, direction)
+            eta_p = _perturb_profile_eta(
+                eps_p, apc.dp, eta[apc.uderivs], xpart, direction
+            )
         nu_p = _perturb_profile_nu(eta_p, nu[apc.uderivs], xpart, fdt_mult, direction)
     else:
-        eps_p = _perturb_profile_eps_2d(apc.p, eps[apc.uderivs][:,apc.u_comp], mesh, direction)
-        eta_p = _perturb_profile_eta_2d(eps_p, apc.dp, eta[apc.uderivs][:,apc.u_comp,:], mesh, direction)
-        nu_p = _perturb_profile_nu_2d(eta_p, nu[apc.uderivs][apc.u_comp::2], mesh, fdt_mult, direction)
+        eps_p = _perturb_profile_eps_2d(
+            apc.p, eps[apc.uderivs][:, apc.u_comp], mesh, direction
+        )
+        eta_p = _perturb_profile_eta_2d(
+            eps_p, apc.dp, eta[apc.uderivs][:, apc.u_comp, :], mesh, direction
+        )
+        nu_p = _perturb_profile_nu_2d(
+            eta_p, nu[apc.uderivs][apc.u_comp :: 2], mesh, fdt_mult, direction
+        )
 
     return [eps_p, eta_p, nu_p]
 
@@ -832,6 +933,7 @@ def discretized_perturbed_profile(apc, eps, eta, nu, xpart, fdt_mult, mesh):
         data.append(zip(*[_stlpred_data(pred, mesh) for pred in apd.stlpred_list]))
 
     return data
+
 
 def _stlpred_data(stlpred, mesh):
     elem = mesh.build_elem(mesh.elem_coords(stlpred.index, stlpred.region_dim))
@@ -865,21 +967,22 @@ class CaseStudy(object):
         ==========  ===================================================
 
     """
+
     def __init__(self, **kwargs):
         copy = kwargs
-        self.system   = copy.pop('system', None)
-        self.dsystem  = copy.pop('dsystem', None)
-        self.xpart    = copy.pop('xpart', None)
-        self.g        = copy.pop('g', 0)
-        self.dt       = copy.pop('dt', 0)
-        self.fdt_mult = copy.pop('fdt_mult', 1)
-        self.d0       = copy.pop('d0', None)
-        self.pset     = copy.pop('pset', None)
-        self.f        = copy.pop('f', None)
-        self.spec     = copy.pop('spec', None)
-        self.T        = copy.pop('T', 0)
-        self.system_t = copy.pop('system_t', None)
-        self.d0_t     = copy.pop('d0_t', None)
+        self.system = copy.pop("system", None)
+        self.dsystem = copy.pop("dsystem", None)
+        self.xpart = copy.pop("xpart", None)
+        self.g = copy.pop("g", 0)
+        self.dt = copy.pop("dt", 0)
+        self.fdt_mult = copy.pop("fdt_mult", 1)
+        self.d0 = copy.pop("d0", None)
+        self.pset = copy.pop("pset", None)
+        self.f = copy.pop("f", None)
+        self.spec = copy.pop("spec", None)
+        self.T = copy.pop("T", 0)
+        self.system_t = copy.pop("system_t", None)
+        self.d0_t = copy.pop("d0_t", None)
 
         if len(copy) > 0:
-            raise Exception('Undefined parameters in CaseStudy: {}'.format(copy))
+            raise Exception("Undefined parameters in CaseStudy: {}".format(copy))

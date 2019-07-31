@@ -1,6 +1,6 @@
 import numpy as np
 
-N = 100
+N = 30
 L = 100.0
 rho_steel = 4e-6 * .466e9
 rho_brass = 4.5e-6 * .38e9

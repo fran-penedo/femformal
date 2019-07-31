@@ -1,1 +1,1 @@
-robustness = -1.1792696174
+robustness = -1.18810246119
