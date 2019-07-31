@@ -1,0 +1,2 @@
+-e git+file:///home/fran/dev/stlmilp@v1.0.1#egg=stlmilp[milp]
+-e .
