@@ -24,10 +24,10 @@ def run_abstract(m, args):
         m.init_states,
         m.spec,
         m.depth,
-        draw_file_prefix=args.draw_file_prefix,
-        verbosity=args.verbosity,
-        draw_constr_ts=args.draw_constr_ts,
-        check_inv=args.check_inv,
+        draw_file_prefix=args["draw_file_prefix"],
+        verbosity=args["verbosity"],
+        draw_constr_ts=args["draw_constr_ts"],
+        check_inv=args["check_inv"],
     )
     finish = timer()
     print("Res: {}".format(res))
@@ -36,9 +36,9 @@ def run_abstract(m, args):
 
 def _get_gurobi_args(args):
     return {
-        "threads": args.threads,
-        "outputflag": args.outputflag,
-        "numericfocus": args.numericfocus,
+        "threads": args["threads"],
+        "outputflag": args["outputflag"],
+        "numericfocus": args["numericfocus"],
     }
 
 
@@ -82,7 +82,7 @@ def run_milp_set(m, args):
 def run_verify(m, args):
     cs = m.cs
     if "input_file" in args:
-        inputm = load_module(args.input_file)
+        inputm = load_module(args["input_file"])
         # inputs = inputm.inputs
         # m.pwlf.ys = inputs
         draw_opts = draw.DrawOpts(getattr(inputm, "draw_opts", None))
@@ -107,6 +107,7 @@ def run_milp_synth(m, args):
         cs.spec,
         cs.fdt_mult,
         start_robustness_tree=getattr(cs, "rob_tree", None),
+        presolve=not args["nopresolve"],
         **_get_gurobi_args(args)
     )
     finish = timer()
@@ -154,7 +155,7 @@ def run_abstract_batch(m, args):
             m.init_states,
             m.spec,
             m.depth,
-            plot_file_prefix=args.plot_file_prefix,
+            plot_file_prefix=args["plot_file_prefix"],
         )
         end = timer()
         times.append(end - start)
@@ -169,9 +170,9 @@ def run_abstract_batch(m, args):
 
 def run_draw(m, args):
     if "input_file" in args:
-        inputm = load_module(args.input_file)
+        inputm = load_module(args["input_file"])
         draw_opts = draw.DrawOpts(getattr(inputm, "draw_opts", None))
-    runstr = "run_draw_{}".format(args.draw_action)
+    runstr = "run_draw_{}".format(args["draw_action"])
     if runstr in globals():
         globals()[runstr](m, inputm, draw_opts, args)
     else:
@@ -267,7 +268,7 @@ def run_draw_displacement(m, inputm, draw_opts, args):
 
     _set_fig_opts(fig, [0], draw_opts, tight=False)
 
-    if args.movie:
+    if args["movie"]:
         draw.save_ani(fig)
     draw.plt.show()
 
@@ -554,7 +555,8 @@ def get_argparser():
     parser_draw.add_argument(
         "-m",
         "--movie",
-        action="store_true",
+        action="store_const",
+        const=True,
         help="save a movie when drawing an animation",
     )
     _add_draw_argparser(parser_draw)
@@ -575,21 +577,23 @@ def get_argparser():
     parser_load = subparsers.add_parser("load", help="Load a benchmark file")
     parser.add_argument("module", help="file containing the case study")
     parser.add_argument(
-        "--log-level", default="DEBUG", choices=["DEBUG", "INFO"], help="Logging level"
+        "--nopresolve",
+        action="store_const",
+        const=True,
+        help="Do not find a candidate solution before running MIP optimization",
     )
+    parser.add_argument("--log-level", choices=["DEBUG", "INFO"], help="Logging level")
     gurobi_group = parser.add_argument_group("Gurobi options")
     gurobi_group.add_argument(
         "--gthreads",
         dest="threads",
         type=int,
-        default=10,
         help="Number of threads that gurobi will use",
     )
     gurobi_group.add_argument(
         "--goutputflag",
         dest="outputflag",
         type=int,
-        default=1,
         choices=[0, 1],
         help="Enable (1) or disable (0) gurobi output",
     )
@@ -597,7 +601,6 @@ def get_argparser():
         "--gnumericfocus",
         dest="numericfocus",
         type=int,
-        default=0,
         choices=[0, 1, 2, 3],
         help="Degree of control over numerical issues",
     )
@@ -645,17 +648,17 @@ def _logging_setup(args):
             "loggers": {
                 "femformal": {
                     "handlers": ["console"],
-                    "level": args.log_level,
+                    "level": args["log_level"],
                     "propagate": True,
                 },
                 "stlmilp": {
                     "handlers": ["console"],
-                    "level": args.log_level,
+                    "level": args["log_level"],
                     "propagate": True,
                 },
                 "py.warnings": {
                     "handlers": ["console"],
-                    "level": args.log_level,
+                    "level": args["log_level"],
                     "propagate": True,
                 },
             },
@@ -664,16 +667,33 @@ def _logging_setup(args):
     logging.captureWarnings(True)
 
 
+DEFAULTS = {
+    "movie": False,
+    "log_level": "DEBUG",
+    "threads": 10,
+    "outputflag": 1,
+    "numericfocus": 0,
+    "nopresolve": False,
+}
+
+
+def _mix_args(args, defaults, module_overrides):
+    defaults.update(module_overrides)
+    defaults.update((k, v) for k, v in vars(args).items() if v is not None)
+    return defaults
+
+
 def main():
     parser = get_argparser()
     args = parser.parse_args()
-    _logging_setup(args)
 
     runstr = "run_" + args.action
     module = load_module(args.module)
     if module is None:
         exit()
+    config = _mix_args(args, DEFAULTS, getattr(module, "args", {}))
+    _logging_setup(config)
     if runstr in globals():
-        globals()[runstr](module, args)
+        globals()[runstr](module, config)
     else:
         parser.print_help()

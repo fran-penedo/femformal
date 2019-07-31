@@ -124,6 +124,7 @@ def synthesize(
     T=None,
     start_robustness_tree=None,
     start_system_modes=None,
+    presolve=True,
     **kwargs
 ):
     if spec is None:
@@ -131,7 +132,7 @@ def synthesize(
             m, "d", system, pset, f, T + 1, start_system_modes=start_system_modes
         )
     else:
-        if start_robustness_tree is None or start_system_modes is None:
+        if presolve and (start_robustness_tree is None or start_system_modes is None):
             logger.info("Attempting to find a good starting vector")
             rob_tree, start_modes = find_good_start_vector(system, pset, f, spec, -1)
             start_robustness_tree = start_robustness_tree or rob_tree

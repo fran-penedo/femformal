@@ -36,6 +36,6 @@ if [[ $ans =~ ^[Yy] ]]; then
     done
 
     for f in ${CS_FILES[@]}; do
-        # eval $RUN_SCRIPT $CS_DIR$f
+        eval $RUN_SCRIPT $CS_DIR$f
     done
 fi

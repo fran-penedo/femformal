@@ -113,4 +113,6 @@ set_verif () {
     cleanup
 }
 
+verif
+synth
 set_verif
