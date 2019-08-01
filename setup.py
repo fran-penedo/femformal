@@ -8,7 +8,7 @@ config = {
     "url": "",
     "author": "Fran Penedo",
     "author_email": "franp@bu.edu",
-    "version": "0.1.1",
+    "version": "0.1.2",
     "install_requires": [
         "stlmilp[milp] >=1.0.1, <2",
         "enum34>=1.1.6",
