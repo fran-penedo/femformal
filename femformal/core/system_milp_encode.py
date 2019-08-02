@@ -39,9 +39,7 @@ def add_sys_constr_x0(m, l, system, x0, N, xhist=None):
         variables added to the model
 
     """
-    if isinstance(system, sys.System):
-        x = add_affsys_constr_x0(m, l, system, x0, N, xhist)
-    elif isinstance(system, sys.FOSystem):
+    if isinstance(system, sys.FOSystem):
         x = add_trapez_constr_x0(m, l, system, x0, N, xhist)
     elif isinstance(system, sys.SOSystem):
         # if isinstance(system, sys.HybridSOSystem):
@@ -86,11 +84,7 @@ def add_sys_constr_x0_set(m, l, system, pset, f, N, start_system_modes=None):
         variables added to the model
 
     """
-    if isinstance(system, sys.System):
-        x = add_affsys_constr_x0_set(
-            m, l, system, pset, f, N, start_system_modes=start_system_modes
-        )
-    elif isinstance(system, sys.FOSystem):
+    if isinstance(system, sys.FOSystem):
         x = add_trapez_constr_x0_set(
             m, l, system, pset, f, N, start_system_modes=start_system_modes
         )
@@ -104,91 +98,6 @@ def add_sys_constr_x0_set(m, l, system, pset, f, N, start_system_modes=None):
                 system.__class__.__name__
             )
         )
-    return x
-
-
-def add_affsys_constr_x0(m, l, system, x0, N, xhist=None):
-    x = _add_affsys_constr(m, l, system, N, xhist)
-    for j in range(1, N):
-        for i in [0, system.n + 1]:
-            m.addConstr(x[label(l, i, j)] == x0[i])
-    for i in range(system.n + 2):
-        m.addConstr(x[label(l, i, 0)] == x0[i])
-    return x
-
-
-def add_affsys_constr_x0_set(m, l, system, pset, f, N, start_system_modes=None):
-    x = _add_affsys_constr(m, l, system, N, None)
-    xpart = system.xpart
-
-    # p0 = m.addVar(obj=0, lb=-g.GRB.INFINITY, ub=g.GRB.INFINITY, name='p0')
-    # p1 = m.addVar(obj=0, lb=-g.GRB.INFINITY, ub=g.GRB.INFINITY, name='p1')
-    p = [
-        m.addVar(obj=0, lb=-g.GRB.INFINITY, ub=g.GRB.INFINITY, name=label("p", i, 0))
-        for i in range(pset.shape[1] - 1)
-    ]
-    m.update()
-
-    for i in range(pset.shape[0]):
-        for k in range(pset.shape[0]):
-            if i != k and np.all(np.isclose(pset[i] + pset[k], 0.0)):
-                m.addConstr(
-                    g.quicksum(pset[i][j] * p[j] for j in range(pset.shape[1] - 1))
-                    == pset[i][-1]
-                )
-                break
-        else:  # didn't find a matching row
-            m.addConstr(
-                g.quicksum(pset[i][j] * p[j] for j in range(pset.shape[1] - 1))
-                <= pset[i][-1]
-            )
-    # for i in range(pset.shape[0]):
-    #     m.addConstr(p0 * pset[i][0] + p1 * pset[i][1] <= pset[i][2])
-
-    for i in range(len(xpart)):
-        m.addConstr(x[label(l, i, 0)] == f(xpart[i], p))
-    for j in range(1, N):
-        for i in [0, system.n + 1]:
-            m.addConstr(x[label(l, i, j)] == f(xpart[i], p))
-
-    return x
-
-
-def _add_affsys_constr(m, l, system, N, xhist=None):
-    if xhist is None:
-        xhist = []
-    A = system.A
-    b = system.b
-
-    # Decision variables
-    logger.debug("Adding decision variables")
-    x = {}
-    for i in range(A.shape[0] + 2):
-        for j in range(-len(xhist), N):
-            labelx = label(l, i, j)
-            x[labelx] = m.addVar(
-                obj=0, lb=-g.GRB.INFINITY, ub=g.GRB.INFINITY, name=labelx
-            )
-    m.update()
-
-    # Dynamics
-    logger.debug("Adding dynamics")
-    for i in range(1, A.shape[0] + 1):
-        logger.debug("Adding row {}".format(i))
-        for j in range(-len(xhist), N):
-            if j < 0:
-                m.addConstr(x[label(l, i, j)] == xhist[len(xhist) + j][i])
-            elif j > 0:
-                m.addConstr(
-                    x[label(l, i, j)]
-                    == g.quicksum(
-                        A[i - 1][k] * x[label(l, k + 1, j - 1)]
-                        for k in range(A.shape[0])
-                    )
-                    + b[i - 1]
-                )
-    m.update()
-
     return x
 
 
