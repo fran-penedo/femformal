@@ -11,27 +11,6 @@ import numpy as np
 from femformal.core import system as sys, draw_util as draw, casestudy as fem
 from femformal.core.logic import csystem_robustness
 from femformal.femmilp.femmilp import verify_singleton, verify_set, synthesize
-from femformal.femts.verify import verify, verify_input_constrained
-
-
-def run_abstract(m, args):
-    # logger.debug(m.system)
-    start = timer()
-    res = verify_input_constrained(
-        m.system,
-        m.partition,
-        m.regions,
-        m.init_states,
-        m.spec,
-        m.depth,
-        draw_file_prefix=args["draw_file_prefix"],
-        verbosity=args["verbosity"],
-        draw_constr_ts=args["draw_constr_ts"],
-        check_inv=args["check_inv"],
-    )
-    finish = timer()
-    print("Res: {}".format(res))
-    print("Time {}".format(finish - start))
 
 
 def _get_gurobi_args(args):
@@ -140,32 +119,6 @@ def run_milp_batch(m, args):
     print("times: {}".format(times))
     print("results: {}".format(res))
     print("true results: {}".format(trues))
-
-
-def run_abstract_batch(m, args):
-    times = []
-    its = 20
-    for i in range(its):
-        print("------ iteration {}".format(i))
-        start = timer()
-        _ = verify(
-            m.system,
-            m.partition,
-            m.regions,
-            m.init_states,
-            m.spec,
-            m.depth,
-            plot_file_prefix=args["plot_file_prefix"],
-        )
-        end = timer()
-        times.append(end - start)
-        print("- time {}".format(times[-1]))
-
-    print(
-        "verify times: max {0} min {1} avg {2}".format(
-            max(times), min(times), sum(times) / float(its)
-        )
-    )
 
 
 def run_draw(m, args):
