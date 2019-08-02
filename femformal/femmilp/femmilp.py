@@ -170,7 +170,9 @@ def synthesize(
         return robustness, inputs
 
 
-def simulate_trajectory(system, d0, T, pset=None, f=None, labels=None, **kwargs):
+def simulate_trajectory(
+    system, d0, T, pset=None, f=None, labels=None, return_extras=False, **kwargs
+):
     if labels is None:
         labels = ["d"]
 
@@ -184,7 +186,16 @@ def simulate_trajectory(system, d0, T, pset=None, f=None, labels=None, **kwargs)
         )
 
     m = _build_and_solve(None, model_encode_f, 1.0, **kwargs)
+    trajectory = [
+        sys_milp.get_trajectory_from_model(m, l, T + 1, system) for l in labels
+    ]
     if len(labels) == 1:
-        return sys_milp.get_trajectory_from_model(m, labels[0], T + 1, system)
+        trajectory = trajectory[0]
+
+    if isinstance(system, sys.HybridSOSystem) and return_extras:
+        extras = sys_milp.get_hybrid_K_deltas_from_model(m, T + 1, system)
+
+    if return_extras:
+        return trajectory, extras
     else:
-        return [sys_milp.get_trajectory_from_model(m, l, T + 1, system) for l in labels]
+        return trajectory

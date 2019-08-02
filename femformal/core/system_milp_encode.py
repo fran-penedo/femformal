@@ -519,15 +519,19 @@ def _add_newmark_constr(
         deltas = _add_hybrid_K_deltas(
             m, system.K_els(), x, l, N, system.bigN_deltas, start_system_modes
         )
+        # First Kcur is used twice: for initializing acceleration and then in the main
+        # loop. Kcur is updated at the end of the main loop
+        deltas = [deltas[0]] + deltas
+        # Internal force is computed with td, not d
         el_int_forces = [
             _elements_int_force(
-                m, l, system.K_els(), x, deltas, time, system.bigN_int_force
+                m, "t" + l, system.K_els(), x, deltas[time], time, system.bigN_int_force
             )
             for time in range(N)
         ]
         el_int_forces_acc = [
             _elements_int_force(
-                m, "dd" + l, system.K_els(), x, deltas, time, system.bigN_acc
+                m, "dd" + l, system.K_els(), x, deltas[time], time, system.bigN_acc
             )
             for time in range(N)
         ]
@@ -560,6 +564,7 @@ def _add_newmark_constr(
                 if M[i, i] == 0:
                     m.addConstr(x[label("dd" + l, i, j)] == 0)
                 else:
+                    m.addConstr(x[label("t" + l, i, j)] == x[label(l, i, j)])
                     m.addConstr(
                         g.quicksum(
                             M[i, k] * x[label("dd" + l, k, j)]
@@ -860,7 +865,7 @@ def _elements_int_force(m, l, kels, x, deltas, time, bigN):
                 "elintf_{}_{}_{}_{}".format(l, n_el, i, time),
                 v1,
                 v2,
-                deltas[time][n_el],
+                deltas[n_el],
                 bigN,
             )
             el_fs.append(f)
@@ -988,4 +993,16 @@ def get_trajectory_from_model(m, l, T, system):
     """
     return np.array(
         [[m.getVarByName(label(l, i, j)).x for i in range(system.n)] for j in range(T)]
+    )
+
+
+def get_hybrid_K_deltas_from_model(m, T, system):
+    return np.array(
+        [
+            [
+                m.getVarByName("K_{}_{}_delta".format(t, i)).x
+                for i in range(len(system.K_els()))
+            ]
+            for t in range(T)
+        ]
     )
