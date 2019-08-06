@@ -2,10 +2,18 @@
 
 THREADS=${THREADS:-10}
 
-RUN_CMD="python run_benchmark.py --log-level INFO --gthreads $THREADS --goutputflag 0 milp_synth %s"
-DRAW1D_CMD="python run_benchmark.py --log-level INFO draw -i %s snapshots %s"
-DRAW2D_CMD="python run_benchmark.py --log-level INFO draw -i %s snapshots_disp %s"
-DRAW_INPUTS_CMD="python run_benchmark.py --log-level INFO draw -i %s inputs %s"
+if [[ "$DEBUG" ]]; then
+    LOGLEVEL="DEBUG"
+    OUTPUTFLAG="1"
+else
+    LOGLEVEL="INFO"
+    OUTPUTFLAG="0"
+fi
+
+RUN_CMD="python run_benchmark.py --log-level $LOGLEVEL --gthreads $THREADS --goutputflag $OUTPUTFLAG milp_synth %s"
+DRAW1D_CMD="python run_benchmark.py --log-level $LOGLEVEL draw -i %s snapshots %s"
+DRAW2D_CMD="python run_benchmark.py --log-level $LOGLEVEL draw -i %s snapshots_disp %s"
+DRAW_INPUTS_CMD="python run_benchmark.py --log-level $LOGLEVEL draw -i %s inputs %s"
 
 run_cs () {
     printf -v run -- $RUN_CMD $1

@@ -259,3 +259,58 @@ class TestFemmilp(unittest.TestCase):
 
         np.testing.assert_array_almost_equal(d, d_true, decimal=4)
         np.testing.assert_array_equal(deltas, deltas_true)
+
+    @unittest.skipUnless(FOCUSED, "Long test for mm_nl2")
+    def test_hybsys_trajectory_mmnl_simple(self):
+        from examples.mm_nl2.mmnl_simple_synth import cs
+        from examples.mm_nl2.results.mmnl_simple_synth_results import inputs
+
+        pwlf = sys.PWLFunction(cs.f[-1].ts, ys=inputs, x=cs.f[-1].x)
+        csys = sys.make_csystem(cs.system, pwlf)
+        d_true, _ = sys.newm_integrate(csys, cs.d0[0], cs.d0[1], cs.T, cs.dt, beta=0.25)
+        deltas_true = sys.csystem_element_modes(csys, cs.d0, cs.T, csys.dt)
+        d, deltas = femmilp.simulate_trajectory(
+            csys,
+            cs.d0,
+            int(round(cs.T / csys.dt)),
+            pset=cs.pset[:-1] + [pwlf.pset()],
+            f=cs.f[:-1] + [pwlf],
+            return_extras=True,
+        )
+        np.testing.assert_array_almost_equal(d, d_true, decimal=5)
+        np.testing.assert_array_almost_equal(deltas, deltas_true, decimal=5)
+
+    @unittest.skipUnless(FOCUSED, "Long test for mm_nl2")
+    def test_hybsys_trajectory_mmnl_simple2(self):
+        from examples.mm_nl2.mmnl_simple_synth import cs
+
+        inputs = np.array(
+            [
+                0.0,
+                43.73489487,
+                -99.99078154,
+                69.78160978,
+                11.89163262,
+                83.7357931,
+                76.92128253,
+                57.38691643,
+                -20.7151314,
+                -83.12869392,
+                -64.61833091,
+            ]
+        )
+
+        pwlf = sys.PWLFunction(cs.f[-1].ts, ys=inputs, x=cs.f[-1].x)
+        csys = sys.make_csystem(cs.system, pwlf)
+        d_true, _ = sys.newm_integrate(csys, cs.d0[0], cs.d0[1], cs.T, cs.dt, beta=0.25)
+        deltas_true = sys.csystem_element_modes(csys, cs.d0, cs.T, csys.dt)
+        d, deltas = femmilp.simulate_trajectory(
+            csys,
+            cs.d0,
+            int(round(cs.T / csys.dt)),
+            pset=cs.pset[:-1] + [pwlf.pset()],
+            f=cs.f[:-1] + [pwlf],
+            return_extras=True,
+        )
+        np.testing.assert_array_almost_equal(d, d_true, decimal=5)
+        np.testing.assert_array_almost_equal(deltas, deltas_true, decimal=5)

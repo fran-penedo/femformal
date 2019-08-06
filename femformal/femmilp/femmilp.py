@@ -85,29 +85,12 @@ def find_good_start_vector(system, pset, f, spec, objective):
         return objective * logic.csystem_robustness(spec, csys, d0, tree=False)
 
     res = differential_evolution(obj, bounds, maxiter=50, disp=False)
-
     control.ys = res.x
-
-    # control.ys = [
-    #     0.0,
-    #     31.82766536141028,
-    #     -50.56704562198145,
-    #     19.637252038483187,
-    #     100.0,
-    #     -100.0,
-    #     -100.0,
-    #     -100.0,
-    #     -100.0,
-    #     -100.0,
-    #     -100.0,
-    # ]
 
     tree = logic.csystem_robustness(spec, csys, d0, tree=True)
     h = max(0, spec.horizon()) + 1
     T = csys.dt * (h - 1)
     system_init = sys.csystem_element_modes(csys, d0, T, csys.dt)
-    # logger.debug(res.x)
-    # logger.debug(tree.pprint())
     # logger.debug(system_init)
     control.ys = None
 

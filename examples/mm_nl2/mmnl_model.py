@@ -10,15 +10,18 @@ rho = 0.1
 E_nominal = 100.0
 # sigma_yield = 350e3
 # yield_point = sigma_yield / E_nominal
-yield_point = .1
+yield_point = 0.1
 # hardening_point = .01
 
-E = sys.HybridParameter([
-    lambda p: (np.array([-1, 1]) / np.diff(p), yield_point),
-    # lambda p: (np.array([[1, -1], [-1, 1]]) / np.diff(p),
-    #            np.array([hardening_point, -yield_point])),
-    lambda p: (np.array([1, -1]) / np.diff(p), -yield_point)],
-    [E_nominal, E_nominal / 2.0])
+E = sys.HybridParameter(
+    [
+        lambda p: (np.array([-1, 1]) / np.diff(p), yield_point),
+        # lambda p: (np.array([[1, -1], [-1, 1]]) / np.diff(p),
+        #            np.array([hardening_point, -yield_point])),
+        lambda p: (np.array([1, -1]) / np.diff(p), -yield_point),
+    ],
+    [E_nominal, E_nominal / 2.0],
+)
 bigN_deltas = 10.0
 bigN_int_force = 10 * E_nominal * yield_point
 
@@ -33,7 +36,7 @@ du0 = lambda x: 0.0
 
 g = [0.0, None]
 
-dt = .01
+dt = 0.01
 T = 0.5
 
 N_t = 200

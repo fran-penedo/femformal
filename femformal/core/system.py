@@ -163,7 +163,7 @@ class SOSystem(object):
 
     """
 
-    def __init__(self, M, K, F, xpart=None, dt=1.0, mesh=None):
+    def __init__(self, M, K, F, xpart=None, dt=1.0, mesh=None, **kwds):
         self.M = M
         self._K = K
         self.F = F
@@ -175,6 +175,7 @@ class SOSystem(object):
         self.xpart = xpart
         self.mesh = mesh
         self.dt = dt
+        super(SOSystem, self).__init__(**kwds)
 
     def to_fosystem(self):
         """Transforms the SO system into a FO system by state augmentation
@@ -226,7 +227,23 @@ class SOSystem(object):
         return "M:\n{0}\nK:\n{1}\nF:\n{2}".format(self.M, self.K, self.F)
 
 
-class ControlSOSystem(SOSystem):
+class ControlSystem(object):
+    def __init__(self, f_nodal=None, **kwds):
+        self.f_nodal = f_nodal
+        super(ControlSystem, self).__init__(**kwds)
+
+    def add_f_nodal(self, f_nodal):
+        """Adds a nodal force to the system (control input)
+
+        Parameters
+        ----------
+        f_nodal : callable
+
+        """
+        self.f_nodal = f_nodal
+
+
+class ControlSOSystem(SOSystem, ControlSystem):
     """Second order controlled system: M ddx + Kx = F + u(t)
 
     Parameters
@@ -245,18 +262,12 @@ class ControlSOSystem(SOSystem):
 
     """
 
-    def __init__(self, M, K, F, f_nodal, xpart=None, dt=1.0, mesh=None):
-        SOSystem.__init__(self, M, K, F, xpart=xpart, dt=dt, mesh=mesh)
-        self.f_nodal = f_nodal
+    def __init__(self, M, K, F, f_nodal, xpart=None, dt=1.0, mesh=None, **kwds):
+        super(ControlSOSystem, self).__init__(
+            M=M, K=K, F=F, xpart=xpart, dt=dt, mesh=mesh, f_nodal=f_nodal
+        )
 
     def add_f_nodal(self, f_nodal):
-        """Adds a nodal force to the system (control input)
-
-        Parameters
-        ----------
-        f_nodal : callable
-
-        """
         self.f_nodal = f_nodal
 
     @staticmethod
@@ -475,8 +486,11 @@ class HybridSOSystem(SOSystem):
         bigN_deltas=1.0,
         bigN_int_force=1.0,
         bigN_acc=1.0,
+        **kwds
     ):
-        SOSystem.__init__(self, M, K, F, xpart, dt, mesh)
+        super(HybridSOSystem, self).__init__(
+            M=M, K=K, F=F, xpart=xpart, dt=dt, mesh=mesh, **kwds
+        )
         self.bigN_deltas = bigN_deltas
         self.bigN_int_force = bigN_int_force
         self.bigN_acc = bigN_acc
@@ -504,14 +518,46 @@ class HybridSOSystem(SOSystem):
         return self._K
 
 
-class ControlHybridSOSystem(HybridSOSystem, ControlSOSystem):
-    def __init__(self, M, K, F, f_nodal, xpart=None, dt=1.0):
-        ControlSOSystem.__init__(self, M, K, F, f_nodal, xpart=xpart, dt=dt)
+class ControlHybridSOSystem(HybridSOSystem, ControlSystem):
+    def __init__(
+        self,
+        M,
+        K,
+        F,
+        f_nodal,
+        xpart=None,
+        dt=1.0,
+        mesh=None,
+        bigN_deltas=1.0,
+        bigN_int_force=1.0,
+        bigN_acc=1.0,
+    ):
+        super(ControlHybridSOSystem, self).__init__(
+            M=M,
+            K=K,
+            F=F,
+            f_nodal=f_nodal,
+            xpart=xpart,
+            dt=dt,
+            mesh=mesh,
+            bigN_deltas=bigN_deltas,
+            bigN_int_force=bigN_int_force,
+            bigN_acc=bigN_acc,
+        )
 
     @staticmethod
     def from_hysosys(sosys, f_nodal):
         csosys = ControlHybridSOSystem(
-            sosys.M, sosys._K, sosys.F, f_nodal, sosys.xpart, sosys.dt
+            sosys.M,
+            sosys._K,
+            sosys.F,
+            f_nodal,
+            sosys.xpart,
+            sosys.dt,
+            sosys.mesh,
+            sosys.bigN_deltas,
+            sosys.bigN_int_force,
+            sosys.bigN_acc,
         )
         return csosys
 
