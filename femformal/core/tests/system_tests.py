@@ -110,26 +110,6 @@ class TestComplexSystem(unittest.TestCase):
         )
         np.testing.assert_array_equal(self.pwlf.pset(), pset)
 
-    @unittest.expectedFailure
-    def test_pwlf_pset_vector(self):
-        pwlf = sys.PWLFunction(
-            [0, 1, 2, 3], [0, 1.0, 0.5, 2.0], ybounds=[[-10.0, 10.0] for i in range(2)]
-        )
-        p = np.array(
-            [
-                [1, 0, 0, 0, 10.0],
-                [0, 1, 0, 0, 10.0],
-                [0, 0, 1, 0, 10.0],
-                [0, 0, 0, 1, 10.0],
-                [-1, 0, 0, 0, 10.0],
-                [0, -1, 0, 0, 10.0],
-                [0, 0, -1, 0, 10.0],
-                [0, 0, 0, -1, 10.0],
-            ]
-        )
-        pset = np.array([p, p])
-        np.testing.assert_array_equal(pwlf.pset(), pset)
-
     def test_control(self):
         pwlf = sys.PWLFunction([0, 1, 1, 2], [1.0, 1.0, 0.0, 0.0])
         sosys = self.sosys

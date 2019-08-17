@@ -3,6 +3,11 @@ import logging
 logger = logging.getLogger("femformal")
 logger.addHandler(logging.NullHandler())
 
+stl_logger = logging.getLogger("stlmilp")
+for handler in stl_logger.handlers:
+    stl_logger.removeHandler(handler)
+stl_logger.addHandler(logging.NullHandler())
+
 mpl_logger = logging.getLogger("matplotlib")
 mpl_logger.setLevel(logging.WARNING)
 

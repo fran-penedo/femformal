@@ -19,10 +19,10 @@ def mech2d(xpart, ypart, rho, C, g, f_nodal, dt, traction=None, q4=True):
     nnodes = mesh.nnodes
     nelems = mesh.nelems
 
-    # bigk = np.zeros((nnodes*2, nnodes*2))
-    # bigm = np.zeros((nnodes*2, nnodes*2))
-    bigk = scipy.sparse.lil_matrix((nnodes * 2, nnodes * 2))
-    bigm = scipy.sparse.lil_matrix((nnodes * 2, nnodes * 2))
+    bigk = np.zeros((nnodes * 2, nnodes * 2))
+    bigm = np.zeros((nnodes * 2, nnodes * 2))
+    # bigk = scipy.sparse.lil_matrix((nnodes * 2, nnodes * 2))
+    # bigm = scipy.sparse.lil_matrix((nnodes * 2, nnodes * 2))
     if traction is None:
         bigf = np.zeros(nnodes * 2)
     else:
@@ -53,21 +53,32 @@ def mech2d(xpart, ypart, rho, C, g, f_nodal, dt, traction=None, q4=True):
 
     _remove_close_zeros(bigk)
     _remove_close_zeros(bigm)
-    bigk = bigk.tocsc()
-    bigm = bigm.tocsc()
+    try:
+        bigk = bigk.tocsc()
+    except AttributeError:
+        pass
+    try:
+        bigm = bigm.tocsc()
+    except AttributeError:
+        pass
     sosys = sys.SOSystem(bigm, bigk, bigf, dt=dt, mesh=mesh)
 
     return sosys
 
 
 def _remove_close_zeros(matrix):
-    indices = (np.isclose(matrix.A, 0) & (abs(matrix.A) > 0)).nonzero()
+    try:
+        A = matrix.A
+    except AttributeError:
+        A = matrix
+    indices = (np.isclose(A, 0) & (abs(A) > 0)).nonzero()
     for i in zip(*indices):
         matrix[i] = 0
 
 
 def lumped(m):
-    return scipy.sparse.diags(np.ravel(m.sum(axis=1)), format="lil")
+    # return scipy.sparse.diags(np.ravel(m.sum(axis=1)), format="lil")
+    return np.diag(np.ravel(m.sum(axis=1)))
 
 
 def grid_mesh(xs, ys, q4=True):

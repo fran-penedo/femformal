@@ -13,6 +13,7 @@ from .. import util
 
 logger = logging.getLogger(__name__)
 
+
 class Element(object):
     """Abstract element
 
@@ -31,6 +32,7 @@ class Element(object):
     shape_order : int
 
     """
+
     __metaclass__ = abc.ABCMeta
 
     def __init__(self, coords, shape_order=0):
@@ -57,6 +59,7 @@ class Element2DOF(Element):
     shape_order : int
 
     """
+
     def __init__(self, coords, shape_order=0):
         Element.__init__(self, coords, shape_order)
 
@@ -159,16 +162,18 @@ class Element2DOF(Element):
             dof = 1 if len(values.shape) == 1 else values.shape[-1]
             values = np.c_[
                 values,
-                np.zeros((values.shape[0],
-                          str_disp.shape[-1] // np.prod(values.shape) - dof))]
+                np.zeros(
+                    (values.shape[0], str_disp.shape[-1] // np.prod(values.shape) - dof)
+                ),
+            ]
 
         ret = np.zeros((values.shape[-1], values.shape[-1]))
         for p in util.cycle(values.shape[-1]):
             p = list(p)
             v = values.T[np.ix_(p)].T
             v = v.reshape(np.prod(v.shape))
-            derivs = str_disp.dot(v)[0:values.shape[-1]]
-            ret[[p, range(values.shape[-1])]] = derivs
+            derivs = str_disp.dot(v)[0 : values.shape[-1]]
+            ret[tuple([p, range(values.shape[-1])])] = derivs
 
         return ret
 
@@ -243,7 +248,7 @@ class Element2DOF(Element):
         jac_inv, jac_det = cls.jacobian(a, b, x, y)
         dshapes_phy = jac_inv.dot(cls.shapes_derivatives(a, b))
         n = 2 * dshapes_phy.shape[1]
-        str_disp = np.zeros((3,n))
+        str_disp = np.zeros((3, n))
         str_disp[0, 0:n:2] = dshapes_phy[0]
         str_disp[1, 1:n:2] = dshapes_phy[1]
         str_disp[2, 0:n:2] = dshapes_phy[1]
@@ -270,9 +275,9 @@ class Element2DOF(Element):
             Determinant of the Jacobian
 
         """
-        jac = cls.shapes_derivatives(a,b).dot(np.vstack([x,y]).T)
+        jac = cls.shapes_derivatives(a, b).dot(np.vstack([x, y]).T)
         jac_det = np.linalg.det(jac)
-        jac_inv = np.array([[jac[1,1], -jac[0,1]], [-jac[1,0], jac[0,0]]]) / jac_det
+        jac_inv = np.array([[jac[1, 1], -jac[0, 1]], [-jac[1, 0], jac[0, 0]]]) / jac_det
         return jac_inv, jac_det
 
     @abc.abstractmethod
@@ -300,6 +305,7 @@ class BLQuadQ4(Element2DOF):
         Center of the element
 
     """
+
     def __init__(self, coords):
         if coords.shape != (4, 2):
             raise ValueError("Q4 element coordinates must be 4x2")
@@ -321,49 +327,78 @@ class BLQuadQ4(Element2DOF):
         x, y = coords.T
         det = 2 * ((-x[0] + x[2]) * (-y[1] + y[3]) + (x[1] - x[3]) * (-y[0] + y[2]))
         if not np.isclose(det, 0):
-            return 4 / det * np.array([
-                [-y[0] - y[1] + y[2] + y[3], x[0] + x[1] - x[2] - x[3]],
-                [y[0] - y[1] - y[2] + y[3],  -x[0] + x[1] + x[2] - x[3]]
-            ])
+            return (
+                4
+                / det
+                * np.array(
+                    [
+                        [-y[0] - y[1] + y[2] + y[3], x[0] + x[1] - x[2] - x[3]],
+                        [y[0] - y[1] - y[2] + y[3], -x[0] + x[1] + x[2] - x[3]],
+                    ]
+                )
+            )
         else:
             raise ValueError("Cannot compute change of basis for degenerate element")
 
     @staticmethod
     def shapes(*parameters):
         a, b = parameters
-        return 0.25 * np.array([(1 - a) * (1 - b), (1 + a) * (1 - b),
-                                (1 + a) * (1 + b), (1 - a) * (1 + b)])
+        return 0.25 * np.array(
+            [(1 - a) * (1 - b), (1 + a) * (1 - b), (1 + a) * (1 + b), (1 - a) * (1 + b)]
+        )
 
     @staticmethod
     def shapes_derivatives(*parameters):
         a, b = parameters
-        return 0.25 * np.array([[- (1 - b), (1 - b), (1 + b), - (1 + b)],
-                                [- (1 - a), - (1 + a), (1 + a), (1 - a)]])
+        return 0.25 * np.array(
+            [
+                [-(1 - b), (1 - b), (1 + b), -(1 + b)],
+                [-(1 - a), -(1 + a), (1 + a), (1 - a)],
+            ]
+        )
 
     def _normalize_full(self, coords):
         return self.transf_matrix.dot(coords - self.center)
 
     def _normalize_0d(self, coords):
-        return np.array([0,0])
+        return np.array([0, 0])
 
     def _normalize_1d(self, coords):
         return 2 * (coords - self.coords[0]) / self.ndiff - 1
 
     def normalize(self, coords):
         pass
+
     def max_diff(self, values, axis):
         values = np.array(values)
+
         def take(i):
             return values.take(i, axis=-2)
 
         if axis == 0:
-            return np.max(np.abs([take(0) - take(1), take(3) - take(2),
-                                  take(0) - take(2), take(3) - take(1)]),
-                          axis=0)
+            return np.max(
+                np.abs(
+                    [
+                        take(0) - take(1),
+                        take(3) - take(2),
+                        take(0) - take(2),
+                        take(3) - take(1),
+                    ]
+                ),
+                axis=0,
+            )
         elif axis == 1:
-            return np.max(np.abs([take(0) - take(3), take(1) - take(2),
-                                  take(0) - take(2), take(1) - take(3)]),
-                          axis=0)
+            return np.max(
+                np.abs(
+                    [
+                        take(0) - take(3),
+                        take(1) - take(2),
+                        take(0) - take(2),
+                        take(1) - take(3),
+                    ]
+                ),
+                axis=0,
+            )
         else:
             raise ValueError("Axis must be 0 or 1. Given: {}".format(axis))
 
@@ -381,6 +416,7 @@ class BLQuadQ4(Element2DOF):
 
     def isvertical(self):
         return np.all(np.isclose(self.coords[0], self.coords[1]))
+
 
 class QuadQuadQ9(Element2DOF):
     """Quadratic quadrilateral element with 9 nodes
@@ -404,6 +440,7 @@ class QuadQuadQ9(Element2DOF):
         Center of the element
 
     """
+
     def __init__(self, coords):
         if coords.shape != (9, 2):
             raise ValueError("Q9 element coordinates must be 9x2")
@@ -422,78 +459,105 @@ class QuadQuadQ9(Element2DOF):
 
     @staticmethod
     def _transf_matrix(coords):
-        #FIXME I'm not sure this applies as is for Q9 from Q4
-        #FIXME It definitely does not
+        # FIXME I'm not sure this applies as is for Q9 from Q4
+        # FIXME It definitely does not
         x, y = coords.T
         det = 2 * ((-x[0] + x[2]) * (-y[1] + y[3]) + (x[1] - x[3]) * (-y[0] + y[2]))
         if not np.isclose(det, 0):
-            return 4 / det * np.array([
-                [-y[0] - y[1] + y[2] + y[3], x[0] + x[1] - x[2] - x[3]],
-                [y[0] - y[1] - y[2] + y[3],  -x[0] + x[1] + x[2] - x[3]]
-            ])
+            return (
+                4
+                / det
+                * np.array(
+                    [
+                        [-y[0] - y[1] + y[2] + y[3], x[0] + x[1] - x[2] - x[3]],
+                        [y[0] - y[1] - y[2] + y[3], -x[0] + x[1] + x[2] - x[3]],
+                    ]
+                )
+            )
         else:
             raise ValueError("Cannot compute change of basis for degenerate element")
 
     @staticmethod
     def shapes(*parameters):
         a, b = parameters
-        aa = a*a
-        bb = b*b
-        return 0.25 * np.array([(aa - a) * (bb - b),
-                                (aa + a) * (bb - b),
-                                (aa + a) * (bb + b),
-                                (aa - a) * (bb + b),
-                                2 * (1 - aa) * (bb - b),
-                                2 * (aa + a) * (1 - bb),
-                                2 * (1 - aa) * (bb + b),
-                                2 * (aa - a) * (1 - bb),
-                                4 * (1 - aa) * (1 - bb)])
+        aa = a * a
+        bb = b * b
+        return 0.25 * np.array(
+            [
+                (aa - a) * (bb - b),
+                (aa + a) * (bb - b),
+                (aa + a) * (bb + b),
+                (aa - a) * (bb + b),
+                2 * (1 - aa) * (bb - b),
+                2 * (aa + a) * (1 - bb),
+                2 * (1 - aa) * (bb + b),
+                2 * (aa - a) * (1 - bb),
+                4 * (1 - aa) * (1 - bb),
+            ]
+        )
 
     @staticmethod
     def shapes_derivatives(*parameters):
         a, b = parameters
-        aa = a*a
-        bb = b*b
-        return 0.25 * np.array([
-            [(2 * a - 1) * (bb - b),
-             (2 * a + 1) * (bb - b),
-             (2 * a + 1) * (bb + b),
-             (2 * a - 1) * (bb + b),
-             2 * (- 2 * a) * (bb - b),
-             2 * (2 * a + 1) * (1 - bb),
-             2 * (- 2 * a) * (bb + b),
-             2 * (2 * a - 1) * (1 - bb),
-             4 * (- 2 * a) * (1 - bb)],
-            [(aa - a) * (2 * b - 1),
-             (aa + a) * (2 * b - 1),
-             (aa + a) * (2 * b + 1),
-             (aa - a) * (2 * b + 1),
-             2 * (1 - aa) * (2 * b - 1),
-             2 * (aa + a) * (- 2 * b),
-             2 * (1 - aa) * (2 * b + 1),
-             2 * (aa - a) * (- 2 * b),
-             4 * (1 - aa) * (- 2 * b)]])
+        aa = a * a
+        bb = b * b
+        return 0.25 * np.array(
+            [
+                [
+                    (2 * a - 1) * (bb - b),
+                    (2 * a + 1) * (bb - b),
+                    (2 * a + 1) * (bb + b),
+                    (2 * a - 1) * (bb + b),
+                    2 * (-2 * a) * (bb - b),
+                    2 * (2 * a + 1) * (1 - bb),
+                    2 * (-2 * a) * (bb + b),
+                    2 * (2 * a - 1) * (1 - bb),
+                    4 * (-2 * a) * (1 - bb),
+                ],
+                [
+                    (aa - a) * (2 * b - 1),
+                    (aa + a) * (2 * b - 1),
+                    (aa + a) * (2 * b + 1),
+                    (aa - a) * (2 * b + 1),
+                    2 * (1 - aa) * (2 * b - 1),
+                    2 * (aa + a) * (-2 * b),
+                    2 * (1 - aa) * (2 * b + 1),
+                    2 * (aa - a) * (-2 * b),
+                    4 * (1 - aa) * (-2 * b),
+                ],
+            ]
+        )
 
     @staticmethod
     def shapes_second_derivatives(*parameters):
         a, b = parameters
-        aa = a*a
-        bb = b*b
+        aa = a * a
+        bb = b * b
         m = self._cross_deriv_arrays()
-        return np.array([
-            m[0,1] * (bb * m[1,1] * .5 + b * m[1,0] +
-                      np.array([0, 0, 0, 0, 0, 1, 0, 1, 1])),
-            (m[0,1] * a + m[0,0]) * (m[1,1] * b + m[1,0]),
-            (m[0,1] * a + m[0,0]) * (m[1,1] * b + m[1,0]),
-            m[1,1] * (aa * m[0,1] * .5 + a * m[0,0] +
-                      np.array([0, 0, 0, 0, 1, 0, 1, 0, 1])),
-        ])
+        return np.array(
+            [
+                m[0, 1]
+                * (
+                    bb * m[1, 1] * 0.5
+                    + b * m[1, 0]
+                    + np.array([0, 0, 0, 0, 0, 1, 0, 1, 1])
+                ),
+                (m[0, 1] * a + m[0, 0]) * (m[1, 1] * b + m[1, 0]),
+                (m[0, 1] * a + m[0, 0]) * (m[1, 1] * b + m[1, 0]),
+                m[1, 1]
+                * (
+                    aa * m[0, 1] * 0.5
+                    + a * m[0, 0]
+                    + np.array([0, 0, 0, 0, 1, 0, 1, 0, 1])
+                ),
+            ]
+        )
 
     def _normalize_full(self, coords):
         return self.transf_matrix.dot(coords - self.center)
 
     def _normalize_0d(self, coords):
-        return np.array([0,0])
+        return np.array([0, 0])
 
     def _normalize_1d(self, coords):
         return 2 * (coords - self.coords[0]) / self.ndiff - 1
@@ -502,20 +566,37 @@ class QuadQuadQ9(Element2DOF):
         pass
 
     def max_diff(self, values, axis):
-        #FIXME implement me
+        # FIXME implement me
         raise NotImplementedError()
         values = np.array(values)
+
         def take(i):
             return values.take(i, axis=-2)
 
         if axis == 0:
-            return np.max(np.abs([take(0) - take(1), take(3) - take(2),
-                                  take(0) - take(2), take(3) - take(1)]),
-                          axis=0)
+            return np.max(
+                np.abs(
+                    [
+                        take(0) - take(1),
+                        take(3) - take(2),
+                        take(0) - take(2),
+                        take(3) - take(1),
+                    ]
+                ),
+                axis=0,
+            )
         elif axis == 1:
-            return np.max(np.abs([take(0) - take(3), take(1) - take(2),
-                                  take(0) - take(2), take(1) - take(3)]),
-                          axis=0)
+            return np.max(
+                np.abs(
+                    [
+                        take(0) - take(3),
+                        take(1) - take(2),
+                        take(0) - take(2),
+                        take(1) - take(3),
+                    ]
+                ),
+                axis=0,
+            )
         else:
             raise ValueError("Axis must be 0 or 1. Given: {}".format(axis))
 
@@ -524,8 +605,13 @@ class QuadQuadQ9(Element2DOF):
         int_opt_coords = self._int_opt_coords(values.T)
         border_opt_coords = self._border_opt_coords(values.T)
         opt_coords = np.vstack([corners, int_opt_coords, border_opt_coords])
-        return np.max([np.abs(self.interpolate_derivatives(values, coords))
-                       for coords in opt_coords], axis=0)
+        return np.max(
+            [
+                np.abs(self.interpolate_derivatives(values, coords))
+                for coords in opt_coords
+            ],
+            axis=0,
+        )
 
     def max_second_derivs(self, values):
         corners = np.array([[a, b] for a in [-1, 1] for b in [-1, 1]])
@@ -534,14 +620,16 @@ class QuadQuadQ9(Element2DOF):
         # return np.max([np.abs(self.interpolate_derivatives(values, coords))
         #                for coords in opt_coords], axis=0)
 
-
     @staticmethod
     def _cross_deriv_arrays():
-        return .25 * np.array([
-            [-1, 1, 1, -1, 0, 2, 0, -2, 0],  # a,0
-            [2, 2, 2, 2, -4, 4, -4, 4, -8],  # a,1
-            [-1, -1, 1, 1, -1, 0, 1, 0, 0],  # b,0
-            [2, 2, 2, 2, 2, -2, 2, -2, -2]]) # b,1
+        return 0.25 * np.array(
+            [
+                [-1, 1, 1, -1, 0, 2, 0, -2, 0],  # a,0
+                [2, 2, 2, 2, -4, 4, -4, 4, -8],  # a,1
+                [-1, -1, 1, 1, -1, 0, 1, 0, 0],  # b,0
+                [2, 2, 2, 2, 2, -2, 2, -2, -2],
+            ]
+        )  # b,1
 
     def _int_opt_coords(self, values):
         opt_coords = []
@@ -575,7 +663,8 @@ class QuadQuadQ9(Element2DOF):
             a = a1 + a2
             pairs = np.array([a, b]).T
             opt_coords.extend(
-                [ab for ab in pairs if np.all(ab >= -1) and np.all(ab <= 1)])
+                [ab for ab in pairs if np.all(ab >= -1) and np.all(ab <= 1)]
+            )
 
         ret = np.array(opt_coords)
         if len(ret) == 0:
@@ -588,7 +677,7 @@ class QuadQuadQ9(Element2DOF):
         for v in values:
             a = _q9_foeq_sol(v, m[0, 1], m[0, 0], m[1, 0])
             b = _q9_foeq_sol(v, m[1, 1], m[1, 0], m[0, 0])
-            opt_coords.append([a,b])
+            opt_coords.append([a, b])
         return opt_coords
 
     def _border_opt_coords(self, values):
@@ -607,7 +696,8 @@ class QuadQuadQ9(Element2DOF):
             a = a1 + a2
             pairs = np.array([a, b]).T
             opt_coords.extend(
-                [ab for ab in pairs if np.all(ab >= -1) and np.all(ab <= 1)])
+                [ab for ab in pairs if np.all(ab >= -1) and np.all(ab <= 1)]
+            )
 
         ret = np.array(opt_coords)
         if len(ret) == 0:
@@ -634,14 +724,17 @@ class QuadQuadQ9(Element2DOF):
         if dim == 0:
             return [(self.coords[0], 0)]
         elif dim == 1:
-            pts = np.array([[-.5, -.5], [.5, .5]])
+            pts = np.array([[-0.5, -0.5], [0.5, 0.5]])
             h = self.chebyshev_radius() / 2
             return [(self.interpolate(self.coords, pt), h) for pt in pts]
         else:
-            pts = [-.5, .5]
+            pts = [-0.5, 0.5]
             h = self.chebyshev_radius() / 2
-            return [(self.interpolate(self.coords, np.array([i, j])), h)
-                    for i in pts for j in pts]
+            return [
+                (self.interpolate(self.coords, np.array([i, j])), h)
+                for i in pts
+                for j in pts
+            ]
 
     def _4elem_covering(self):
         dim = self._dim()
@@ -649,18 +742,20 @@ class QuadQuadQ9(Element2DOF):
         if dim == 0:
             return [(self.coords[0], 0)]
         elif dim == 1:
-            pts = np.array([[-.75, -.75], [-.25, -.25], [.25, .25], [.75, .75]])
+            pts = np.array([[-0.75, -0.75], [-0.25, -0.25], [0.25, 0.25], [0.75, 0.75]])
             h = self.chebyshev_radius() / 4
             return [(self.interpolate(self.coords, pt), h) for pt in pts]
         else:
-            pts = [-.75, -.25, .25, .75]
+            pts = [-0.75, -0.25, 0.25, 0.75]
             h = self.chebyshev_radius() / 4
-            return [(self.interpolate(self.coords, np.array([i, j])), h)
-                    for i in pts for j in pts]
+            return [
+                (self.interpolate(self.coords, np.array([i, j])), h)
+                for i in pts
+                for j in pts
+            ]
 
     def covering(self):
         return self._4elem_covering()
-
 
     def ishorizontal(self):
         return np.all(np.isclose(self.coords[0], self.coords[-1]))
@@ -679,11 +774,12 @@ def _q9_soeq_sol(a, b, c):
         else:
             raise ValueError("A == B == 0")
     else:
-        discr = B**2 - 4 * A * C
+        discr = B ** 2 - 4 * A * C
         if discr >= 0:
-            return (- B + np.sqrt(discr)) / (2 * A), (- B - np.sqrt(discr)) / (2 * A)
+            return (-B + np.sqrt(discr)) / (2 * A), (-B - np.sqrt(discr)) / (2 * A)
         else:
             raise ValueError("Negative discriminant")
+
 
 def _q9_foeq_sol(d, m0, m1, n):
     div = (m1 * n).dot(d)
