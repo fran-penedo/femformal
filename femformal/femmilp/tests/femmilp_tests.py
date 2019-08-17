@@ -314,3 +314,99 @@ class TestFemmilp(unittest.TestCase):
         )
         np.testing.assert_array_almost_equal(d, d_true, decimal=5)
         np.testing.assert_array_almost_equal(deltas, deltas_true, decimal=5)
+
+    @unittest.skipUnless(FOCUSED, "Long test for 2d")
+    def test_hybsys_trajectory_2d(self):
+        from femformal.core.fem import mech2d
+
+        length = 16.0e3
+        width = 1.0e3
+        mult = 4
+        elem_num_x = 4 * mult
+        elem_num_y = 2 * mult
+        xs = np.linspace(0, length, elem_num_x + 1)
+        ys = np.linspace(0, width, elem_num_y + 1)
+        C = 1e-3 * np.array(
+            [
+                [1.346153846153846e07, 5.769230769230769e06, 0.000000000000000e00],
+                [5.769230769230769e06, 1.346153846153846e07, 0.000000000000000e00],
+                [0.000000000000000e00, 0.000000000000000e00, 3.846153846153846e06],
+            ]
+        )
+        rho = 8e-6
+        center = 0.45
+        left = 0.25
+        right = 0.75
+
+        def traction_templ(x, y, U):
+            # if x == length:
+            y_r = right * width
+            y_l = left * width
+            if np.isclose(x, length) and y > y_l and y < y_r:
+                y_m = center * width
+                if y < y_m:
+                    ret = [(y - y_l) * (U / (y_m - y_l)), 0.0]
+                else:
+                    ret = [U - (y - y_m) * U / (y_r - y_m), 0.0]
+            else:
+                ret = [0.0, 0.0]
+
+            return np.array(ret)
+
+        force = None
+        # v_pert = width * 0.005
+        # u0 = lambda x, y: [0.0, v_pert * (-x * x / 64.0 + x / 4.0)]
+        u0 = lambda x, y: [0.0, 0.0]
+        du0 = lambda x, y: [0.0, 0.0]
+
+        def g(x, y):
+            if np.isclose(x, 0.0):
+                return [0.0, 0.0]
+            else:
+                return [None, None]
+
+        dt = 0.075
+        T = 5.0
+
+        sosys = mech2d.mech2d(xs, ys, rho, C, g, force, dt, None, q4=False)
+
+        input_dt = 0.75
+        pwlf = sys.PWLFunction(
+            np.linspace(0, T, round(T / input_dt) + 1), ybounds=[-4e3, 0.0], x=None
+        )
+        traction_force = mech2d.TimeVaryingTractionForce(
+            pwlf, traction_templ, sosys.mesh
+        )
+
+        d_par = 0.0
+        v_par = 0.0
+        dset = np.array([[1, d_par], [-1, d_par]])
+        vset = np.array([[1, v_par], [-1, v_par]])
+        fd = lambda x, p: p[0]
+        fv = lambda x, p: p[0]
+
+        d0, v0 = mech2d.state(u0, du0, sosys.mesh.nodes_coords, g)
+        pwlf.ys = np.array(
+            [
+                -3504.61710547,
+                -140.53012977,
+                -3837.2729153,
+                -3998.83446056,
+                -3926.50765805,
+                -3053.46570326,
+                -2779.2856046,
+                -1348.19975448,
+            ]
+        )
+        fset = pwlf.pset()
+
+        csys = sys.make_csystem(sosys, traction_force)
+        d_true, _ = sys.newm_integrate(csys, d0, v0, T, dt, beta=0.25)
+        d = femmilp.simulate_trajectory(
+            csys,
+            [d0, v0],
+            int(round(T / dt)),
+            pset=[dset, vset, fset],
+            f=[fd, fv, traction_force],
+        )
+        np.testing.assert_array_almost_equal(d, d_true, decimal=5)
