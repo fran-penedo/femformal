@@ -84,8 +84,22 @@ def find_good_start_vector(system, pset, f, spec, objective):
         control.ys = x
         return objective * logic.csystem_robustness(spec, csys, d0, tree=False)
 
-    res = differential_evolution(obj, bounds, maxiter=50, disp=False)
-    control.ys = res.x
+    # res = differential_evolution(obj, bounds, maxiter=50, disp=True)
+    # control.ys = res.x
+    # FIXME
+    control.ys = np.array(
+        [
+            -468.09210624,
+            -3370.30191382,
+            -3994.44432433,
+            -2194.22762203,
+            -990.41002302,
+            -3899.19247968,
+            -1313.49887815,
+            -2276.84422015,
+        ]
+    )
+
     logger.debug(repr(control.ys))
 
     tree = logic.csystem_robustness(spec, csys, d0, tree=True)

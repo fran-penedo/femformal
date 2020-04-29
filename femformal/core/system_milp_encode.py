@@ -419,12 +419,13 @@ def add_newmark_constr_x0_set(
                 )
 
     logger.debug("Adding initial and boundary conditions")
+    ff.ys = pf
     if xpart is not None:
         for i in range(len(xpart)):
             m.addConstr(x[label(l, i, 0)] == fd(xpart[i], pd))
             m.addConstr(x[label("d" + l, i, 0)] == fv(xpart[i], pv))
             for j in range(N):
-                m.addConstr(x[label("f", i, j)] == ff(j * system.dt, pf, xpart[i]))
+                m.addConstr(x[label("f", i, j)] == ff(j * system.dt, None, xpart[i]))
     else:
         for i in range(mesh.nnodes):
             logger.debug("Adding IC and BC for node {}".format(i))
@@ -438,7 +439,7 @@ def add_newmark_constr_x0_set(
                 for j in range(N):
                     m.addConstr(
                         x[label("f", i * 2 + dof, j)]
-                        == ff(j * system.dt, pf, i * 2 + dof)
+                        == ff(j * system.dt, None, i * 2 + dof)
                     )
 
     return x

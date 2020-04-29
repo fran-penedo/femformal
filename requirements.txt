@@ -1,2 +1,10 @@
 -e git+file:///home/fran/dev/stlmilp@v1.0.1#egg=stlmilp[milp]
 -e .
+
+# tests
+nose
+coverage
+
+#linting
+flake8
+typing-extensions

@@ -3,6 +3,7 @@ from __future__ import division, absolute_import, print_function
 import logging
 import os
 import unittest
+import sys as pysys
 
 import numpy as np
 
@@ -12,7 +13,7 @@ from femformal.femmilp import femmilp as femmilp
 
 logger = logging.getLogger(__name__)
 
-FOCUSED = os.environ.get("FOCUSED", False)
+FOCUSED = ":" in pysys.argv[-1]
 
 
 class TestFemmilp(unittest.TestCase):
@@ -388,14 +389,14 @@ class TestFemmilp(unittest.TestCase):
         d0, v0 = mech2d.state(u0, du0, sosys.mesh.nodes_coords, g)
         pwlf.ys = np.array(
             [
-                -3504.61710547,
-                -140.53012977,
-                -3837.2729153,
-                -3998.83446056,
-                -3926.50765805,
-                -3053.46570326,
-                -2779.2856046,
-                -1348.19975448,
+                -468.09210624,
+                -3370.30191382,
+                -3994.44432433,
+                -2194.22762203,
+                -990.41002302,
+                -3899.19247968,
+                -1313.49887815,
+                -2276.84422015,
             ]
         )
         fset = pwlf.pset()

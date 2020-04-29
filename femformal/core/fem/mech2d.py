@@ -256,6 +256,7 @@ class TimeVaryingTractionForce(object):
     @ys.setter
     def ys(self, value):
         self.parameter.ys = value
+        self.memoize.clear()
 
     def traction_force(self, t):
         if t in self.memoize:
@@ -271,5 +272,8 @@ class TimeVaryingTractionForce(object):
         return self.traction_force
 
     def __call__(self, t, ys, node):
-        self.parameter.ys = ys
+        # At least ys should default to None, and even then memoize might break things
+        if ys is not None:
+            raise NotImplementedError("Broken method")
+            self.parameter.ys = ys
         return self.traction_force(t)[node]

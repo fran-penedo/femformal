@@ -267,6 +267,23 @@ class TestMech2d(unittest.TestCase):
             traction(self.L, 0.211324865405187, -1), [0.0, -0.370813293868264]
         )
 
+    def test_timevarying_traction(self):
+        mesh = mech2d.grid_mesh(self.xs, self.ys)
+        traction_temp = mech2d.parabolic_traction(self.L, self.c)
+        parameter = mech2d.sys.PWLFunction([0, 1, 2], [0, 0, 0])
+        tv_traction = mech2d.TimeVaryingTractionForce(parameter, traction_temp, mesh)
+        f_nodal = tv_traction.f_nodal
+        f_nodal_true = mech2d.traction_nodal_force(
+            lambda x, y: traction_temp(x, y, -1), mesh
+        )
+        tv_traction.ys = [-1, -1, -1]
+        npt.assert_array_almost_equal(f_nodal(1), f_nodal_true)
+        f_nodal_true = mech2d.traction_nodal_force(
+            lambda x, y: traction_temp(x, y, -2), mesh
+        )
+        tv_traction.ys = [-2, -2, -2]
+        npt.assert_array_almost_equal(f_nodal(1), f_nodal_true)
+
     def test_traction_nodal(self):
         expected = np.array(
             [

@@ -68,3 +68,5 @@ cs = casestudy.build_cs(
     system_t=sosys_t,
     d0_t=[d0_t, v0_t],
 )
+
+args = {"gthreads": 4}
