@@ -7,6 +7,10 @@ stl_logger = logging.getLogger("stlmilp")
 for handler in stl_logger.handlers:
     stl_logger.removeHandler(handler)
 stl_logger.addHandler(logging.NullHandler())
+stl_logger = logging.getLogger("stl_milp_encode")
+for handler in stl_logger.handlers:
+    stl_logger.removeHandler(handler)
+stl_logger.addHandler(logging.NullHandler())
 
 mpl_logger = logging.getLogger("matplotlib")
 mpl_logger.setLevel(logging.WARNING)
@@ -19,7 +23,7 @@ mpl.style.use("classic")
 import sys
 import os
 
-FOCUSED = os.environ.get("FOCUSED", False)
+FOCUSED = ":" in sys.argv[-1]
 
 if "nose" in sys.modules.keys() and FOCUSED:
     import logging.config
