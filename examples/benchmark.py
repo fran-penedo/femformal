@@ -217,6 +217,7 @@ def run_draw_displacement(m, inputm, draw_opts, args):
         perts=perts,
         system_t=cs.system_t,
         d0_t=cs.d0_t,
+        corrections_shown=draw_opts.corrections_shown,
     )
 
     _set_fig_opts(fig, [0], draw_opts, tight=False)
@@ -259,8 +260,10 @@ def run_draw_animated(m, inputm, draw_opts, args):
             fig.get_axes()[0:2], cregions, error_bounds, cs.xpart, cs.fdt_mult
         )
 
-    _set_fig_opts(fig, [0, 1, 2, 3], draw_opts, tight=False)
+    _set_fig_opts(fig, [0, 1, 2, 3], draw_opts, tight=True)
 
+    if args["movie"]:
+        draw.save_ani(fig)
     draw.plt.show()
 
 
@@ -421,7 +424,9 @@ def _set_fig_opts(fig, ax_indices, draw_opts, tight=True):
         ax.set_yticklabels(
             [
                 (
-                    ax.get_yticks()[j] * draw_opts.yaxis_scale
+                    np.format_float_positional(
+                        ax.get_yticks()[j] * draw_opts.yaxis_scale, 2
+                    )
                     if j % draw_opts.yticklabels_pick == 0
                     else ""
                 )
@@ -429,7 +434,7 @@ def _set_fig_opts(fig, ax_indices, draw_opts, tight=True):
             ]
         )
         # FIXME may break 1d figures, no idea why
-        # draw.zoom_axes(ax, draw_opts.zoom_factors)
+        draw.zoom_axes(ax, draw_opts.zoom_factors)
     for ax in fig.get_axes():
         try:
             ax.ticklabel_format(style="sci", axis="y", scilimits=(-2, 2))

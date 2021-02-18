@@ -104,7 +104,7 @@ def draw_pde_trajectories(
     else:
         ls = []
         for ds in dss:
-            l, = ax.plot([], [], "b-")
+            (l,) = ax.plot([], [], "b-")
             ls.append(l)
 
         def update_line(i):
@@ -177,7 +177,7 @@ def set_traj_line(ax, ds, xs, ts, hlines=False, xlabel="x", ylabel="u", scalarma
             return l, time_text
 
     else:
-        l, = ax.plot([], [], "b-")
+        (l,) = ax.plot([], [], "b-")
 
         def update_line(i, l=l):
             l.set_data(xs, ds[i])
@@ -789,7 +789,7 @@ class DrawOpts(object):
         "yaxis_scale": 1,
         "xticklabels_pick": 1,
         "yticklabels_pick": 1,
-        "zoom_factors": [0.9, 0.9],
+        "zoom_factors": [0.0, 0.0],
         "deriv": -1,
         "corrections_shown": [],
     }
